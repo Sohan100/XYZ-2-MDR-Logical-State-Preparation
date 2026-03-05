@@ -1,14 +1,14 @@
-# XYZ2 MDR Logical State Preparation
+# $XYZ^2$ MDR Logical State Preparation
 
 This repository implements and benchmarks a Measurement-Decoding-Recovery
-(MDR) state-preparation workflow for the XYZ^2 hexagonal stabilizer code.
+(MDR) state-preparation workflow for the $XYZ^2$ hexagonal stabilizer code.
 It is a research-code package refactor from legacy project artifacts.
 
 ## Motivation
 
 The project is motivated by two linked goals:
 
-- study the XYZ^2 code family `[[2d^2, 1, d]]` on a honeycomb lattice,
+- study the $XYZ^2$ code family `[[2d^2, 1, d]]` on a honeycomb lattice,
   with weight-2 XX links, weight-6 XYZXYZ plaquettes, and weight-3
   boundary checks
 - evaluate whether mixed-Pauli logical structure gives stronger resilience
