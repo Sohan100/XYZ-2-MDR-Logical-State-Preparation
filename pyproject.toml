@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xyz2-mdr-logical-state-preparation"
+version = "0.1.0"
+description = "XYZ2 MDR simulations for logical state preparation studies."
+requires-python = ">=3.10"
+dependencies = [
+  "matplotlib>=3.7",
+  "networkx>=3.0",
+  "numpy>=1.24",
+  "pandas>=1.5",
+  "stim>=1.13",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --import-mode=importlib --strict-config --strict-markers"
+filterwarnings = [
+  "ignore:Using or importing the ABCs from 'collections'.*:DeprecationWarning",
+]

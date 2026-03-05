@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# Slurm outputs
+*.out
+*.err
+
+# Generated run folders
+XYZ2-experiment-data-slurm/
+
+# Generated experiment outputs
+data/tables/*.csv
+data/simulation_results/*.csv
+data/plots/*.pdf
+!data/.gitkeep
+!data/tables/.gitkeep
+!data/simulation_results/.gitkeep
+!data/plots/.gitkeep
+
+# Local temporary extraction artifacts
+code_cells.py
+stim_xyz2_export.py.py

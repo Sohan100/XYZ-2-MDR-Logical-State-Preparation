@@ -1,0 +1,578 @@
+Characterizing the MDR State-Preparation Protocol for the XY Z 2
+Hexagonal Stabilizer Code
+Sohan Ghosh∗1,3,4 , Paul Kairys†3,4 , and Isaac Kim2
+1
+
+Department of Physics and Astronomy, University of California Davis, Davis, CA
+Department of Physics and Astronomy, University of California Davis, Davis, CA
+3
+Quantum Computational Science, Oak Ridge National Laboratory, Oak Ridge, TN
+4
+Quantum Science Center, Oak Ridge National Laboratory, Oak Ridge, TN
+
+2
+
+March 4, 2026
+
+Abstract
+A short summary of the project goes here. Describe the objective, methods, key results, and significance in one concise paragraph.
+
+1
+
+Introduction
+
+Quantum computing’s utility lies in the usage of superposition and entanglement to process information,
+which is an advantage that makes it distinct from classical computing. Classical computers can manipulate
+bits, b ∈ {0, 1} with irreversible Boolean gates—e.g. the AND gate yields AND(1, 0) = 0, from which the
+inputs cannot be reconstructed.
+Quantum computers, by contrast, rely on qubits whose orthonormal basis states, |0⟩ and |1⟩, reside in
+coherent superposition and become entangled across multiple physical quantum units [1]. Operations on
+these qubits are conducted through unitary quantum gates, which are reversible. These unitary operations
+allow quantum computers to differ qualitatively to classical computers in the domains of state space, gate
+design, algorithmic speed-ups, and especially error correction. These fundamental distinctions enlarge the
+accessible state space exponentially, enabling algorithmic speed-ups such as Shor’s factoring and Grover’s
+search, and impose unique demands on preserving fragile quantum coherence.
+Classical errors are discrete bit flips that measurement easily reveals. Quantum noise is continuous: stray
+fields rotate states, and entanglement with the environment erases phase. Direct measurement would destroy
+the superposed information, so errors must be detected indirectly. So, a critical step towards building a large
+scale fault-tolerant quantum computer is quantum error correction.
+Fault-tolerant quantum processing units (QPUs) suppress noise by encoding each logical qubit into a
+block of physical qubits using a quantum error correcting code (QECC). Stabilizer codes realize this by
+repeatedly measuring a set of mutually commuting operators—the syndrome—whose outcomes map the underlying continuous noise to discrete Pauli errors that can be classically decoded and corrected [2].Topological
+variants, notably Kitaev’s surface code, are especially appealing: their stabilizers act on geometrically local
+qubits in a 2-dimensional grid, and, for physical error rates below threshold, the logical error probability
+falls exponentially with code distance [3]. Recent experiments have successfully run surface-code cycles
+and other stabilizer codes on superconducting, trapped-ion, and photonic platforms [4, 5]. Iterating syndrome extraction and decoding thus drives logical error rates to levels compatible with largescale quantum
+algorithms.
+∗ sohghosh@ucdavis.edu,
+† kairyspm@ornl.gov
+
+orcid:0000-0003-1318-5502
+
+1
+
+In this paper, we study the XY Z 2 stabilizer code, defined on a Honeycomb lattice [6], which is a case
+of matching codes [7]. The stabilizers for this code were previously described in [6] and shown in Figure 1,
+they include weight-6 XY ZXY Z hexagonal plaquette stabilizers, weight-3 XY Z boundary/half plaquette
+stabilizers and weight-2 XX vertical link stabilizers. The stabilizer design gives us a well-defined code family
+of a [[2d2 , 1, d]] code, which has 2d2 data qubits, 1 logical qubit encoded into the physical qubits and a code
+distance of d, which represents the number of qubits that must be altered to enact a logical error that the
+code cannot detect. The motivation to study this code lies in how the logical operators are defined for this
+code, the logical operators for the d = 3 case are shown in Figure 2. They contain a mix of X,Y and Z
+operators which lead us to believe that this code can be robust to biased noise channels. We propose to
+implement this code on Quantinuum’s Helios QPU and verify various fidelity metrics. With an inherent
+resilience to biased noise, we aim to characterize and benchmark the encoded logical qubit by investigating
+the code’s state preparation protocol and logical gate fidelity.
+This paper will be detailing our Measurement-Decoding-Recovery (MDR) state preparation protocol for
+the XY Z 2 code. This protocol has been previously implemented on the toric code as seen in [8]. We aim
+to show how bias noise models provide stronger logical fidelity metrics than more unbiased models. This
+paper will contain 2 major sections: the initial sections will be oriented towards classically simulating the
+MDR protocol using stim; the proceeding sections will be detailing the results we get from implementing
+the protocol on the Helios QPU.
+
+2
+2.1
+
+Background
+Matching codes
+
+Topological matching codes arise from the abelian Z2 phase of Kitaev’s honeycomb lattice model and can
+be viewed as a union of ideas coming from the surface code and color code [7]. They are defined on any
+trivalent lattice, where the qubits sit on vertices, and the links connecting the qubits are defined by X, Y ,
+or Z Pauli operators. These links are coloured so that no two adjacent links share the same label. For each
+link ℓ = (j, k) of type α ∈ {X, Y, Z} one introduces a link operator
+(α)
+
+Kℓ
+
+= σα(j) ⊗ σα(k) ,
+
+(1)
+
+and for every hexagonal plaquette p a weight-six plaquette operator
+Wp = σx(1) σy(2) σz(3) σx(4) σy(5) σz(6) ,
+
+(2)
+
+The stabilizer group is generated by (i) all plaquette operators Wp , and (ii) a matching M of disjoint vertex
+pairs (j, k), each associated with a string stabilizer
+Y
+(α )
+Sj,k =
+Kℓ ℓ ,
+(3)
+ℓ∈P (j,k)
+(α)
+
+where P (j, k) is a path of links connecting j and k. As every generator is a product of commuting Kℓ
+operators, the whole stabilizer set mutually commutes and encodes an Abelian anyon model identical to that
+of the surface code [7] — in particular, e and m type quasi particles live on plaquettes and string endpoints,
+respectively. Twists in the matching pattern give rise to Majorana-like defects, supplying a natural platform
+for non-Abelian braiding within an otherwise Abelian code space, with substantially lower qubit overhead
+than lattice dislocations in the surface code [7]. Matching codes, therefore, form a broad family of twodimensional stabilizer codes where the decoding problem can be reduced to minimum-weight matching on
+an underlying tricoloured graph, promising efficient classical decoders.
+
+2.2
+
+The XYZ2 hexagonal stabilizer code
+
+The XY Z 2 code is a realisation of the matching code on a finite honeycomb patch, where we assign qubits to
+the vertices of the lattice [6, 7]. Within this framework, we choose the vertical links as the matching M . A
+concrete example of the stabilizers can be seen in ??, which displays the d = 3 case. When we pick the Xj Xk
+link operator as a stabilizer generator, the stabilizer set for any arbitrary distance XY Z 2 code contains
+2
+
+• Plaquettes: For every bulk hexagon, Wp = Xa Yb Zc Xd Ye Zf (weight 6)
+(X)
+
+• Links: For every vertical link, Kℓ
+
+= Xj Xk (weight 2)
+
+• Boundaries: Half-hexagons are completed with weight-3 mixed-Pauli stabilizers to keep locality at
+the edges and avoid any weight-1 logical operators from spawning in the code.
+0
+
+1
+
+2
+
+6
+
+9
+
+Z
+
+3
+
+4
+
+5
+
+X
+
+Y
+
+Z
+
+Y
+
+Y
+
+Z
+
+7
+
+8
+
+X
+
+10
+
+11
+
+X
+12
+
+X
+
+X
+
+14
+
+13
+
+15
+
+16
+
+17
+
+Figure 1: Distance-3 XY Z 2 hexagonal code has 17 stabilizers defined on the lattice that generate the
+codespace. They are comprised of (1) 4 hexagonal XY ZXY Z plaquette stabilizers, (2) 4 half palquette
+stabilizers at the boundaries to avoid weight 1 logical operators and (3) 9 XX link stabilzers.
+This stabilizer choice yields a single logical qubit with code distance d. Within this code family, counting
+qubits and independent generators gives us n = 2d2 physical qubits and m = 2d2 − 1 independent stabilizers,
+so the code is [[2d2 , 1, d]] [6]. Specifically, this code has (d−1)2 hexagonal plaquette generators, d2 vertical
+link generators, and 2(d − 1) boundary half-hexagon plaquette generators, which together yield the total
+2d2 − 1 stabilizer generators. We pick the smallest logical operator in this code to be X̄ (weight d), which
+is the only pure-Pauli logical operator. Ȳ and Z̄ are mixed-Pauli logicals that anticommute with each other
+and with X̄. Figure 2 shows the d = 3 case of the logical X, Y and Z Pauli operators, which are chosen to
+be the lowest possible weight.
+Conceptually, XY Z 2 can be obtained from the rotated surface code via a local Clifford deformation
+that mixes X, Y , and Z on selected edges, yielding a YZZY-type plaquette pattern, followed by doubling
+each physical qubit into a two-qubit block protected by an XX link stabilizer [6]. Under this mapping,
+the four-body YZZY plaquettes inflate to six-body XY ZXY Z plaquettes acting on the two-qubit blocks,
+producing a hexagonal tiling with weight-6 checks, while the XX link operators enforce the block parity (a
+
+3
+
+0
+
+0
+
+0
+
+1
+
+1
+
+1
+
+2
+
+3
+
+2
+
+3
+
+2
+
+3
+
+4
+
+5
+
+4
+
+5
+
+4
+
+5
+
+X
+6
+
+7
+
+8
+
+X
+
+6
+
+7
+
+8
+
+6
+
+7
+
+Z
+X
+
+X
+
+9
+
+X
+
+10
+
+11
+
+9
+
+8
+
+Z
+
+10
+
+Y
+
+11
+
+9
+
+X
+
+10
+
+X
+
+Z
+
+11
+
+X
+
+X
+12
+
+13
+
+12
+
+13
+
+12
+
+13
+
+14
+
+15
+
+14
+
+15
+
+14
+
+15
+
+16
+
+16
+
+16
+
+17
+
+17
+
+17
+
+(a) Logical X
+
+(b) Logical Y
+
+(c) Logical Z
+
+Figure 2: These are the chosen logical Pauli operators for the d = 3 XY Z 2 hexagonal code. The strings
+on each lattice illustrate the decomposition of the logical operators in terms of physical gates: (a) X̄ =
+X9 ⊗ X10 ⊗ X11 , is the smallest weight (3) logical X operator. (b) Ȳ = X4 ⊗ Z7 ⊗ Y10 ⊗ X13 , is a weight
+4 logical Y operator. (c) Z̄ = X4 ⊗ Z7 ⊗ X9 ⊗ Z10 ⊗ X12 ⊗ X13 , is the product of X̄ and Ȳ , making it
+a weight 6 logical Z operator. The smallest weight logical operators were chosen to define constant depth
+transversal logical Clifford gates.
+concatenation with a [2, 1, 1] repetition code) [6]. Stabilizer code variants using Y Y or ZZ links are possible
+but we fix XX on vertical links to bias against Z flips. The XX link variant is chosen because the objective
+of this project is to run the MDR protocol on the Helios QPU, whereby Quantinuum’s QPUs, historically,
+have had Z-noise biases.
+Isolated single-qubit errors trigger two neighboring plaquette defects aligned along one of three principal
+lattice directions, where the direction is determined by the Pauli type (X, Y , or Z). Thus, the syndrome
+indicates a specific Pauli error class, generalizing the two-direction structure of XZZX to three directions
+for the XY Z 2 code [6, 9]. Link stabilizers produce single-parity violations on a qubit pair, which must be
+handled in conjunction with the plaquette defects. Although each plaquette is weight 6, the hexagonal tiling
+yields fewer high-weight checks than square-lattice deformations (e.g. XZZX has more weight-4 plaquettes
+for a comparable number of data qubits), partly offsetting the cost of higher weight with a lower check density [6]. The many weight-2 link checks are also attractive for frequent and reliable measurement. However,
+investigating how this code behaves on hardware whilst discovering which noise biases work best with it will
+give us a fair assessment of the code’s performance and capabilities.
+
+3
+
+MDR - Logical State Preparation
+
+The state preparation circuit (Figure 3), for a specific logical state in our codespace, is performed using
+a Measurement-Detection-Recovery (MDR) protocol: initially, the state representing the data qubits are
+4
+
+|0⟩
+
+H
+
+|ψ⟩
+
+H
+Gi
+
+Pi
+
+L̄
+
+Figure 3: State preparation using MDR involves 1) Preparing the ancilla qubit in a |+⟩ state. 2) Using
+controlled-Gi (stabilizer generator and intended logical operator) gates to entangle the ancilla with the data
+qubits. 3) Measuring the ancilla and feed-forwarding the readout result by applying a classically controlledPi (N-qubit Pauli) gate to prepare a logical state L̄ .
+prepared in a state that lies in a +1 eigenspace shared by our chosen logical operator. In the d = 3 case
+of the XY Z 2 code, we pick X̄ as our logical operator and prepare the state |ψ⟩ from the all |0⟩ state. The
+goal is to eventually prepare the |+̄⟩ state, which is stabilized by our stabilizer code generators and X̄. |ψ⟩
+is prepared in the following manner,
+⊗18
+
+|ψ⟩ = H9 ⊗ H10 ⊗ H11 |0⟩
+
+= |0⟩0 ⊗ . . . ⊗ |+⟩9 ⊗ |+⟩10 ⊗ |+⟩11 ⊗ . . . ⊗ |0⟩17
+
+Then an ancilla qubit is prepared in the |+⟩ state, via Hancilla |0⟩ancilla = |+⟩ancilla . We then entangle the
+ancilla with the data qubits using a control-stabilizer gate, this includes all the stabilizer generators of our
+codespace and X̄, which stabilize our intended codeword. The goal is to measure the ancilla and learn about
+the state of our data qubits after the controlled-stabilizer gate. The measurement readout is then used to
+deterministically project the state of the data qubits into our logical state through a classically controlledPauli gate. The controlled-Pauli gate is chosen such that it anti-commutes with the A− projector, defined
+in Equation 4, where Gi are the stabilizer generators of the codespace and X̄. These operators generate the
+stabilizer group S for the |+̄⟩ logical state.
+1
+H · CGi |+⟩ ⊗ |ψ⟩ = H(|0⟩ ⟨0| ⊗ I + |1⟩ ⟨1| ⊗ Gi ) · √ (|0⟩ + |1⟩) ⊗ |ψ⟩ , Gi ∈ S ∀ i ∈ {0, ..., N }
+2
+1
+= H · √ (|0⟩ ⊗ |ψ⟩ + |1⟩ ⊗ Gi |ψ⟩)
+2
+
+
+1
+1
+1
+√ (|0⟩ + |1⟩) ⊗ |ψ⟩ + √ (|0⟩ − |1⟩) ⊗ Gi |ψ⟩
+=√
+2
+2
+2
+1
+= (|0⟩ ⊗ (|ψ⟩ + Gi |ψ⟩) + |1⟩ ⊗ (|ψ⟩ − Gi |ψ⟩))
+2
+1
+1
+where A+ = (I + Gi ) and A− = (I − Gi )
+2
+2
+= |0⟩ ⊗ A+ |ψ⟩ + |1⟩ ⊗ A− |ψ⟩
+
+(4)
+
+The aim is to project into the +1 eigenspace for all Gi ∈ S, which would contain A+ |ψ⟩, and finally prepare
+our logical state. When we measure into the A− |ψ⟩ state, we view that as an error and correct it by applying
+a “toggle” Pauli operator, Pi . These toggle operators anticommute with the A− projector for a specific Gi .
+The choice of Pi is implemented by checking the conditions in Equation 5 for all Gi . In this paper, we use
+a simple lookup table with all possible syndromes as our decoder of choice.
+{Pi , Gi } = 0,
+(5)
+Pi A − = A + Pi ,
+
+4
+4.1
+
+Classical Simulation and Noise Models
+Noise Channels
+
+Prior to running the MDR protocol on the Helios QPU, we investigated the noise characteristics on Qunatinuum’s H2 QPU. From the noise parameter data, we classically simulate the MDR protocol via the stim python
+5
+
+package. We implement State Preparation and Measurement errors, single-qubit and 2-qubit circuit-level
+gate errors using three different noise models. H2’s SPAM parameter was stated as pSP AM ≈ 10−3 .
+As depicted in Figure 4, the SPAM error is classically simulated by applying the bitflip channel with a
+fixed pSP AM parameter as shown in Equation 6.
+pspam ≈ 10−3
+
+BF pspam (ρ) = (1 − pspam ) ρ + pspam XρX,
+
+(6)
+
+We apply this channel before measuring and after resetting our ancilla. This reflects an error occurring when
+preparing the ancilla in the |0⟩ state, or a classical measurement error of a bit accidentally flipping during
+readout. To represent single qubit gate errors in the simulation we use an asymmetric depolarizing noise
+|0⟩
+
+H
+
+Dpα
+
+H
+
+Dpα
+
+BF pspam
+
+R
+
+BF pspam
+
+(2)
+Dpαβ
+
+|ψ⟩
+
+Gi
+
+Dpα
+
+Pi
+
+L̄
+
+Figure 4: Classical simulation of the MDR state-preparation circuit with 3 distinct noise channels. (1) The
+ancilla is reset to the |0⟩ state after every measurement, this is represented by the “R” gate. A bit-flip
+channel (BF) is applied after every reset and before every measurement to represent SPAM errors. (2)
+Single-qubit asymmetric depolarizing channels Dp are applied after each Hadamard and the feed-forward Pi
+gate, they represent single qubit gate errors in the circuit. (3) Two-qubit asymmetric depolarizing channels
+(2)
+Dp are applied after the control-Gi gate, which represent various 2-qubit errors that propagate between
+the ancilla and data qubits after a tensor of 2-qubit gates.
+channel and apply it after every single qubit gate, which includes the Hadamard gates on the ancilla and the
+Pauli toggle gates on the data qubits. The depolarizing channel in Equation 7 utilizes 3 error parameters
+(px , py and pz ), giving us opportunities to vary the noise and test the code with different noise biases.
+
+Dpα (ρ) = (1 − px − py − pz ) ρ + px XρX + py Y ρY + pz ZρZ,
+px , py , pz ≥ 0, px + py + pz ≤ 1 (7)
+Lastly, to account for errors propagating from the ancilla to the data qubits, we use a 2-qubit asymmetric
+depolarizing noise channel as seen in Equation 8. There are 15 different parameters for this noise channel
+that enable us to tailor our 2-qubit noise specifically towards any biases.
+
+
+
+Dp(2)
+(ρ) = 
+αβ
+1 −
+
+4.2
+
+X
+α,β∈{I,X,Y,Z}
+(α,β)̸=(I,I)
+
+
+pαβ 
+ρ +
+
+X
+
+
+
+pαβ σα ⊗σβ ρ σα ⊗σβ
+
+(8)
+
+α,β∈{I,X,Y,Z}
+(α,β)̸=(I,I)
+
+MDR using Tableau Simulations
+
+With these noise channels in mind, we conduct the MDR state preparation protocol with 3 different types
+of noise models. The noise models we use are the (1) unbiased depolarizing noise, (2) Z type noise and (3)
+pure Z noise for both single qubit and 2-qubit channels. These noise models are simulated in O(n2 ) time,
+using a tableau simulator via the stim python package. As every gate and noise process used in the MDR
+circuit is Pauli-diagonal, stim can track an n-qubit stabiliser tableau in O(n2 ) time per two-qubit operation,
+as opposed to an exponential runtime with a state vector simulator.
+Initially, we simulate the MDR protocol on the distance 3 case of the XY Z 2 code. We construct our
+simulations to calculate the fidelities of our stabilizers and logical operators after multiples rounds of MDR.
+The fidelity is calculated as the expectation value of a specific operator. At the end of a designated round of
+MDR, we destructively measure the concerned operator and calculate the expectation value using Equation 9.
+Multiple rounds of MDR are simulated to investigate any performance changes of the operator fidelities.
+\
+(ℓ) ⟩ =
+⟨O
+
+
+P
+N
+(s)
+1 X
+mod 2
+q∈Qℓ mPq
+(−1)
+,
+N s=1
+
+6
+
+(s)
+
+where mPq ∈ {0, 1}.
+
+(9)
+
+
