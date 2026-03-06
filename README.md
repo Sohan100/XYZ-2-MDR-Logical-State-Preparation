@@ -135,9 +135,9 @@ sbatch slurm/run_xyz2_parallel_with_spam.sh
 ```
 
 Both Slurm files are self-contained:
-- create run config for the chosen `DISTANCE`/`NOISE_MODEL`
-- launch one process per probability index in parallel
-- merge partial CSV outputs at the end
+- create one run config per distance in the default sweep `3 5 7 9 11`
+- launch one process per probability index in parallel for each distance
+- merge partial CSV outputs after each distance completes
 
 ### 3) Final outputs
 
