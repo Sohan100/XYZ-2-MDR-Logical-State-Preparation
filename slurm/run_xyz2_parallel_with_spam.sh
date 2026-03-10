@@ -18,6 +18,8 @@ NUM_SHOTS=3000
 NUM_REPLICATES=30
 ROOT_DIR="${PWD}/XYZ2-experiment-data-slurm"
 SCRIPTS_DIR="scripts"
+RESULTS_COPY_DIR="${PWD}/data/simulation_results"
+TABLES_COPY_DIR="${PWD}/data/tables"
 # --- END USER CONFIGURABLE SECTION ---
 
 EXPECTED_CODE_NAME="xyz2_mdr"
@@ -45,7 +47,7 @@ for NOISE_MODEL in "${NOISE_MODELS[@]}"; do
     for DISTANCE in "${DISTANCES[@]}"; do
         RUN_NAME="Run-${TIMESTAMP}-d${DISTANCE}-${NOISE_MODEL}-with-spam"
 
-        python3 "${SCRIPTS_DIR}/setup_slurm_run.py" \
+        python3.11 "${SCRIPTS_DIR}/setup_slurm_run.py" \
             --distance "${DISTANCE}" \
             --noise-model "${NOISE_MODEL}" \
             --run-name "${RUN_NAME}" \
@@ -97,16 +99,18 @@ for NOISE_MODEL in "${NOISE_MODELS[@]}"; do
             echo "Launching idx ${idx} (p ~ ${prob_val_for_log})"
             srun --exclusive --nodes=1 --ntasks=1 \
                 --cpus-per-task=${SLURM_CPUS_PER_TASK} \
-                python3 "${SCRIPTS_DIR}/run_slurm_experiment.py" \
+                python3.11 "${SCRIPTS_DIR}/run_slurm_experiment.py" \
                 "${RUN_NAME}" "${idx}" \
                 --root-dir "${ROOT_DIR}" \
                 > "${LOG_DIR}/run_p_idx${idx}_val${prob_val_for_log}.log" 2>&1 &
         done
 
         wait
-        python3 "${SCRIPTS_DIR}/merge_slurm_results.py" \
+        python3.11 "${SCRIPTS_DIR}/merge_slurm_results.py" \
             "${RUN_NAME}" \
             --root-dir "${ROOT_DIR}" \
+            --copy-to "${RESULTS_COPY_DIR}" \
+            --tables-copy-to "${TABLES_COPY_DIR}" \
             > "${LOG_DIR}/merge_results.log" 2>&1
     done
 done

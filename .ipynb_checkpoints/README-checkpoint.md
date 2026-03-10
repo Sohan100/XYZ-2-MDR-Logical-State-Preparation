@@ -116,20 +116,9 @@ python scripts/plot_thresholds_from_csv.py \
   --output-dir data/plots
 ```
 
-Filter by SPAM setting:
-
-```bash
-python scripts/plot_thresholds_from_csv.py \
-  --distances 3 5 7 9 11 \
-  --input-dir data/simulation_results \
-  --output-dir data/plots \
-  --p-spam 1.339e-3
-```
-
-The plotting script supports both legacy naming and spec-hash naming.
-When `--p-spam` is set, it resolves CSVs by reading the `.spec.json`
-sidecars and selecting the newest match for each
-`(noise_model, distance, p_spam)`.
+The plotting script supports both legacy naming and the new
+spec-hash naming. For spec-hash files, it picks the newest matching CSV
+for each `(noise_model, distance)` pair.
 
 ## Slurm Workflow
 
@@ -146,20 +135,15 @@ sbatch slurm/run_xyz2_parallel_with_spam.sh
 ```
 
 Both Slurm files are self-contained:
-- create one run config per `(noise_model, distance)` pair in the default
-  sweep `z_type`, `pure_z`, `unbiased` x `3 5 7 9 11`
-- launch one process per probability index in parallel for each pair
-- merge partial CSV outputs after each pair completes
-- copy canonical spec-keyed results into `data/simulation_results/`
-- copy tables into `data/tables/`
+- create run config for the chosen `DISTANCE`/`NOISE_MODEL`
+- launch one process per probability index in parallel
+- merge partial CSV outputs at the end
 
 ### 3) Final outputs
 
 - `XYZ2-experiment-data-slurm/<RUN_NAME>/partials/result_idx*.csv`
 - `XYZ2-experiment-data-slurm/<RUN_NAME>/results_<noise_model>_d<distance>.csv`
-- `data/simulation_results/results_<noise_model>_d<distance>_pspam..._spec-<hash>.csv`
-- `data/simulation_results/results_<...>.spec.json`
-- `data/tables/mdr_table_d<distance>.csv`
+- copied merged file into `data/simulation_results/`
 
 ## Tests
 

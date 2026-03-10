@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 import sys
 
@@ -48,13 +49,59 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input-dir", type=Path,
                         default=DEFAULT_RESULTS_DIR)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_PLOTS_DIR)
+    parser.add_argument(
+        "--p-spam",
+        type=float,
+        default=None,
+        help=(
+            "Optional SPAM value filter. If set, load only spec-matched files "
+            "for this p_spam."
+        ),
+    )
     return parser.parse_args()
+
+
+def _close(a: float, b: float, tol: float = 1e-15) -> bool:
+    """Return True when two floating-point values are approximately equal."""
+    return abs(float(a) - float(b)) <= tol
+
+
+def _resolve_result_csv(
+    input_dir: Path,
+    noise_model: str,
+    distance: int,
+    p_spam: float | None = None,
+) -> Path | None:
+    """Resolve a saved result CSV using legacy and spec-based naming."""
+    legacy = input_dir / f"results_{noise_model}_d{distance}.csv"
+    if legacy.exists() and (p_spam is None or _close(p_spam, 0.0)):
+        return legacy
+
+    spec_files = sorted(
+        input_dir.glob(f"results_{noise_model}_d{distance}_*.spec.json")
+    )
+    matches: list[Path] = []
+    for spec_path in spec_files:
+        spec = json.loads(spec_path.read_text(encoding="utf-8"))
+        if p_spam is not None:
+            val = float(spec.get("p_spam", -1.0))
+            if not _close(val, p_spam):
+                continue
+        csv_path = spec_path.with_suffix("").with_suffix(".csv")
+        if csv_path.exists():
+            matches.append(csv_path)
+
+    if not matches:
+        return None
+    matches.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    return matches[0]
 
 
 def _load_sweeps(
     input_dir: Path,
     distances: list[int],
     noise_model: str,
+    p_spam: float | None = None,
 ) -> dict[str, MdrNoiseSweep]:
     """
     Load sweep CSV files for one noise model across requested distances.
@@ -71,20 +118,15 @@ def _load_sweeps(
     sweeps: dict[str, MdrNoiseSweep] = {}
     display = NOISE_MODEL_DISPLAY_NAMES[noise_model]
     for d in distances:
-        csv_path = input_dir / f"results_{noise_model}_d{d}.csv"
-        if not csv_path.exists():
-            candidates = sorted(
-                input_dir.glob(f"results_{noise_model}_d{d}_spec-*.csv"),
-                key=lambda path: path.stat().st_mtime,
-                reverse=True,
-            )
-            if candidates:
-                csv_path = candidates[0]
-        if csv_path.exists():
+        csv_path = _resolve_result_csv(input_dir, noise_model, d, p_spam=p_spam)
+        if csv_path is not None:
             sweeps[f"{display} (d={d})"] = MdrNoiseSweep(
                 load_data_filename=csv_path)
         else:
-            print(f"Warning: missing {csv_path}")
+            msg = f"Warning: missing {noise_model} d={d}"
+            if p_spam is not None:
+                msg += f", p_spam={p_spam:g}"
+            print(msg)
     return sweeps
 
 
@@ -102,12 +144,19 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     for noise_model in sorted(NOISE_MODEL_PARAM_NAMES):
-        sweeps = _load_sweeps(args.input_dir, args.distances, noise_model)
+        sweeps = _load_sweeps(
+            args.input_dir, args.distances, noise_model, p_spam=args.p_spam
+        )
         if not sweeps:
             print(f"Skipping {noise_model}: no CSV files found.")
             continue
 
-        out_pdf = args.output_dir / f"threshold_{noise_model}_noise.pdf"
+        suffix = (
+            f"pspam_{args.p_spam:.3e}".replace("+", "")
+            if args.p_spam is not None
+            else "noise"
+        )
+        out_pdf = args.output_dir / f"threshold_{noise_model}_{suffix}.pdf"
         MdrNoiseSweep.plot_error_multi(
             sweeps=sweeps,
             category="logical",
