@@ -49,6 +49,11 @@ class MdrNoiseSweep:
         Structure: results[param_combo][round_index][operator_label] = mean_val
     results_std : Dict[tuple, Dict[int, Dict[str, float]]]
         Sample standard deviations of ⟨|O|⟩ for each combo, round, and operator.
+    results_signed : Dict[tuple, Dict[int, Dict[str, float]]]
+        Signed means for each combo, round, and operator. For legacy CSVs
+        without signed columns, these values are populated from `results`.
+    results_std_signed : Dict[tuple, Dict[int, Dict[str, float]]]
+        Signed sample standard deviations for each combo, round, and operator.
     
     Methods
     -------
@@ -214,7 +219,13 @@ class MdrNoiseSweep:
             value_lists = [self.param_values_map[n] for n in self.param_names]
             self.param_combos = list(product(*value_lists))
 
-        self.results, self.results_std = self._perform_sweep()
+        (
+            self.results,
+            self.results_std,
+            self.results_signed,
+            self.results_std_signed,
+        ) = self._perform_sweep()
+        self.has_exact_signed_results = True
         if save_data_filename is not None:
             self.save_results(save_data_filename)
 
@@ -224,6 +235,8 @@ class MdrNoiseSweep:
     def _perform_sweep(
         self,
     ) -> Tuple[
+        Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
+        Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
         Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
         Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
     ]:
@@ -249,6 +262,12 @@ class MdrNoiseSweep:
         """
         all_means: Dict[Tuple[float, ...], Dict[int, Dict[str, float]]] = {}
         all_stds: Dict[Tuple[float, ...], Dict[int, Dict[str, float]]] = {}
+        all_signed_means: Dict[
+            Tuple[float, ...], Dict[int, Dict[str, float]]
+        ] = {}
+        all_signed_stds: Dict[
+            Tuple[float, ...], Dict[int, Dict[str, float]]
+        ] = {}
 
         one_q_params = [n for n in self.param_names if n in self.single_params]
         two_q_params = [
@@ -311,6 +330,8 @@ class MdrNoiseSweep:
 
             mean_dict = {round_idx: {} for round_idx in self.round_list}
             std_dict = {round_idx: {} for round_idx in self.round_list}
+            signed_mean_dict = {round_idx: {} for round_idx in self.round_list}
+            signed_std_dict = {round_idx: {} for round_idx in self.round_list}
 
             for label in self.measure_stabilizers:
                 stats = sim._stats_stabilizers[label]
@@ -322,9 +343,12 @@ class MdrNoiseSweep:
                     if r in mean_dict:
                         mean_dict[r][label] = ctr
                         std_dict[r][label] = sd
+                        signed_mean_dict[r][label] = ctr
+                        signed_std_dict[r][label] = sd
 
             for label in self.logical_operators:
                 stats = sim._stats_logicals[label]
+                signed_stats = sim._stats_logicals_signed[label]
                 for r, ctr, sd in zip(
                     stats["rounds"],
                     stats["centers"],
@@ -333,11 +357,21 @@ class MdrNoiseSweep:
                     if r in mean_dict:
                         mean_dict[r][label] = ctr
                         std_dict[r][label] = sd
+                for r, ctr, sd in zip(
+                    signed_stats["rounds"],
+                    signed_stats["centers"],
+                    signed_stats["stds"],
+                ):
+                    if r in signed_mean_dict:
+                        signed_mean_dict[r][label] = ctr
+                        signed_std_dict[r][label] = sd
 
             all_means[combo] = mean_dict
             all_stds[combo] = std_dict
+            all_signed_means[combo] = signed_mean_dict
+            all_signed_stds[combo] = signed_std_dict
 
-        return all_means, all_stds
+        return all_means, all_stds, all_signed_means, all_signed_stds
 
     # ─────────────────────────────────────────────────────────────────────
     # io helpers
@@ -347,7 +381,8 @@ class MdrNoiseSweep:
         Flatten the results dictionary and save to CSV.
         
         The CSV structure will be:
-        [param_1, param_2, ..., round, operator, mean, std]
+        [param_1, param_2, ..., round, operator, mean, std,
+         mean_signed, std_signed]
         
         Args
         ----
@@ -366,10 +401,23 @@ class MdrNoiseSweep:
                     row["operator"] = label
                     row["mean"] = mean_val
                     row["std"] = self.results_std[combo][round_idx][label]
+                    row["mean_signed"] = self.results_signed[combo][round_idx][
+                        label
+                    ]
+                    row["std_signed"] = self.results_std_signed[combo][
+                        round_idx
+                    ][label]
                     rows.append(row)
 
         df = pd.DataFrame(rows)
-        cols = self.param_names + ["round", "operator", "mean", "std"]
+        cols = self.param_names + [
+            "round",
+            "operator",
+            "mean",
+            "std",
+            "mean_signed",
+            "std_signed",
+        ]
         df = df[cols]
 
         out_path = Path(filename)
@@ -410,10 +458,23 @@ class MdrNoiseSweep:
                 raise FileNotFoundError(f"File not found: {filename}")
 
         df = pd.read_csv(in_path)
-        reserved = {"round", "operator", "mean", "std"}
+        reserved = {
+            "round",
+            "operator",
+            "mean",
+            "std",
+            "mean_signed",
+            "std_signed",
+        }
         self.param_names = [col for col in df.columns if col not in reserved]
         self.results = {}
         self.results_std = {}
+        self.results_signed = {}
+        self.results_std_signed = {}
+        self.has_exact_signed_results = {
+            "mean_signed",
+            "std_signed",
+        }.issubset(df.columns)
 
         combo_df = df[self.param_names].drop_duplicates()
         self.param_combos = [
@@ -444,6 +505,8 @@ class MdrNoiseSweep:
         for combo in self.param_combos:
             self.results[combo] = {}
             self.results_std[combo] = {}
+            self.results_signed[combo] = {}
+            self.results_std_signed[combo] = {}
             mask = np.ones(len(df), dtype=bool)
             for name, val in zip(self.param_names, combo):
                 mask &= df[name] == val
@@ -453,8 +516,20 @@ class MdrNoiseSweep:
                 op = str(row["operator"])
                 mn = float(row["mean"])
                 sd = float(row["std"])
+                mn_signed = float(row["mean_signed"]) if (
+                    self.has_exact_signed_results
+                ) else mn
+                sd_signed = float(row["std_signed"]) if (
+                    self.has_exact_signed_results
+                ) else sd
                 self.results[combo].setdefault(round_idx, {})[op] = mn
                 self.results_std[combo].setdefault(round_idx, {})[op] = sd
+                self.results_signed[combo].setdefault(
+                    round_idx, {}
+                )[op] = mn_signed
+                self.results_std_signed[combo].setdefault(
+                    round_idx, {}
+                )[op] = sd_signed
 
         unique_ops = sorted(df["operator"].unique().tolist())
         logical_labels = [op for op in unique_ops if op.startswith("Logical")]
@@ -467,6 +542,61 @@ class MdrNoiseSweep:
             f"{len(self.param_combos)} parameter combinations from "
             f"{in_path.resolve()}"
         )
+
+    def _metric_series_for_operator(
+        self,
+        round_idx: int,
+        operator: str,
+        metric: str,
+        allow_legacy_approx: bool = False,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Return x/y data for a named plotting metric.
+
+        Args:
+            round_idx: MDR round to plot.
+            operator: Operator label to extract.
+            metric: One of `observable_loss` or `state_prep_error`.
+            allow_legacy_approx: If True, old CSVs without signed means may
+                approximate state-preparation error as `(1 - |<X_L>|)/2`.
+        """
+        combos = self._sorted_combos_for_plot()
+        p_vals = np.array([float(combo[0]) for combo in combos], dtype=float)
+
+        if metric == "observable_loss":
+            means = np.array(
+                [self.results[c][round_idx][operator] for c in combos],
+                dtype=float,
+            )
+            stds = np.array(
+                [self.results_std[c][round_idx][operator] for c in combos],
+                dtype=float,
+            )
+            return p_vals, 1 - means, stds
+
+        if metric != "state_prep_error":
+            raise ValueError(f"Unknown metric '{metric}'.")
+        if operator != "Logical X":
+            raise ValueError(
+                "state_prep_error is only defined for the target logical "
+                "operator 'Logical X'."
+            )
+        if not self.has_exact_signed_results and not allow_legacy_approx:
+            raise ValueError(
+                "Loaded CSV lacks signed logical expectations. Exact "
+                "state-preparation error requires rerunning the simulation "
+                "with the updated code, or setting allow_legacy_approx=True."
+            )
+
+        means = np.array(
+            [self.results_signed[c][round_idx][operator] for c in combos],
+            dtype=float,
+        )
+        stds = np.array(
+            [self.results_std_signed[c][round_idx][operator] for c in combos],
+            dtype=float,
+        )
+        return p_vals, 0.5 * (1 - means), 0.5 * stds
 
     # ─────────────────────────────────────────────────────────────────────
     # plotting
@@ -687,4 +817,154 @@ class MdrNoiseSweep:
             out_path = Path(save_path)
             out_path.parent.mkdir(parents=True, exist_ok=True)
             fig.savefig(out_path, dpi=300, bbox_inches="tight")
-        plt.show()
+        if "agg" not in plt.get_backend().lower():
+            plt.show()
+        plt.close(fig)
+
+    @staticmethod
+    def plot_state_prep_error_multi(
+        sweeps: Dict[str, "MdrNoiseSweep"],
+        rounds: List[int],
+        logical_label: str = "Logical X",
+        overlay: bool = False,
+        log_x: bool = False,
+        figsize: Tuple[int, int] = (15, 6),
+        save_path: Optional[str | Path] = None,
+        allow_legacy_approx: bool = False,
+    ) -> None:
+        """
+        Plot logical state-preparation error `(1 - <X_L>) / 2`.
+
+        For legacy CSVs saved before signed expectations were preserved, this
+        metric is only approximate because those files contain `|<X_L>|`
+        instead of `<X_L>`.
+        """
+        if not sweeps:
+            raise ValueError("No sweeps provided")
+
+        if logical_label != "Logical X":
+            raise ValueError(
+                "state-preparation error is currently supported only for "
+                "'Logical X'."
+            )
+
+        colours = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        markers = ["o", "s", "^", "v", "<", ">", "D", "P", "X", "*"]
+        style_map = {
+            model: (
+                colours[idx % len(colours)],
+                markers[idx % len(markers)],
+            )
+            for idx, model in enumerate(sweeps)
+        }
+
+        if overlay:
+            fig, ax0 = plt.subplots(figsize=figsize)
+            axes = [ax0]
+        else:
+            n = len(rounds)
+            cols = min(3, n)
+            rows = math.ceil(n / cols)
+            fig, grid = plt.subplots(
+                rows,
+                cols,
+                figsize=figsize,
+                squeeze=False,
+            )
+            axes = list(grid.flatten())
+
+        plot_axes = [axes[0]] if overlay else axes[: len(rounds)]
+        if not overlay and len(axes) > len(rounds):
+            for extra_ax in axes[len(rounds) :]:
+                extra_ax.set_visible(False)
+
+        legacy_models = [
+            model
+            for model, sweep in sweeps.items()
+            if not sweep.has_exact_signed_results
+        ]
+        if legacy_models and allow_legacy_approx:
+            print(
+                "Warning: using legacy approximate state-preparation error "
+                "for "
+                + ", ".join(legacy_models)
+                + "."
+            )
+
+        for idx, ax in enumerate(plot_axes):
+            if not overlay:
+                round_idx = rounds[idx]
+                ax.set_title(f"Round {round_idx}")
+            ax.grid(True)
+
+            for model, sweep in sweeps.items():
+                color, marker = style_map[model]
+
+                if overlay:
+                    for round_idx in rounds:
+                        p_vals, y_vals, y_errs = sweep._metric_series_for_operator(
+                            round_idx=round_idx,
+                            operator=logical_label,
+                            metric="state_prep_error",
+                            allow_legacy_approx=allow_legacy_approx,
+                        )
+                        ax.errorbar(
+                            p_vals,
+                            y_vals,
+                            yerr=y_errs,
+                            fmt=f"-{marker}",
+                            color=color,
+                            capsize=4,
+                            label=f"{model} (r={round_idx})",
+                        )
+                else:
+                    round_idx = rounds[idx]
+                    p_vals, y_vals, y_errs = sweep._metric_series_for_operator(
+                        round_idx=round_idx,
+                        operator=logical_label,
+                        metric="state_prep_error",
+                        allow_legacy_approx=allow_legacy_approx,
+                    )
+                    ax.errorbar(
+                        p_vals,
+                        y_vals,
+                        yerr=y_errs,
+                        fmt=f"-{marker}",
+                        color=color,
+                        capsize=4,
+                        label=model,
+                    )
+
+            if log_x:
+                ax.set_xscale("log")
+            ax.set_xlabel("p", fontsize=14)
+            ylabel = "State-prep error (1 - <X_L>) / 2"
+            if legacy_models and allow_legacy_approx:
+                ylabel += " [legacy approx]"
+            ax.set_ylabel(ylabel, fontsize=14)
+
+        plt.tight_layout(rect=[0, 0, 0.75, 1])
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        bboxes = [ax.get_tightbbox(renderer) for ax in plot_axes]
+        union_bbox = Bbox.union(bboxes)
+        bb = union_bbox.transformed(fig.transFigure.inverted())
+        lx = bb.x1 + 0.01
+        ly = bb.y0 + bb.height / 2
+
+        handles, lbls = plot_axes[0].get_legend_handles_labels()
+        fig.legend(
+            handles,
+            lbls,
+            loc="center left",
+            bbox_to_anchor=(lx, ly),
+            fontsize="small",
+        )
+
+        if save_path is not None:
+            out_path = Path(save_path)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(out_path, dpi=300, bbox_inches="tight")
+        if "agg" not in plt.get_backend().lower():
+            plt.show()
+        plt.close(fig)

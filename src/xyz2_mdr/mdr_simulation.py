@@ -2,8 +2,8 @@
 mdr_simulation.py
 ────────────────────────────────────────────────────────────────────────
 Encapsulates measurement-based decoding & recovery (MDR) utilities in the
-MDRSimulation class, with precomputed violin-distribution overlays of
-absolute mean-estimates and detailed uncertainty reporting.
+MDRSimulation class, with precomputed violin-distribution overlays and
+detailed uncertainty reporting.
 """
 
 from __future__ import annotations
@@ -21,12 +21,13 @@ class MDRSimulation:
     Tools for simulating Measurement-based Decoding & Recovery (MDR).
     
     This class precomputes, for each specified stabilizer and logical
-    operator, the distribution of absolute mean-estimates obtained by
+    operator, the distribution of mean-estimates obtained by
     repeating an N-shot experiment (`shots_per_measurement`) `num_replicates`
     times per MDR round (0…`total_mdr_rounds`), and caches both the full
     replicate lists (for violin plots) and summary statistics (mean ±
-    sample-stddev). It also computes an overall average expectation per
-    operator (mean of the per-round means).
+    sample-stddev). Stabilizers and the legacy logical-fidelity view retain
+    absolute values, while logical operators also keep signed expectations
+    for state-preparation error analysis.
     
     Once initialized, `plot_group()` and `results()` render or print the
     precomputed data instantly. For on-demand, single-run curves,
@@ -183,9 +184,17 @@ class MDRSimulation:
 
         self._replicate_means_logicals: Dict[str, Dict[int, List[float]]]
         self._replicate_means_logicals = {}
+        self._replicate_means_logicals_signed: Dict[str, Dict[int, List[float]]]
+        self._replicate_means_logicals_signed = {}
         for label, spec in logical_pauli_strings.items():
             self._replicate_means_logicals[label] = (
                 self.calculate_replicated_means_vs_rounds(spec)
+            )
+            self._replicate_means_logicals_signed[label] = (
+                self.calculate_replicated_means_vs_rounds(
+                    spec,
+                    absolute_value=False,
+                )
             )
 
         self._stats_stabilizers: Dict[str, Dict[str, List[float]]] = {}
@@ -197,10 +206,19 @@ class MDRSimulation:
 
         self._stats_logicals: Dict[str, Dict[str, List[float]]] = {}
         self._avg_logicals: Dict[str, float] = {}
+        self._stats_logicals_signed: Dict[str, Dict[str, List[float]]] = {}
+        self._avg_logicals_signed: Dict[str, float] = {}
         for label, dist_map in self._replicate_means_logicals.items():
             stats = self._summarize_distribution_map(dist_map)
             self._stats_logicals[label] = stats
             self._avg_logicals[label] = float(np.mean(stats["centers"]))
+            signed_stats = self._summarize_distribution_map(
+                self._replicate_means_logicals_signed[label]
+            )
+            self._stats_logicals_signed[label] = signed_stats
+            self._avg_logicals_signed[label] = float(
+                np.mean(signed_stats["centers"])
+            )
 
     # ─────────────────────────────────────────────────────────────────────
     # measurement helpers
@@ -232,6 +250,7 @@ class MDRSimulation:
         self,
         circuit: stim.Circuit,
         measurement_ops: List[Tuple[str, int]],
+        absolute_value: bool = True,
     ) -> float:
         """
         Append measurement_ops to the circuit, sample, and compute |⟨O⟩|.
@@ -241,8 +260,12 @@ class MDRSimulation:
             measurement_ops (List[Tuple[str, int]]): List of (gate, qubit) to
             measure.
         
+        Args:
+            absolute_value (bool): If True, return `|<O>|`; otherwise return
+            the signed expectation `<O>`.
+
         Returns:
-            float: Absolute mean of the ±1 parity outcomes.
+            float: Mean of the ±1 parity outcomes, optionally absolute-valued.
         """
         for gate, qubit in measurement_ops:
             if self.p_spam > 0:
@@ -259,7 +282,8 @@ class MDRSimulation:
         cols = np.arange(-len(measurement_ops), 0)
         parity = np.sum(samples[:, cols], axis=1) % 2
         eigen = 1 - 2 * parity
-        return float(abs(np.mean(eigen)))
+        mean_val = float(np.mean(eigen))
+        return float(abs(mean_val)) if absolute_value else mean_val
 
     # ─────────────────────────────────────────────────────────────────────
     # public api
@@ -267,6 +291,7 @@ class MDRSimulation:
     def calculate_replicated_means_vs_rounds(
         self,
         pauli_specification: str,
+        absolute_value: bool = True,
     ) -> Dict[int, List[float]]:
         """
         For each round r, repeat the N-shot experiment `num_replicates` times
@@ -274,6 +299,8 @@ class MDRSimulation:
         
         Args:
             pauli_specification (str): Sparse Pauli string to measure.
+            absolute_value (bool): If True, collect `|<O>|`; otherwise collect
+                signed `<O>`.
         
         Returns:
             Dict[int, List[float]]: Mapping from round index to list of
@@ -291,6 +318,7 @@ class MDRSimulation:
                 mean_val = self.compute_parity_expectation(
                     base.copy(),
                     measurement_ops,
+                    absolute_value=absolute_value,
                 )
                 replicate_means.append(mean_val)
             dist_map[round_idx] = replicate_means

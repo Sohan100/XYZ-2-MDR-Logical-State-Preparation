@@ -58,6 +58,23 @@ def parse_args() -> argparse.Namespace:
             "for this p_spam."
         ),
     )
+    parser.add_argument(
+        "--metric",
+        choices=["observable_loss", "state_prep_error"],
+        default="state_prep_error",
+        help=(
+            "Plot either the legacy observable-loss metric `1 - |<X_L>|` or "
+            "the corrected logical state-preparation error `(1 - <X_L>) / 2`."
+        ),
+    )
+    parser.add_argument(
+        "--allow-legacy-approx",
+        action="store_true",
+        help=(
+            "Allow old CSVs without signed logical expectations to approximate "
+            "state-preparation error as `(1 - |<X_L>|) / 2`."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -151,21 +168,33 @@ def main() -> None:
             print(f"Skipping {noise_model}: no CSV files found.")
             continue
 
-        suffix = (
+        suffix_core = (
             f"pspam_{args.p_spam:.3e}".replace("+", "")
             if args.p_spam is not None
             else "noise"
         )
+        suffix = f"{args.metric}_{suffix_core}"
         out_pdf = args.output_dir / f"threshold_{noise_model}_{suffix}.pdf"
-        MdrNoiseSweep.plot_error_multi(
-            sweeps=sweeps,
-            category="logical",
-            rounds=[1],
-            subset=["Logical X"],
-            overlay=False,
-            log_x=True,
-            save_path=out_pdf,
-        )
+        if args.metric == "observable_loss":
+            MdrNoiseSweep.plot_error_multi(
+                sweeps=sweeps,
+                category="logical",
+                rounds=[1],
+                subset=["Logical X"],
+                overlay=False,
+                log_x=True,
+                save_path=out_pdf,
+            )
+        else:
+            MdrNoiseSweep.plot_state_prep_error_multi(
+                sweeps=sweeps,
+                rounds=[1],
+                logical_label="Logical X",
+                overlay=False,
+                log_x=True,
+                save_path=out_pdf,
+                allow_legacy_approx=args.allow_legacy_approx,
+            )
         print(f"Saved {out_pdf}")
 
 
