@@ -12,34 +12,28 @@ from typing import List, Tuple
 class XYZ2StabilizerGenerator:
     """
     Generator that produces stabilizer strings for the XYZ^2 Hex Code.
-    
-    The XYZ^2 code is defined on a honeycomb lattice with lattice 
-    parameter `d`. The code typically employs:
-        - Weight-2 XX links on vertical edges.
-        - Weight-6 XYZXYZ plaquettes in the bulk.
-        - Weight-3 boundary checks.
-    
+    Builds the full stabilizer set of the XYZ^2 hex code from the lattice
+    geometry at a chosen odd code distance.
+
     Attributes
     ----------
     d : int
-        Code distance (must be odd and >= 3).
+        Code distance.
     n : int
-        Total number of qubits (2 * d^2).
-    _layer_offsets : list[int]
-        Precomputed offsets for mapping (i,j) coordinates to qubit indices.
-    
+        Total number of physical qubits, equal to `2 * d^2`.
+    _layer_offsets : List[int]
+        Precomputed offsets used to map lattice coordinates to upper and
+        lower qubit indices.
+
     Methods
     -------
+    __init__(...)
+        Initialize the stabilizer generator and precompute lattice geometry.
     generate_stabilizers()
-        Return a list of sparse Pauli strings representing the stabilizers.
+        Return the full ordered list of stabilizer generators.
     _coord_to_verts(i, j)
-        Map 2D lattice coordinates (i, j) to the pair of qubit indices (up, lo).
-    
-    Example
-    -------
-    >>> gen = XYZ2StabilizerGenerator(distance=3)
-    >>> gen.generate_stabilizers()
-    ['X0 X1', 'Y0 Z1 X2', ...]
+        Map a logical lattice coordinate to the corresponding upper and lower
+        physical qubit indices.
     """
 
     # ─────────────────────────────────────────────────────────────────────
@@ -81,11 +75,14 @@ class XYZ2StabilizerGenerator:
     def generate_stabilizers(self) -> List[str]:
         """
         Compute the full list of stabilizer generators for distance d.
-        
-        Returns
-        -------
-        List[str]
-            List of Pauli strings (e.g., ["X0 X1", "Y0 Z1 X2", ...]).
+
+        The output ordering is deterministic and grouped by geometric type:
+        vertical `XX` links first, then bulk plaquettes, followed by the four
+        boundary families.
+
+        Returns:
+            List[str]: Sparse Pauli strings such as
+            `["X0 X1", "Y0 Z1 X2", ...]`.
         """
         stabs: List[str] = []
 
@@ -141,15 +138,18 @@ class XYZ2StabilizerGenerator:
     def _coord_to_verts(self, i: int, j: int) -> Tuple[int, int]:
         """
         Map logical 2D coordinate (i,j) to physical qubit indices.
-        
-        The lattice is indexed by diagonals ell = i + j.
-        
+
+        The lattice is indexed by diagonal slices `ell = i + j`, and each
+        slice has an upper and lower layer. This helper converts a lattice
+        cell coordinate into the pair `(upper_vertex, lower_vertex)` used by
+        the stabilizer and logical-construction routines.
+
         Args:
-            i: Row index (0 to d-1)
-            j: Column index (0 to d-1)
-        
+            i: Row index in the range `0 .. d - 1`.
+            j: Column index in the range `0 .. d - 1`.
+
         Returns:
-            Tuple[int, int]: (upper_qubit_index, lower_qubit_index)
+            Tuple[int, int]: `(upper_qubit_index, lower_qubit_index)`.
         """
         ell = i + j
         max_i = min(self.d - 1, ell)

@@ -106,6 +106,7 @@ def main() -> None:
         ancillas=1,
         psi_circuit=code_inputs["psi_circuit"],
         p_spam=float(config["p_spam"]),
+        recovery_mode=str(config.get("recovery_mode", "each_round")),
         param_names=param_names,
         param_values=[p_val],
         round_list=[int(x) for x in config["rounds"]],

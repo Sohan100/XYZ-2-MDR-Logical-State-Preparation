@@ -15,23 +15,40 @@ class MDRCircuit:
     """
     Builds a Measurement-based Decoding & Recovery (MDR) circuit with
     configurable noise models and defaults.
-    
-    Args:
-        stabilizers (List[str] | None): List of stabilizer generator strings.
-            If None, a default set is used.
-        toggles (List[str] | None): List of recovery toggle strings.
-            If None, a default set is used.
-        ancillas (int): Number of ancilla qubits to use (min 1).
-        p_spam (float): Probability of SPAM noise.
-        p_x (float): Probability of X error during idling.
-        p_y (float): Probability of Y error during idling.
-        p_z (float): Probability of Z error during idling.
-        g1_x (float): Prob. of X error after each 1-qubit gate.
-        g1_y (float): Prob. of Y error after each 1-qubit gate.
-        g1_z (float): Prob. of Z error after each 1-qubit gate.
-        gate_noise_2q (List[float] | None): 15 two-qubit error probabilities.
-        psi_circuit (stim.Circuit | None): initial state preparation circuit.
-    
+
+    Attributes
+    ----------
+    stabilizers : List[str]
+        List of stabilizer generator strings measured by the MDR circuit.
+    num_qubits : int
+        Number of data qubits assumed by the historical project convention.
+    toggles : List[str]
+        Recovery toggle strings aligned with `stabilizers`.
+    ancillas : int
+        Number of ancilla qubits used for syndrome extraction.
+    p_spam : float
+        Probability of SPAM noise on reset and measurement.
+    p_x : float
+        Probability of X idling noise.
+    p_y : float
+        Probability of Y idling noise.
+    p_z : float
+        Probability of Z idling noise.
+    g1_x : float
+        Probability of X error after each one-qubit gate.
+    g1_y : float
+        Probability of Y error after each one-qubit gate.
+    g1_z : float
+        Probability of Z error after each one-qubit gate.
+    gate_noise_2q : List[float]
+        Fifteen nontrivial two-qubit Pauli error probabilities used after
+        each two-qubit gate.
+    psi_circuit : stim.Circuit | None
+        Optional initial state-preparation circuit prepended by `build`.
+    recovery_mode : str
+        Whether recovery toggles are applied after each round or only after
+        the final round.
+
     Methods
     -------
     __init__(...): Initialize MDRCircuit with defaults and noise parameters.
@@ -43,6 +60,7 @@ class MDRCircuit:
     _spam_gate(...): Append a gate with SPAM noise (for R and M gates).
     build(...): Construct and return the full MDR protocol circuit, optionally
         including the |+> state preparation stage.
+    build_recovery_only(...): Construct and return only the recovery stage.
     """
 
     # ─────────────────────────────────────────────────────────────────────
@@ -62,6 +80,7 @@ class MDRCircuit:
         g1_z: float = 0.0,
         gate_noise_2q: List[float] | None = None,
         psi_circuit: stim.Circuit | None = None,
+        recovery_mode: str = "each_round",
     ) -> None:
         """
         Initialize the MDRCircuit object with user-specified or default
@@ -88,6 +107,9 @@ class MDRCircuit:
                 If None, all set to 0.
             psi_circuit: stim.Circuit for initial state preparation. If None,
                 no preparation is included.
+            recovery_mode: Whether recovery toggles are applied after each
+                round (`each_round`) or only once after the final syndrome
+                round (`final_round`).
         Raises:
             ValueError: If gate_noise_2q is not length 15 or ancillas < 1.
         """
@@ -100,6 +122,10 @@ class MDRCircuit:
         if len(stabilizers) != len(toggles):
             raise ValueError(
                 "stabilizers and toggles must have the same length."
+            )
+        if recovery_mode not in {"each_round", "final_round"}:
+            raise ValueError(
+                "recovery_mode must be 'each_round' or 'final_round'."
             )
 
         self.stabilizers = stabilizers
@@ -116,6 +142,7 @@ class MDRCircuit:
         self.g1_z = g1_z
         self.gate_noise_2q = gate_noise_2q
         self.psi_circuit = psi_circuit
+        self.recovery_mode = recovery_mode
 
     # ─────────────────────────────────────────────────────────────────────
     # noise primitives
@@ -291,30 +318,15 @@ class MDRCircuit:
     # ─────────────────────────────────────────────────────────────────────
     # public api
     # ─────────────────────────────────────────────────────────────────────
-    def build(self, include_psi: bool = True) -> stim.Circuit:
+    def _append_syndrome_extraction(
+        self,
+        circ: stim.Circuit,
+        all_qs: set[int],
+        anc_ids: List[int],
+    ) -> None:
         """
-        Construct and return the full MDR protocol circuit. This includes
-        syndrome extraction using ancilla qubits, application of idle noise,
-        and recovery toggles based on measurement results. Optionally
-        prepends the initial state preparation circuit if include_psi is
-        True.
-        
-        Args:
-            include_psi (bool): If True, prepends the |+> state preparation
-                circuit (psi_circuit) to the protocol. If False, starts with
-                an empty circuit.
-        
-        Returns:
-            stim.Circuit: The complete MDR protocol circuit, including
-                syndrome extraction, idle noise, and recovery toggles.
+        Append one syndrome-extraction stage.
         """
-        circ = self.psi() if include_psi else stim.Circuit()
-
-        anc_ids = list(range(self.num_qubits, self.num_qubits + self.ancillas))
-        total_qubits = self.num_qubits + self.ancillas
-        all_qs = set(range(total_qubits))
-
-        # Syndrome extraction.
         for start in range(0, len(self.stabilizers), self.ancillas):
             stabs = self.stabilizers[start : start + self.ancillas]
             ancs = anc_ids[: len(stabs)]
@@ -338,7 +350,14 @@ class MDRCircuit:
             self.add_idle_noise(circ, idle, self.p_x, self.p_y, self.p_z)
             circ.append_operation("TICK")
 
-        # Recovery toggles.
+    def _append_recovery_toggles(
+        self,
+        circ: stim.Circuit,
+        all_qs: set[int],
+    ) -> None:
+        """
+        Append one recovery stage controlled by the latest syndrome bits.
+        """
         for idx, toggle_ops in enumerate(self.toggles):
             rec_target = stim.target_rec(-(len(self.stabilizers) - idx))
             active = set()
@@ -352,5 +371,48 @@ class MDRCircuit:
             self.add_idle_noise(circ, idle, self.p_x, self.p_y, self.p_z)
             circ.append_operation("TICK")
 
+    def build(
+        self,
+        include_psi: bool = True,
+        include_recovery: bool = True,
+    ) -> stim.Circuit:
+        """
+        Construct and return the full MDR protocol circuit. This includes
+        syndrome extraction using ancilla qubits, application of idle noise,
+        and recovery toggles based on measurement results. Optionally
+        prepends the initial state preparation circuit if include_psi is
+        True.
+        
+        Args:
+            include_psi (bool): If True, prepends the |+> state preparation
+                circuit (psi_circuit) to the protocol. If False, starts with
+                an empty circuit.
+            include_recovery (bool): If True, append the recovery stage after
+                syndrome extraction.
+        
+        Returns:
+            stim.Circuit: The complete MDR protocol circuit, including
+                syndrome extraction, idle noise, and recovery toggles.
+        """
+        circ = self.psi() if include_psi else stim.Circuit()
+
+        anc_ids = list(range(self.num_qubits, self.num_qubits + self.ancillas))
+        total_qubits = self.num_qubits + self.ancillas
+        all_qs = set(range(total_qubits))
+
+        self._append_syndrome_extraction(circ, all_qs=all_qs, anc_ids=anc_ids)
+        if include_recovery:
+            self._append_recovery_toggles(circ, all_qs=all_qs)
+
+        return circ
+
+    def build_recovery_only(self) -> stim.Circuit:
+        """
+        Construct and return only the recovery stage.
+        """
+        circ = stim.Circuit()
+        total_qubits = self.num_qubits + self.ancillas
+        all_qs = set(range(total_qubits))
+        self._append_recovery_toggles(circ, all_qs=all_qs)
         return circ
 

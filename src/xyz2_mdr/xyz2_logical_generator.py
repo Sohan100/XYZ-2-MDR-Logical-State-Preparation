@@ -14,37 +14,30 @@ from .xyz2_stabilizer_generator import XYZ2StabilizerGenerator
 class XYZ2LogicalGenerator:
     """
     Generator that produces Logical X, Y, and Z operators for the XYZ^2 code.
-    
-    The logical operators are constructed based on the code distance `d`:
-    - Logical X: A diagonal strip of X operators.
-    - Logical Y: A specific "butterfly" pattern centered at ((d-1)/2, (d-1)/2).
-    - Logical Z: Calculated as the product Logical X * Logical Y.
-    
+    Constructs the sparse Pauli representatives of Logical X, Logical Y, and
+    Logical Z using the XYZ^2 lattice geometry.
+
     Attributes
     ----------
     d : int
         Code distance.
     n : int
-        Total number of qubits (2 * d^2).
-    _stabilizer_gen : XYZ2StabilizerGenerator
-        Internal instance for coordinate mapping logic.
-    
+        Total number of physical qubits, equal to `2 * d^2`.
+    _geom : XYZ2StabilizerGenerator
+        Geometry helper used for coordinate-to-qubit mapping.
+
     Methods
     -------
+    __init__(...)
+        Initialize the logical-operator generator for a given code distance.
     generate_logicals()
-        Return a dictionary containing 'Logical X', 'Logical Y', and 'Logical Z'.
+        Return a mapping containing Logical X, Logical Y, and Logical Z.
     _get_logical_x()
-        Construct the Logical X string.
+        Construct the Logical X operator string.
     _get_logical_y()
-        Construct the Logical Y string.
-    _multiply_paulis(op_a, op_b)
-        Compute the product of two Pauli strings (ignoring global phase).
-    
-    Example
-    -------
-    >>> log_gen = XYZ2LogicalGenerator(distance=3)
-    >>> log_gen.generate_logicals()
-    {'Logical X': 'X4 X5', 'Logical Y': 'X4 Z7 Y10 X13', 'Logical Z': ...}
+        Construct the Logical Y operator string.
+    _multiply_paulis(a_str, b_str)
+        Multiply two sparse Pauli strings while discarding global phase.
     """
 
     # ─────────────────────────────────────────────────────────────────────
@@ -75,12 +68,10 @@ class XYZ2LogicalGenerator:
     def generate_logicals(self) -> Dict[str, str]:
         """
         Compute Logical X, Y, and Z operators.
-        
-        Returns
-        -------
-        Dict[str, str]
-            Dictionary keys: "Logical X", "Logical Y", "Logical Z".
-            Values are sparse Pauli strings.
+
+        Returns:
+            Dict[str, str]: Mapping with keys `"Logical X"`, `"Logical Y"`,
+            and `"Logical Z"`, where each value is a sparse Pauli string.
         """
         logical_x = self._get_logical_x()
         logical_y = self._get_logical_y()
@@ -115,11 +106,17 @@ class XYZ2LogicalGenerator:
     def _get_logical_y(self) -> str:
         """
         Construct Logical Y using the center-block strategy.
-        
-        Structure:
-        1. Center block (c,c): Z on upper vertex, Y on lower vertex.
-        2. Lower diagonal (i+j = d-2): X on lower vertices.
-        3. Upper diagonal (i+j = d): X on upper vertices.
+
+        The support is built from three pieces:
+        1. A central two-qubit block with `Z` on the upper vertex and `Y` on
+           the lower vertex.
+        2. A lower-diagonal cluster of `X` operators on lower vertices with
+           `i + j = d - 2`.
+        3. An upper-diagonal cluster of `X` operators on upper vertices with
+           `i + j = d`.
+
+        Returns:
+            str: Sparse Pauli string for Logical Y.
         """
         center = (self.d - 1) // 2
         u_cc, l_cc = self._geom._coord_to_verts(center, center)
@@ -149,17 +146,19 @@ class XYZ2LogicalGenerator:
     # ─────────────────────────────────────────────────────────────────────
     def _multiply_paulis(self, a_str: str, b_str: str) -> str:
         """
-        Symbolic multiplication of two Pauli strings A * B.
-        
-        Used to derive Logical Z = Logical X * Logical Y.
-        Ignores global phase.
-        
+        Multiply two sparse Pauli strings while discarding global phase.
+
+        This helper accumulates the X and Z support bits implied by each input
+        string and then reconstructs the resulting sparse Pauli operator. It
+        is used to derive Logical Z from Logical X and Logical Y.
+
         Args:
             a_str: First Pauli string (e.g., "X0 Z1").
             b_str: Second Pauli string (e.g., "Y0 X2").
-            
+
         Returns:
-            Resulting Pauli string (e.g., "Z0 Z1 X2").
+            str: Resulting sparse Pauli string (for example
+            `"Z0 Z1 X2"`).
         """
         x_res = [0] * self.n
         z_res = [0] * self.n

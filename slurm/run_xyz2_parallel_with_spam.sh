@@ -16,6 +16,7 @@ DISTANCES=(3 5 7 9 11)
 NOISE_MODELS=(z_type pure_z unbiased)
 NUM_SHOTS=3000
 NUM_REPLICATES=30
+RECOVERY_MODE="each_round"
 ROOT_DIR="${PWD}/XYZ2-experiment-data-slurm"
 SCRIPTS_DIR="scripts"
 RESULTS_COPY_DIR="${PWD}/data/simulation_results"
@@ -55,6 +56,7 @@ for NOISE_MODEL in "${NOISE_MODELS[@]}"; do
             --shots "${NUM_SHOTS}" \
             --num-replicates "${NUM_REPLICATES}" \
             --p-spam "${P_SPAM}" \
+            --recovery-mode "${RECOVERY_MODE}" \
             --probabilities "${PROBABILITIES[@]}"
 
         WORKDIR="${ROOT_DIR}/${RUN_NAME}"
@@ -91,6 +93,7 @@ for NOISE_MODEL in "${NOISE_MODELS[@]}"; do
         echo "p_spam: ${P_SPAM}"
         echo "Shots: ${NUM_SHOTS}"
         echo "Replicates: ${NUM_REPLICATES}"
+        echo "Recovery mode: ${RECOVERY_MODE}"
         echo "Number of probabilities: ${NUM_PROBS}"
         echo "Logs: ${LOG_DIR}"
 

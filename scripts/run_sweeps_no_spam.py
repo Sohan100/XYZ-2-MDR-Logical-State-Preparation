@@ -84,6 +84,11 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_NUM_REPLICATES,
     )
     parser.add_argument(
+        "--recovery-mode",
+        choices=["each_round", "final_round"],
+        default="each_round",
+    )
+    parser.add_argument(
         "--tables-dir",
         type=Path,
         default=DEFAULT_TABLES_DIR,
@@ -139,6 +144,7 @@ def main() -> None:
                 shots=args.shots,
                 num_replicates=args.num_replicates,
                 p_spam=NO_SPAM_VALUE,
+                recovery_mode=args.recovery_mode,
                 table_csv=table_csv,
                 results_dir=args.output_dir,
                 force_rerun=args.force_rerun,

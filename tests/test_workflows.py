@@ -14,18 +14,21 @@ from xyz2_mdr.workflows import (
 
 
 @pytest.mark.parametrize(
-    ("p_spam_a", "p_spam_b", "shots_a", "shots_b"),
+    ("p_spam_a", "p_spam_b", "shots_a", "shots_b", "mode_a", "mode_b"),
     [
-        (0.0, 1e-3, 100, 100),
-        (0.0, 0.0, 100, 200),
+        (0.0, 1e-3, 100, 100, "each_round", "each_round"),
+        (0.0, 0.0, 100, 200, "each_round", "each_round"),
+        (0.0, 0.0, 100, 100, "each_round", "final_round"),
     ],
-    ids=["different_pspam", "different_shots"],
+    ids=["different_pspam", "different_shots", "different_recovery_mode"],
 )
 def test_simulation_spec_hash_changes_with_parameters(
     p_spam_a: float,
     p_spam_b: float,
     shots_a: int,
     shots_b: int,
+    mode_a: str,
+    mode_b: str,
 ) -> None:
     """
     Ensure specification hash changes when one simulation parameter changes.
@@ -43,6 +46,7 @@ def test_simulation_spec_hash_changes_with_parameters(
         shots=shots_a,
         num_replicates=3,
         p_spam=p_spam_a,
+        recovery_mode=mode_a,
     )
     spec_b = build_simulation_spec(
         distance=3,
@@ -52,6 +56,7 @@ def test_simulation_spec_hash_changes_with_parameters(
         shots=shots_b,
         num_replicates=3,
         p_spam=p_spam_b,
+        recovery_mode=mode_b,
     )
     assert simulation_spec_hash(spec_a) != simulation_spec_hash(spec_b)
 

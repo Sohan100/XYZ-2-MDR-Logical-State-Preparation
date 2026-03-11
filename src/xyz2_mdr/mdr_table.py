@@ -21,6 +21,43 @@ class MDRTable:
     """
     A unified container that generates, aligns, and serializes the full
     algebraic definition of an MDR code instance.
+
+    Attributes
+    ----------
+    d : int
+        Code distance associated with the generated or loaded table.
+    n_qubits : int
+        Number of physical qubits in the code instance.
+    save_filename : Path | None
+        Optional deferred save target used during table generation.
+    df : pd.DataFrame
+        Dataframe containing one row per stabilizer or logical operator.
+
+    Methods
+    -------
+    __init__(...)
+        Generate the full stabilizer, logical, and toggle table for a given
+        code distance.
+    from_csv(csv_path)
+        Load a serialized table from CSV without regenerating operators.
+    _compile_data()
+        Build the internal dataframe from the stabilizer, logical, and toggle
+        generators.
+    _handle_save_request()
+        Write the generated table to disk when a deferred save target is
+        provided and does not already exist.
+    get_stabilizers()
+        Return the stabilizer operator strings in table order.
+    get_logicals_dict()
+        Return the logical operators as a label-to-operator mapping.
+    get_toggles()
+        Return the stabilizer toggles and the Logical-X toggle.
+    get_table()
+        Return the underlying dataframe representation of the table.
+    save_csv(filename)
+        Save the table to CSV.
+    save_latex(filename)
+        Save the table to LaTeX tabular format.
     """
 
     # ─────────────────────────────────────────────────────────────────────
@@ -68,6 +105,12 @@ class MDRTable:
 
         Returns:
             MDRTable: Instance populated with the loaded dataframe.
+
+        Notes:
+            The loaded instance does not recover the original `distance` or
+            `n_qubits` metadata from the CSV. Those fields are set to sentinel
+            values because the serialized table itself is treated as the
+            authoritative representation.
         """
         obj = cls.__new__(cls)
         obj.d = -1
@@ -197,7 +240,7 @@ class MDRTable:
         Return stabilizer toggles and the Logical-X toggle.
 
         Returns:
-            Tuple[List[str], str]:
+            Tuple[List[str], str]: Pair
             `(stabilizer_toggles, logical_x_toggle)`.
 
         Raises:

@@ -114,6 +114,7 @@ def main() -> None:
             shots=int(config["shots"]),
             num_replicates=int(config["num_replicates"]),
             p_spam=float(config["p_spam"]),
+            recovery_mode=str(config.get("recovery_mode", "each_round")),
         )
         copy_target = simulation_results_path(args.copy_to, spec)
         copy_target.parent.mkdir(parents=True, exist_ok=True)

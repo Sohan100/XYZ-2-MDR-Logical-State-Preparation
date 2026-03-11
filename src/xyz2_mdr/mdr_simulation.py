@@ -1,9 +1,8 @@
 """
 mdr_simulation.py
-────────────────────────────────────────────────────────────────────────
-Encapsulates measurement-based decoding & recovery (MDR) utilities in the
-MDRSimulation class, with precomputed violin-distribution overlays and
-detailed uncertainty reporting.
+-----------------
+Core MDR simulation object responsible for computing and caching per-round
+observable statistics.
 """
 
 from __future__ import annotations
@@ -18,122 +17,75 @@ from .mdr_circuit import MDRCircuit
 
 class MDRSimulation:
     """
-    Tools for simulating Measurement-based Decoding & Recovery (MDR).
-    
-    This class precomputes, for each specified stabilizer and logical
-    operator, the distribution of mean-estimates obtained by
-    repeating an N-shot experiment (`shots_per_measurement`) `num_replicates`
-    times per MDR round (0…`total_mdr_rounds`), and caches both the full
-    replicate lists (for violin plots) and summary statistics (mean ±
-    sample-stddev). Stabilizers and the legacy logical-fidelity view retain
-    absolute values, while logical operators also keep signed expectations
-    for state-preparation error analysis.
-    
-    Once initialized, `plot_group()` and `results()` render or print the
-    precomputed data instantly. For on-demand, single-run curves,
-    `plot_expectation()` and `plot_many_expectations()` sample fresh circuits
-    and can overlay violins of the replicate-mean distributions if desired.
-    
-    Attributes:
-        prepare_circuit_function (Callable[[], stim.Circuit]):
-            Factory returning a fresh stim.Circuit to prepare the initial state.
-        mdr_circuit (stim.Circuit):
-            stim.Circuit template implementing one round of MDR.
-        stabilizer_pauli_strings (List[str]):
-            Sparse Pauli-string specifications for stabilizer measurements.
-        logical_pauli_strings (Dict[str, str]):
-            Mapping from logical operator labels to sparse Pauli specs.
-        shots_per_measurement (int):
-            Number of Monte-Carlo samples per expectation estimate.
-        total_mdr_rounds (int):
-            Maximum number of MDR rounds to simulate (inclusive of round 0).
-        num_replicates (int):
-            Number of independent N-shot repeats per round for violin
-            distributions.
-        last_results_storage (Dict[str,Dict[str,Tuple[List[int],List[float]]]]):
-            Backward-compatible single-run mean-value curves.
-        _replicate_means_stabilizers (Dict[str,Dict[int,List[float]]]):
-            Raw lists of absolute replicate-mean estimates per stabilizer &
-            round.
-        _replicate_means_logicals (Dict[str,Dict[int,List[float]]]):
-            Raw lists of absolute replicate-mean estimates per logical & round.
-        _stats_stabilizers (Dict[str,Dict[str,List[float]]]):
-            Summary statistics for each stabilizer:
-            `'rounds'`, `'centers'` (means), and `'stds'` (sample-stddevs).
-        _stats_logicals (Dict[str,Dict[str,List[float]]]):
-            Summary statistics for each logical operator.
-        _avg_stabilizers (Dict[str, float]):
-            Overall average expectation per stabilizer (mean of `'centers'`).
-        _avg_logicals (Dict[str, float]):
-            Overall average expectation per logical operator.
-    
-    Methods:
-        spec_to_measurement_ops(pauli_spec: str) -> List[Tuple[str,int]]:
-            Convert a sparse Pauli string (e.g. "X0 Z1") into a list of
-            stim measurement operations [(gate, qubit_index), …].
-    
-        compute_parity_expectation(circuit, measurement_ops) -> float:
-            Append the given measurement operations to `circuit`, sample
-            `shots_per_measurement` bit-strings, compute the parity product
-            of the measured bits, map to ±1 eigenvalues, and return the
-            absolute mean |⟨O⟩|.
-    
-        calculate_replicated_means_vs_rounds(pauli_spec: str)
-            -> Dict[int, List[float]]:
-            For each MDR round r, build the circuit with r rounds, then run
-            `num_replicates` independent N-shot experiments. Return a mapping
-            {r → [|mean₁|, |mean₂|, …]} of all replicate absolute-mean values.
-    
-        calculate_expectation_vs_rounds(pauli_spec: str)
-            -> (List[int], List[float]):
-            For each MDR round r, build the circuit and perform a single
-            N-shot experiment. Return two lists: the round indices and
-            the corresponding |⟨O⟩| estimates.
-    
-        calculate_many_expectations(spec_map: Mapping[str,str])
-            -> Dict[str, (List[int],List[float])]:
-            Apply `calculate_expectation_vs_rounds` to each Pauli spec in
-            `spec_map`, returning a dict label → (rounds, means).
-    
-        calculate_group_data() -> Dict[str,Dict[str,(List[int],List[float])]]:
-            Return the precomputed single-run mean-value curves stored in
-            `last_results_storage` (for backward compatibility).
-    
-        plot_data(data_map, title, x_label, y_label, **kwargs) -> None:
-            Generic renderer for precomputed violin distributions:
-              • Plots only markers (no connecting lines) for the summary means.
-              • Overlays violins of the replicate-mean distributions, with
-                mean & extrema lines, all colored to match each marker.
-              • Optionally scatters every replicate point inside its violin.
-              • Handles saving to disk if `save_path` is provided.
-    
-        plot_expectation(pauli_specification=None, save_path=None, **kw) -> None:
-            Single-operator plotting: if no spec is given, plots all
-            stabilizers; if a string is given, plots that one; if a list
-            is given, plots each. Delegates to `plot_data` (optionally adding
-            violins) but uses fresh single-run sampling, not the precomputed
-            cache.
-    
-        plot_many_expectations(pauli_specs, save_path=None, **kw) -> None:
-            Multi-operator plotting: takes either a list of Pauli strings or a
-            mapping label→spec, performs fresh single-run sampling for each,
-            then delegates to `plot_data`.
-    
-        plot_group(save_path_stabilizers=None, save_path_logicals=None, **kw)
-            -> None:
-            Render two figures—one for all stabilizers, one for all logicals—
-            using the precomputed violin distributions and summary means.
-            Saves each figure if a corresponding `save_path_*` is provided.
-    
-        results() -> None:
-            Print tabular, precomputed statistics for each operator:
-              Round | Mean | StdDev
-            followed by the overall average expectation for that operator.
+    Compute and cache Measurement-based Decoding & Recovery (MDR) statistics.
+    Supports repeated-round evaluation of stabilizer and logical observables
+    while caching replicate-level summary statistics for downstream analysis.
+
+    Attributes
+    ----------
+    mdr : MDRCircuit
+        Stored MDR circuit builder supplying the syndrome and recovery
+        templates for this simulation instance.
+    prepare_circuit_function : Callable[[], stim.Circuit]
+        Callable returning the initial state-preparation circuit.
+    recovery_mode : str
+        Recovery timing policy inherited from the MDR circuit
+        (`each_round` or `final_round`).
+    mdr_circuit : stim.Circuit
+        One complete MDR round including recovery when recovery is applied
+        after each round.
+    syndrome_round_circuit : stim.Circuit
+        One syndrome-extraction round without appended recovery toggles.
+    recovery_circuit : stim.Circuit
+        Standalone recovery circuit used when recovery is deferred until the
+        final round.
+    stabilizer_pauli_strings : List[str]
+        Stabilizer observables measured by the simulation.
+    logical_pauli_strings : Dict[str, str]
+        Mapping from logical labels to sparse Pauli strings.
+    shots_per_measurement : int
+        Number of Stim samples used for each replicate estimate.
+    total_mdr_rounds : int
+        Maximum MDR round index simulated and cached.
+    num_replicates : int
+        Number of independent replicate estimates recorded per round.
+    _replicate_means_stabilizers : Dict[str, Dict[int, List[float]]]
+        Replicate distributions for stabilizer observables by round.
+    _replicate_means_logicals : Dict[str, Dict[int, List[float]]]
+        Absolute-value replicate distributions for logical observables.
+    _replicate_means_logicals_signed : Dict[str, Dict[int, List[float]]]
+        Signed replicate distributions for logical observables.
+    _stats_stabilizers : Dict[str, Dict[str, List[float]]]
+        Per-round summary statistics for stabilizer observables.
+    _stats_logicals : Dict[str, Dict[str, List[float]]]
+        Per-round summary statistics for absolute-value logical observables.
+    _stats_logicals_signed : Dict[str, Dict[str, List[float]]]
+        Per-round summary statistics for signed logical observables.
+    _avg_stabilizers : Dict[str, float]
+        Average stabilizer fidelity across cached rounds for each stabilizer.
+    _avg_logicals : Dict[str, float]
+        Average absolute-value logical fidelity across cached rounds.
+    _avg_logicals_signed : Dict[str, float]
+        Average signed logical expectation across cached rounds.
+
+    Methods
+    -------
+    __init__(...)
+        Initialize the simulation object and precompute all cached
+        distributions and summary statistics.
+    spec_to_measurement_ops(pauli_specification)
+        Convert a sparse Pauli string into the corresponding Stim
+        single-qubit measurement operations.
+    compute_parity_expectation(circuit, measurement_ops, absolute_value)
+        Sample a measured operator parity and return the signed or
+        absolute-value expectation.
+    calculate_replicated_means_vs_rounds(pauli_specification, absolute_value)
+        Compute replicate means for one observable across all MDR rounds.
+    _summarize_distribution_map(dist_map)
+        Reduce replicate distributions into per-round centers and standard
+        deviations.
     """
 
-    # ─────────────────────────────────────────────────────────────────────
-    # construction
-    # ─────────────────────────────────────────────────────────────────────
     def __init__(
         self,
         mdr: MDRCircuit,
@@ -144,30 +96,35 @@ class MDRSimulation:
         num_replicates: int = 30,
     ) -> None:
         """
-        Initialize MDRSimulation and precompute all distributions, stats, and
-        averages.
-        
+        Initialize the simulation and precompute all cached round statistics.
+
+        The constructor expands the supplied MDR circuit object into the
+        circuit fragments needed for both recovery modes, then immediately
+        evaluates every requested stabilizer and logical observable for every
+        round from `0` through `total_mdr_rounds`. The resulting replicate
+        distributions and summary statistics are cached on the instance so
+        downstream plotting and sweep code can reuse them without re-running
+        Stim.
+
         Args:
-            mdr (MDRCircuit):
-                MDRCircuit instance containing the circuit preparation
-            stabilizer_pauli_strings (List[str]):
-                List of sparse stabilizer Pauli specifications.
-            logical_pauli_strings (Dict[str, str]):
-                Dictionary mapping logical labels to Pauli specifications.
-            shots_per_measurement (int, optional):
-                Number of shots per expectation estimate. Default is 1000.
-            total_mdr_rounds (int, optional):
-                Number of MDR rounds (inclusive of 0). Default is 10.
-            num_replicates (int, optional):
-                Number of repeats per round for violin distributions.
-                Default 30.
-        
-        Returns:
-            None
+            mdr: Configured MDR circuit builder.
+            stabilizer_pauli_strings: Stabilizer observables to measure.
+            logical_pauli_strings: Logical observables to measure.
+            shots_per_measurement: Shot count for each replicate estimate.
+            total_mdr_rounds: Largest MDR round index to evaluate.
+            num_replicates: Number of replicate estimates per round.
         """
         self.mdr = mdr
         self.prepare_circuit_function = mdr.psi
-        self.mdr_circuit = mdr.build(include_psi=False)
+        self.recovery_mode = mdr.recovery_mode
+        self.mdr_circuit = mdr.build(include_psi=False, include_recovery=True)
+        self.syndrome_round_circuit = mdr.build(
+            include_psi=False,
+            include_recovery=False,
+        )
+        self.recovery_circuit = stim.Circuit()
+        if self.recovery_mode == "final_round":
+            self.recovery_circuit = mdr.build_recovery_only()
         self.p_spam = mdr.p_spam
         self.stabilizer_pauli_strings = stabilizer_pauli_strings
         self.logical_pauli_strings = logical_pauli_strings
@@ -175,17 +132,16 @@ class MDRSimulation:
         self.total_mdr_rounds = total_mdr_rounds
         self.num_replicates = num_replicates
 
-        self._replicate_means_stabilizers: Dict[str, Dict[int, List[float]]]
-        self._replicate_means_stabilizers = {}
+        self._replicate_means_stabilizers: Dict[str, Dict[int, List[float]]] = {}
         for spec in stabilizer_pauli_strings:
             self._replicate_means_stabilizers[spec] = (
                 self.calculate_replicated_means_vs_rounds(spec)
             )
 
-        self._replicate_means_logicals: Dict[str, Dict[int, List[float]]]
-        self._replicate_means_logicals = {}
-        self._replicate_means_logicals_signed: Dict[str, Dict[int, List[float]]]
-        self._replicate_means_logicals_signed = {}
+        self._replicate_means_logicals: Dict[str, Dict[int, List[float]]] = {}
+        self._replicate_means_logicals_signed: Dict[
+            str, Dict[int, List[float]]
+        ] = {}
         for label, spec in logical_pauli_strings.items():
             self._replicate_means_logicals[label] = (
                 self.calculate_replicated_means_vs_rounds(spec)
@@ -220,22 +176,26 @@ class MDRSimulation:
                 np.mean(signed_stats["centers"])
             )
 
-    # ─────────────────────────────────────────────────────────────────────
-    # measurement helpers
-    # ─────────────────────────────────────────────────────────────────────
     @staticmethod
     def spec_to_measurement_ops(
         pauli_specification: str,
     ) -> List[Tuple[str, int]]:
         """
-        Convert a sparse Pauli string (e.g. "X0 Z1") into Stim measurement ops.
-        
+        Convert a sparse Pauli string into Stim measurement instructions.
+
+        Each token such as `X7` or `Z12` is mapped to the corresponding
+        single-qubit Stim measurement gate (`MX`, `MY`, or `MZ`) plus the
+        target qubit index. The returned sequence preserves token order so the
+        parity convention used later remains deterministic.
+
         Args:
-            pauli_specification (str): Sparse Pauli string, e.g., "X0 Z1".
-        
+            pauli_specification: Sparse Pauli string such as `"X0 Z1 Y4"`.
+
         Returns:
-            List[Tuple[str, int]]: List of tuples (gate, qubit index), e.g.,
-            [("MX", 0), ("MZ", 1)].
+            List[Tuple[str, int]]: Ordered `(measurement_gate, qubit)` pairs.
+
+        Raises:
+            ValueError: If a token starts with an unsupported Pauli letter.
         """
         ops: List[Tuple[str, int]] = []
         gate_map = {"X": "MX", "Y": "MY", "Z": "MZ"}
@@ -253,19 +213,23 @@ class MDRSimulation:
         absolute_value: bool = True,
     ) -> float:
         """
-        Append measurement_ops to the circuit, sample, and compute |⟨O⟩|.
-        
+        Measure an operator parity and return its expectation value.
+
+        This method appends the requested basis measurements to a circuit
+        copy, optionally inserts X-type SPAM noise before each measurement,
+        samples the circuit, and converts the measured parity bits into
+        `+1/-1` eigenvalues. The returned mean is either signed or absolute
+        depending on `absolute_value`.
+
         Args:
-            circuit (stim.Circuit): Circuit to which measurement ops are added.
-            measurement_ops (List[Tuple[str, int]]): List of (gate, qubit) to
-            measure.
-        
-        Args:
-            absolute_value (bool): If True, return `|<O>|`; otherwise return
-            the signed expectation `<O>`.
+            circuit: Circuit ending in the state to be measured.
+            measurement_ops: Ordered measurement operations produced by
+                :meth:`spec_to_measurement_ops`.
+            absolute_value: If True, return `|<O>|`; otherwise return the
+                signed expectation `<O>`.
 
         Returns:
-            float: Mean of the ±1 parity outcomes, optionally absolute-valued.
+            float: Mean parity eigenvalue for the requested observable.
         """
         for gate, qubit in measurement_ops:
             if self.p_spam > 0:
@@ -285,33 +249,39 @@ class MDRSimulation:
         mean_val = float(np.mean(eigen))
         return float(abs(mean_val)) if absolute_value else mean_val
 
-    # ─────────────────────────────────────────────────────────────────────
-    # public api
-    # ─────────────────────────────────────────────────────────────────────
     def calculate_replicated_means_vs_rounds(
         self,
         pauli_specification: str,
         absolute_value: bool = True,
     ) -> Dict[int, List[float]]:
         """
-        For each round r, repeat the N-shot experiment `num_replicates` times
-        and collect the absolute mean eigenvalue of each replicate.
-        
+        Evaluate one observable across all MDR round counts.
+
+        For every round index from `0` through `total_mdr_rounds`, this method
+        assembles the appropriate circuit according to the configured recovery
+        policy, repeats the observable estimate `num_replicates` times, and
+        stores the resulting replicate means. These replicate distributions are
+        the raw statistical data used later to compute the cached centers and
+        standard deviations.
+
         Args:
-            pauli_specification (str): Sparse Pauli string to measure.
-            absolute_value (bool): If True, collect `|<O>|`; otherwise collect
-                signed `<O>`.
-        
+            pauli_specification: Sparse Pauli string defining the observable.
+            absolute_value: If True, record `|<O>|`; otherwise record signed
+                `<O>`.
+
         Returns:
-            Dict[int, List[float]]: Mapping from round index to list of
-            replicate means.
+            Dict[int, List[float]]: Mapping `round_index -> replicate_means`.
         """
         measurement_ops = self.spec_to_measurement_ops(pauli_specification)
         dist_map: Dict[int, List[float]] = {}
         for round_idx in range(self.total_mdr_rounds + 1):
             base = self.prepare_circuit_function()
             if round_idx > 0:
-                base += self.mdr_circuit * round_idx
+                if self.recovery_mode == "each_round":
+                    base += self.mdr_circuit * round_idx
+                else:
+                    base += self.syndrome_round_circuit * round_idx
+                    base += self.recovery_circuit
 
             replicate_means: List[float] = []
             for _ in range(self.num_replicates):
@@ -329,16 +299,17 @@ class MDRSimulation:
         dist_map: Dict[int, List[float]],
     ) -> Dict[str, List[float]]:
         """
-        Convert replicate distributions into per-round summary statistics.
+        Reduce replicate distributions to per-round summary statistics.
 
         Args:
-            dist_map: Mapping `round_index -> replicate_mean_values`.
+            dist_map: Mapping from round index to the replicate values
+                collected for that round.
 
         Returns:
-            Dict[str, List[float]]: Dictionary with keys:
-            `rounds` (sorted round indices), `centers` (mean values), and
-            `stds` (sample standard deviations with `ddof=1`, or `0.0` when a
-            round has a single replicate).
+            Dict[str, List[float]]: Dictionary with aligned `rounds`,
+            `centers`, and `stds` lists suitable for plotting and CSV export.
+            The standard deviation is computed with `ddof=1` when at least two
+            replicate values are available, otherwise `0.0` is reported.
         """
         rounds = sorted(dist_map)
         centers: List[float] = []
@@ -351,4 +322,3 @@ class MDRSimulation:
             else:
                 stds.append(0.0)
         return {"rounds": rounds, "centers": centers, "stds": stds}
-

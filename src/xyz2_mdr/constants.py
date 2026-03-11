@@ -1,3 +1,14 @@
+"""
+constants.py
+------------
+Shared constants and default configuration values for MDR workflows.
+
+This module centralizes the default distance list, sweep probabilities,
+filesystem locations, and named noise-model parameter groupings used
+throughout the project. Keeping these values in one place avoids drift
+between local scripts, Slurm entrypoints, and notebook analyses.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -50,10 +61,15 @@ NOISE_MODEL_DISPLAY_NAMES: Dict[str, str] = {
 
 def default_probabilities() -> List[float]:
     """
-    Return the default probability sweep for local and Slurm experiments.
+    Return the canonical physical-noise sweep used by project workflows.
+
+    The sweep is mostly logarithmic in the low-error regime, where threshold
+    and pseudo-threshold behavior are most informative, with a few larger
+    points appended to capture the high-noise saturation regime used in
+    legacy plots and sanity checks.
 
     Returns:
-        List[float]: Log-spaced values from `1e-5` to `1e-1`, plus three
-        higher-probability points (`0.2`, `0.5`, and `1.0`).
+        List[float]: Log-spaced values from `1e-5` to `1e-1`, followed by the
+        additional points `0.2`, `0.5`, and `1.0`.
     """
     return [*np.logspace(-5, -1, 26), 0.2, 0.5, 1.0]

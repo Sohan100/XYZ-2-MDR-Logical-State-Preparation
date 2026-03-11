@@ -17,12 +17,65 @@ import numpy as np
 class RobustToggleGenerator:
     """
     Finds minimal-weight toggles using 'Fat' Radial Beam Search.
-    
-    Improvement:
-    - If the strict shortest-path beam fails, it 'fattens' the beam 
-      by including neighbors (Width=1). 
-    - This fixes validity errors where the operator needed to zig-zag 
-      slightly off the perfect geodesic.
+    Uses restricted binary-symplectic solves and graph-guided local search to
+    synthesize low-weight anti-commuting recovery toggles.
+
+    Attributes
+    ----------
+    stab_specs : List[str]
+        Input stabilizer specifications used as toggle constraints.
+    log_x_spec : str
+        Logical-X specification appended as the final toggle constraint.
+    n : int
+        Number of physical qubits in the code.
+    _rng : random.Random
+        Deterministic random source used for tie-breaking and restart order.
+    constraints : List[str]
+        Combined list of stabilizers plus Logical X.
+    num_constraints : int
+        Number of syndrome constraints to satisfy.
+    full_matrix : np.ndarray
+        Binary symplectic matrix in interleaved column order.
+    qubit_graph : nx.Graph
+        Interaction graph induced by shared stabilizer support.
+    all_pairs_dist : Dict[int, Dict[int, int]]
+        Cached all-pairs shortest-path lengths on `qubit_graph`.
+    stab_vecs : List[np.ndarray]
+        Stabilizer vectors in standard `[z | x]` order.
+
+    Methods
+    -------
+    __init__(...)
+        Build the binary symplectic system and graph structures used for
+        toggle synthesis.
+    generate_toggles()
+        Generate one toggle for each stabilizer plus one for Logical X.
+    _get_beam(source, target)
+        Return nodes on a shortest-path beam between two qubits.
+    _expand_beam(nodes)
+        Expand a beam by one graph hop around each node.
+    _get_distance_layers(start_node)
+        Group graph nodes by their distance from a starting node.
+    _solve_restricted(qubit_indices, target_vec)
+        Solve the binary symplectic system using only selected qubits.
+    _optimize_weight_deep(vec, attempts)
+        Reduce operator weight by stabilizer-coset descent.
+    _get_weight(vec)
+        Compute the support weight of a symplectic vector.
+    _symp_product(v1, v2)
+        Compute the GF(2) symplectic inner product of two vectors.
+    _solve_gf2(matrix, rhs)
+        Solve a linear system over GF(2).
+    _build_qubit_graph(specs)
+        Build the interaction graph induced by shared operator support.
+    _str_to_zx_arrays(op_str)
+        Convert a sparse Pauli string into separate z and x indicator arrays.
+    _str_to_vec_standard(op_str)
+        Convert a sparse Pauli string into standard `[z | x]` vector form.
+    _vec_standard_to_str(vec)
+        Convert a standard symplectic vector back to sparse Pauli text.
+    _get_qubits_in_op(op_str)
+        Return the qubit indices referenced by a sparse Pauli string.
     """
 
     # ─────────────────────────────────────────────────────────────────────

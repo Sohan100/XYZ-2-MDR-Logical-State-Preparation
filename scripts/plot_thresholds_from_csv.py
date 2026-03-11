@@ -32,6 +32,7 @@ from xyz2_mdr.constants import (  # noqa: E402
     NOISE_MODEL_PARAM_NAMES,
 )
 from xyz2_mdr.mdr_noise_sweep import MdrNoiseSweep  # noqa: E402
+from xyz2_mdr.plotters import MdrNoiseSweepPlotter  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -176,7 +177,7 @@ def main() -> None:
         suffix = f"{args.metric}_{suffix_core}"
         out_pdf = args.output_dir / f"threshold_{noise_model}_{suffix}.pdf"
         if args.metric == "observable_loss":
-            MdrNoiseSweep.plot_error_multi(
+            MdrNoiseSweepPlotter.plot_error_multi(
                 sweeps=sweeps,
                 category="logical",
                 rounds=[1],
@@ -186,7 +187,7 @@ def main() -> None:
                 save_path=out_pdf,
             )
         else:
-            MdrNoiseSweep.plot_state_prep_error_multi(
+            MdrNoiseSweepPlotter.plot_state_prep_error_multi(
                 sweeps=sweeps,
                 rounds=[1],
                 logical_label="Logical X",

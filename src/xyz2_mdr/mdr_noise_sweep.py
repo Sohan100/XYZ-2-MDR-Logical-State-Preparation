@@ -1,19 +1,19 @@
 """
 mdr_noise_sweep.py
-────────────────────────────────────────────────────────────────────────────
-Class for managing parameter sweeps, executing MDR simulations, and 
-handling data persistence/visualisation.
+------------------
+Parameter-sweep execution and CSV persistence for MDR simulations.
+
+This module coordinates repeated `MDRSimulation` runs over one or more noise
+parameters, aggregates the resulting observable statistics, and exposes the
+in-memory structures used by plotting helpers and cache-aware workflows.
 """
 
 from __future__ import annotations
 
 from itertools import product
-import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import matplotlib.pyplot as plt
-from matplotlib.transforms import Bbox
 import numpy as np
 import pandas as pd
 
@@ -25,56 +25,83 @@ from .mdr_simulation import MDRSimulation
 class MdrNoiseSweep:
     """
     Sweep noise parameters and record average observables and error rates.
-    Supports saving simulation results to CSV and reloading them for plotting.
-    
+    Supports saving simulation results to CSV and reloading them for later
+    analysis.
+
     Attributes
     ----------
     two_qubit_index : Dict[str, int]
-        Maps two-qubit noise keys (e.g. 'ZZ') to indices into the 15-entry
-        gate_noise_2q list used by the MDR circuit engine.
+        Maps two-qubit noise keys such as `ZZ` to indices into the 15-entry
+        `gate_noise_2q` list used by the MDR circuit engine.
     single_params : set[str]
-        Valid single-qubit noise parameter names (e.g. 'g1_z', 'p_x').
+        Valid single-qubit noise parameter names such as `g1_z` and `p_x`.
+    code_stabilizers : List[str]
+        Code operators passed into the MDR circuit builder for syndrome
+        extraction and recovery logic.
+    toggles : List[str]
+        Recovery toggle strings aligned with `code_stabilizers`.
+    measure_stabilizers : List[str]
+        Stabilizer observables reported in the stored results.
+    logical_operators : Dict[str, str]
+        Mapping from logical labels to sparse Pauli strings.
+    ancillas : int
+        Number of ancilla qubits used during syndrome extraction.
+    psi_circuit : Any
+        Optional Stim circuit preparing the initial logical state.
+    p_spam : float
+        SPAM error probability applied during state preparation and
+        measurement.
+    recovery_mode : str
+        Whether recovery toggles are applied after each round or only after
+        the final round.
+    round_list : List[int]
+        MDR rounds whose results are stored in this sweep object.
+    shots : int
+        Shots used for each replicate expectation estimate.
+    num_replicates : int
+        Number of independent repeats per parameter combination.
+    split_2q : bool
+        Whether one-qubit and two-qubit probability budgets are split across
+        active parameters of the same type.
     sync : bool
-        True if using a single shared list of values for all parameters (simultaneous sweep).
-    param_names : list[str]
-        Names of noise parameters being varied in this sweep.
-    param_values_list : list[float]
-        Shared list of noise values when sync=True.
-    param_values_map : Dict[str, list[float]]
-        Per-parameter lists of noise values when sync=False (asynchronous sweep).
-    param_combos : list[tuple[float,...]]
-        Cartesian-product of parameter values to sweep.
-    results : Dict[tuple, Dict[int, Dict[str, float]]]
-        Mean ⟨|O|⟩ values for each combo, round, and operator.
-        Structure: results[param_combo][round_index][operator_label] = mean_val
-    results_std : Dict[tuple, Dict[int, Dict[str, float]]]
-        Sample standard deviations of ⟨|O|⟩ for each combo, round, and operator.
-    results_signed : Dict[tuple, Dict[int, Dict[str, float]]]
-        Signed means for each combo, round, and operator. For legacy CSVs
-        without signed columns, these values are populated from `results`.
-    results_std_signed : Dict[tuple, Dict[int, Dict[str, float]]]
-        Signed sample standard deviations for each combo, round, and operator.
-    
+        True when a single shared list of values is used for all parameters.
+    param_names : List[str]
+        Names of the noise parameters being varied in this sweep.
+    param_values_list : List[float]
+        Shared list of parameter values when `sync=True`.
+    param_values_map : Dict[str, List[float]]
+        Per-parameter lists of values when `sync=False`.
+    param_combos : List[Tuple[float, ...]]
+        Explicit parameter tuples simulated or loaded from CSV.
+    results : Dict[Tuple[float, ...], Dict[int, Dict[str, float]]]
+        Mean `|<O>|` values for each parameter tuple, round, and operator.
+    results_std : Dict[Tuple[float, ...], Dict[int, Dict[str, float]]]
+        Sample standard deviations corresponding to `results`.
+    results_signed : Dict[Tuple[float, ...], Dict[int, Dict[str, float]]]
+        Signed means for each parameter tuple, round, and operator. Legacy
+        CSVs without signed columns populate these values from `results`.
+    results_std_signed : Dict[Tuple[float, ...], Dict[int, Dict[str, float]]]
+        Signed sample standard deviations for each parameter tuple, round,
+        and operator.
+    has_exact_signed_results : bool
+        Whether the signed columns were produced exactly by simulation or
+        loaded exactly from a new-format CSV.
+
     Methods
     -------
     __init__(...)
-        Configure sweep settings, build parameter combinations, and run (or load).
+        Configure sweep settings, build parameter combinations, and either
+        run the simulations or load results from disk.
     _perform_sweep()
-        Internal: run MDRSimulation per combo, applying 1q/2q splitting logic.
+        Run `MDRSimulation` for each parameter tuple while applying the
+        project-specific one-qubit and two-qubit splitting rules.
     save_results(filename)
         Export flattened simulation results to a CSV file.
     load_results(filename)
-        Import results from a CSV file and reconstruct class state for plotting.
-    plot_expectations_vs_param(...)
-        Plot mean ⟨|O|⟩ vs noise parameter p.
-    plot_error_rates_vs_param(...)
-        Plot error rate = 1 - ⟨|O|⟩ vs noise p.
-    plot_multi(...)
-        Static: overlay or grid of multiple sweeps of ⟨|O|⟩ vs p.
-    plot_error_multi(...)
-        Static: overlay or grid of multiple sweeps of error rates with bars.
-    table_round_delta(...)
-        Print table comparing fidelity differences between rounds.
+        Import results from a CSV file and reconstruct the in-memory sweep
+        state.
+    _metric_series_for_operator(round_idx, operator, metric, allow_legacy_approx)
+        Extract aligned x/y/error arrays for one plotted metric series.
     """
 
     two_qubit_index: Dict[str, int] = {
@@ -96,9 +123,6 @@ class MdrNoiseSweep:
     }
     single_params = {"p_x", "p_y", "p_z", "g1_x", "g1_y", "g1_z"}
 
-    # ─────────────────────────────────────────────────────────────────────
-    # construction
-    # ─────────────────────────────────────────────────────────────────────
     def __init__(
         self,
         code_stabilizers: Optional[List[str]] = None,
@@ -108,6 +132,7 @@ class MdrNoiseSweep:
         ancillas: int = 1,
         psi_circuit: Any = None,
         p_spam: float = 0.0,
+        recovery_mode: str = "each_round",
         param_names: Union[str, List[str]] = (),
         param_values: Union[List[float], Dict[str, List[float]]] = (),
         round_list: List[int] = [1],
@@ -118,49 +143,42 @@ class MdrNoiseSweep:
         load_data_filename: Optional[str | Path] = None,
     ) -> None:
         """
-        Configure and execute the full noise-parameter sweep.
-        
-        Can operate in two modes:
-        1. **Simulation Mode**: Runs the sweep and optionally saves data.
-        2. **Load Mode**: Loads existing data from a CSV for plotting
-           (skips execution).
-        
-        Args
-        ----
-        code_stabilizers : List[str]
-            Pauli strings defining the code stabilizers.
-        toggles : List[str]
-            Pauli strings for recovery toggles.
-        measure_stabilizers : List[str]
-            Pauli strings to measure each round.
-        logical_operators : Dict[str, str]
-            Mapping from logical operator labels to Pauli strings.
-        ancillas : int
-            Number of ancilla qubits.
-        psi_circuit : Any
-            stim.Circuit preparing the initial state.
-        p_spam : float
-            SPAM error probability.
-        param_names : str or List[str]
-            Name(s) of noise parameters to sweep.
-        param_values : List[float] or Dict[str, List[float]]
-            Shared list (sync) or per-parameter lists (async) of values.
-        round_list : List[int]
-            MDR round indices to record.
-        shots : int, optional
-            Shots per Monte Carlo measurement. Default is 1000.
-        num_replicates : int, optional
-            Independent repeats per combo. Default is 30.
-        split_2q : bool, default True
-            If True, divides the input probability `p` evenly among all 
-            active parameters of the same type (1-qubit or 2-qubit). 
-            This prevents probabilities summing > 1 in Stim.
-        save_data_filename : Optional[str]
-            If provided, saves simulation results to this CSV path after
-            running.
-        load_data_filename : Optional[str]
-            If provided, SKIPS simulation and loads data from this CSV. 
-            Useful for plotting previously run jobs.
+        Configure, run, or load a complete MDR noise-parameter sweep.
+
+        The constructor supports two modes:
+        1. Simulation mode, where circuit inputs and sweep values are
+           provided and all parameter combinations are executed immediately.
+        2. Load mode, where an existing CSV is parsed and the in-memory result
+           structures are reconstructed without rerunning Stim.
+
+        Args:
+            code_stabilizers: Pauli strings defining the code checks used by
+                the MDR circuit.
+            toggles: Recovery toggle strings aligned with the code checks.
+            measure_stabilizers: Stabilizer observables reported in outputs.
+            logical_operators: Logical observables reported in outputs.
+            ancillas: Number of ancilla qubits used during syndrome
+                extraction.
+            psi_circuit: Optional Stim circuit preparing the initial state.
+            p_spam: SPAM error probability.
+            recovery_mode: Whether recovery toggles are applied
+                `each_round` or only on the `final_round`.
+            param_names: Name or list of names of the noise parameters to
+                sweep.
+            param_values: Shared list (synchronous sweep) or per-parameter
+                mapping (asynchronous sweep) of values.
+            round_list: MDR round indices to retain in the stored results.
+            shots: Shots per replicate expectation estimate.
+            num_replicates: Independent repeats per parameter combination.
+            split_2q: If True, split a shared probability budget across all
+                active one-qubit or two-qubit channels of the same type.
+            save_data_filename: Optional CSV path written after simulation.
+            load_data_filename: Optional CSV path to load instead of running.
+
+        Raises:
+            ValueError: If required simulation inputs are missing in
+                simulation mode, `param_names` is empty, or asynchronous sweep
+                values are missing keys for requested parameters.
         """
         if load_data_filename is not None:
             self.load_results(load_data_filename)
@@ -184,6 +202,7 @@ class MdrNoiseSweep:
         self.ancillas = ancillas
         self.psi_circuit = psi_circuit
         self.p_spam = p_spam
+        self.recovery_mode = recovery_mode
         self.round_list = round_list
         self.shots = shots
         self.num_replicates = num_replicates
@@ -229,9 +248,6 @@ class MdrNoiseSweep:
         if save_data_filename is not None:
             self.save_results(save_data_filename)
 
-    # ─────────────────────────────────────────────────────────────────────
-    # simulation
-    # ─────────────────────────────────────────────────────────────────────
     def _perform_sweep(
         self,
     ) -> Tuple[
@@ -241,24 +257,26 @@ class MdrNoiseSweep:
         Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
     ]:
         """
-        Internal: run MDRSimulation for each combo and gather both means and
-        stddevs.
-        
-        Implements the Probability Splitting Logic:
-        - 1-qubit params get the full value `p` (or p/N if N params active).
-        - 2-qubit params get `p / num_2q_params` if split_2q is True.
-        
-        Updates:
-        - Includes strict safety check to ensure probabilities sum <= 1.0.
-        - Uses a 0.999 safety factor if sum approaches 1 to counteract 
-          string formatting rounding up in Stim (e.g. {:.6g}).
-        
-        Returns
-        -------
-        all_means : Dict[tuple, Dict[int, Dict[str, float]]]
-            combo → round → {label: mean ⟨|O|⟩}
-        all_stds : Dict[tuple, Dict[int, Dict[str, float]]]
-            combo → round → {label: sample stddev}
+        Execute the configured sweep over all parameter combinations.
+
+        For each parameter tuple, this method constructs an `MDRCircuit`,
+        applies the project's one-qubit and two-qubit probability-splitting
+        conventions, enforces a small safety margin when probabilities sum
+        close to one, then runs a corresponding `MDRSimulation`. The output
+        includes both absolute-value and signed summaries so later analysis
+        can distinguish legacy fidelity-style metrics from exact logical
+        state-preparation error metrics.
+
+        Returns:
+            Tuple[
+                Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
+                Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
+                Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
+                Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
+            ]:
+            `(all_means, all_stds, all_signed_means, all_signed_stds)` where
+            each top-level key is a parameter tuple and each nested mapping is
+            `round_index -> {operator_label: summary_value}`.
         """
         all_means: Dict[Tuple[float, ...], Dict[int, Dict[str, float]]] = {}
         all_stds: Dict[Tuple[float, ...], Dict[int, Dict[str, float]]] = {}
@@ -282,6 +300,7 @@ class MdrNoiseSweep:
                 "toggles": self.toggles,
                 "ancillas": self.ancillas,
                 "p_spam": self.p_spam,
+                "recovery_mode": self.recovery_mode,
                 "p_x": 0.0,
                 "p_y": 0.0,
                 "p_z": 0.0,
@@ -373,22 +392,18 @@ class MdrNoiseSweep:
 
         return all_means, all_stds, all_signed_means, all_signed_stds
 
-    # ─────────────────────────────────────────────────────────────────────
-    # io helpers
-    # ─────────────────────────────────────────────────────────────────────
     def save_results(self, filename: str | Path) -> None:
         """
-        Flatten the results dictionary and save to CSV.
-        
-        The CSV structure will be:
-        [param_1, param_2, ..., round, operator, mean, std,
-         mean_signed, std_signed]
-        
-        Args
-        ----
-        filename : str
-            Path to save the CSV file. A bare filename is written under
-            `data/simulation_results/`.
+        Flatten in-memory sweep results and write them to a CSV file.
+
+        Each output row corresponds to one `(parameter_combo, round,
+        operator)` triple and contains both the legacy absolute-value metrics
+        (`mean`, `std`) and the signed logical columns
+        (`mean_signed`, `std_signed`).
+
+        Args:
+            filename: Destination CSV path. If a bare filename is supplied, it
+                is written under `data/simulation_results/`.
         """
         rows: List[Dict[str, Any]] = []
         for combo, round_dict in self.results.items():
@@ -432,17 +447,24 @@ class MdrNoiseSweep:
 
     def load_results(self, filename: str | Path) -> None:
         """
-        Load results from CSV and reconstruct attributes needed for plotting.
-        
-        This allows a new MdrNoiseSweep object to behave as if it had run
-        the simulation, enabling the usage of plotting methods.
-        
-        Args
-        ----
-        filename : str
-            Path to the CSV file to load. If not found directly, this method
-            also searches `data/simulation_results/` and the legacy
-            `simulation_results/`.
+        Load sweep results from CSV and reconstruct the analysis state.
+
+        After this method completes, the instance behaves like a sweep that
+        had been run in memory: parameter combinations, operator labels, round
+        lists, and summary dictionaries are all restored. If the CSV predates
+        the signed-output update, the signed dictionaries are populated from
+        the absolute-value columns and `has_exact_signed_results` is set to
+        False.
+
+        Args:
+            filename: Path to the CSV file to load. If the exact path does not
+                exist, fallback lookups are attempted under
+                `data/simulation_results/` and the legacy
+                `simulation_results/` directory.
+
+        Raises:
+            FileNotFoundError: If the CSV cannot be found in any supported
+                location.
         """
         in_path = Path(filename)
         if not in_path.exists():
@@ -551,7 +573,12 @@ class MdrNoiseSweep:
         allow_legacy_approx: bool = False,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
-        Return x/y data for a named plotting metric.
+        Extract a single operator metric series for plotting.
+
+        This helper converts the nested in-memory dictionaries into aligned
+        NumPy arrays ordered by increasing parameter tuple. It supports both
+        the legacy observable-loss metric and the signed logical
+        state-preparation error metric used by the updated plotting path.
 
         Args:
             round_idx: MDR round to plot.
@@ -559,8 +586,20 @@ class MdrNoiseSweep:
             metric: One of `observable_loss` or `state_prep_error`.
             allow_legacy_approx: If True, old CSVs without signed means may
                 approximate state-preparation error as `(1 - |<X_L>|)/2`.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray, np.ndarray]:
+            `(p_vals, y_vals, y_errs)` arrays ready for plotting.
+
+        Raises:
+            ValueError: If the metric name is unknown, the operator is invalid
+                for state-preparation error, or exact signed results are
+                required but unavailable.
         """
-        combos = self._sorted_combos_for_plot()
+        combos = sorted(
+            self.param_combos,
+            key=lambda combo: tuple(float(x) for x in combo),
+        )
         p_vals = np.array([float(combo[0]) for combo in combos], dtype=float)
 
         if metric == "observable_loss":
@@ -597,374 +636,3 @@ class MdrNoiseSweep:
             dtype=float,
         )
         return p_vals, 0.5 * (1 - means), 0.5 * stds
-
-    # ─────────────────────────────────────────────────────────────────────
-    # plotting
-    # ─────────────────────────────────────────────────────────────────────
-    def _sorted_combos_for_plot(self) -> List[Tuple[float, ...]]:
-        """
-        Return parameter combinations sorted numerically for plotting.
-
-        Sorting is done lexicographically on float-cast values so that plotted
-        curves follow a deterministic left-to-right parameter progression.
-
-        Returns:
-            List[Tuple[float, ...]]: Sorted tuples of swept parameter values.
-        """
-        return sorted(
-            self.param_combos,
-            key=lambda combo: tuple(float(x) for x in combo),
-        )
-
-    @staticmethod
-    def plot_error_multi(
-        sweeps: Dict[str, "MdrNoiseSweep"],
-        category: str,
-        rounds: List[int],
-        subset: Optional[List[str]] = None,
-        overlay: bool = False,
-        log_x: bool = False,
-        figsize: Tuple[int, int] = (15, 6),
-        save_path: Optional[str | Path] = None,
-    ) -> None:
-        """
-        Plot error rate = 1 − ⟨|O|⟩ for multiple sweeps,
-        connecting means with solid lines and ±1σ error bars.
-        
-        Args
-        ----
-        sweeps : Dict[str, MdrNoiseSweep]
-            Map legend→sweep instance (requires .results & .results_std).
-        category : {'stabilizer','logical'}
-            Which operators to plot.
-        rounds : List[int]
-            MDR round indices to include.
-        subset : Optional[List[str]]
-            If provided, restrict to these operator labels.
-        overlay : bool
-            If True, overlay all rounds on one axis.
-        log_x : bool
-            If True, set x-axis to logarithmic scale.
-        figsize : Tuple[int,int]
-            Figure size in inches.
-        save_path : Optional[str]
-            Path to save the figure (dpi=300).
-        
-        Raises
-        ------
-        ValueError
-            If sweeps empty or category/subset invalid.
-        
-        Returns
-        -------
-        None
-        """
-        if not sweeps:
-            raise ValueError("No sweeps provided")
-
-        first = next(iter(sweeps.values()))
-        if category == "stabilizer":
-            labels = list(first.measure_stabilizers)
-        elif category == "logical":
-            labels = list(first.logical_operators.keys())
-        else:
-            raise ValueError("category must be 'stabilizer' or 'logical'")
-
-        if subset:
-            missing = set(subset) - set(labels)
-            if missing:
-                raise ValueError(f"Unknown labels: {missing}")
-            labels = subset
-
-        colours = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-        markers = [
-            "o",
-            "s",
-            "^",
-            "v",
-            "<",
-            ">",
-            "8",
-            "p",
-            "P",
-            "*",
-            "h",
-            "H",
-            "+",
-            "x",
-            "X",
-            "D",
-            "d",
-            "|",
-            "_",
-            ".",
-        ]
-        style_keys = [(model, op) for model in sweeps for op in labels]
-        style_map = {
-            key: (
-                colours[idx % len(colours)],
-                markers[(idx // len(colours)) % len(markers)],
-            )
-            for idx, key in enumerate(style_keys)
-        }
-
-        if overlay:
-            fig, ax0 = plt.subplots(figsize=figsize)
-            axes = [ax0]
-        else:
-            n = len(rounds)
-            cols = min(3, n)
-            rows = math.ceil(n / cols)
-            fig, grid = plt.subplots(
-                rows,
-                cols,
-                figsize=figsize,
-                squeeze=False,
-            )
-            axes = list(grid.flatten())
-
-        plot_axes = [axes[0]] if overlay else axes[: len(rounds)]
-        if not overlay and len(axes) > len(rounds):
-            for extra_ax in axes[len(rounds) :]:
-                extra_ax.set_visible(False)
-
-        for idx, ax in enumerate(plot_axes):
-            if not overlay:
-                round_idx = rounds[idx]
-                ax.set_title(f"Round {round_idx}")
-            ax.grid(True)
-
-            for model, sweep in sweeps.items():
-                combos = sweep._sorted_combos_for_plot()
-                p_vals = np.array([float(combo[0]) for combo in combos])
-
-                if overlay:
-                    for op in labels:
-                        for round_idx in rounds:
-                            means = np.array(
-                                [
-                                    sweep.results[c][round_idx][op]
-                                    for c in combos
-                                ],
-                                dtype=float,
-                            )
-                            stds = np.array(
-                                [
-                                    sweep.results_std[c][round_idx][op]
-                                    for c in combos
-                                ],
-                                dtype=float,
-                            )
-                            color, marker = style_map[(model, op)]
-                            ax.errorbar(
-                                p_vals,
-                                1 - means,
-                                yerr=stds,
-                                fmt=f"-{marker}",
-                                color=color,
-                                capsize=4,
-                                label=f"{model}: {op} (r={round_idx})",
-                            )
-                else:
-                    round_idx = rounds[idx]
-                    for op in labels:
-                        means = np.array(
-                            [sweep.results[c][round_idx][op] for c in combos],
-                            dtype=float,
-                        )
-                        stds = np.array(
-                            [
-                                sweep.results_std[c][round_idx][op]
-                                for c in combos
-                            ],
-                            dtype=float,
-                        )
-                        color, marker = style_map[(model, op)]
-                        ax.errorbar(
-                            p_vals,
-                            1 - means,
-                            yerr=stds,
-                            fmt=f"-{marker}",
-                            color=color,
-                            capsize=4,
-                            label=f"{model}: {op}",
-                        )
-
-            if log_x:
-                ax.set_xscale("log")
-            ax.set_xlabel("p", fontsize=14)
-            ax.set_ylabel("Error rate (1 - |<O>|)", fontsize=14)
-
-        plt.tight_layout(rect=[0, 0, 0.75, 1])
-        fig.canvas.draw()
-        renderer = fig.canvas.get_renderer()
-        bboxes = [ax.get_tightbbox(renderer) for ax in plot_axes]
-        union_bbox = Bbox.union(bboxes)
-        bb = union_bbox.transformed(fig.transFigure.inverted())
-        lx = bb.x1 + 0.01
-        ly = bb.y0 + bb.height / 2
-
-        handles, lbls = plot_axes[0].get_legend_handles_labels()
-        fig.legend(
-            handles,
-            lbls,
-            loc="center left",
-            bbox_to_anchor=(lx, ly),
-            fontsize="small",
-        )
-
-        if save_path is not None:
-            out_path = Path(save_path)
-            out_path.parent.mkdir(parents=True, exist_ok=True)
-            fig.savefig(out_path, dpi=300, bbox_inches="tight")
-        if "agg" not in plt.get_backend().lower():
-            plt.show()
-        plt.close(fig)
-
-    @staticmethod
-    def plot_state_prep_error_multi(
-        sweeps: Dict[str, "MdrNoiseSweep"],
-        rounds: List[int],
-        logical_label: str = "Logical X",
-        overlay: bool = False,
-        log_x: bool = False,
-        figsize: Tuple[int, int] = (15, 6),
-        save_path: Optional[str | Path] = None,
-        allow_legacy_approx: bool = False,
-    ) -> None:
-        """
-        Plot logical state-preparation error `(1 - <X_L>) / 2`.
-
-        For legacy CSVs saved before signed expectations were preserved, this
-        metric is only approximate because those files contain `|<X_L>|`
-        instead of `<X_L>`.
-        """
-        if not sweeps:
-            raise ValueError("No sweeps provided")
-
-        if logical_label != "Logical X":
-            raise ValueError(
-                "state-preparation error is currently supported only for "
-                "'Logical X'."
-            )
-
-        colours = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-        markers = ["o", "s", "^", "v", "<", ">", "D", "P", "X", "*"]
-        style_map = {
-            model: (
-                colours[idx % len(colours)],
-                markers[idx % len(markers)],
-            )
-            for idx, model in enumerate(sweeps)
-        }
-
-        if overlay:
-            fig, ax0 = plt.subplots(figsize=figsize)
-            axes = [ax0]
-        else:
-            n = len(rounds)
-            cols = min(3, n)
-            rows = math.ceil(n / cols)
-            fig, grid = plt.subplots(
-                rows,
-                cols,
-                figsize=figsize,
-                squeeze=False,
-            )
-            axes = list(grid.flatten())
-
-        plot_axes = [axes[0]] if overlay else axes[: len(rounds)]
-        if not overlay and len(axes) > len(rounds):
-            for extra_ax in axes[len(rounds) :]:
-                extra_ax.set_visible(False)
-
-        legacy_models = [
-            model
-            for model, sweep in sweeps.items()
-            if not sweep.has_exact_signed_results
-        ]
-        if legacy_models and allow_legacy_approx:
-            print(
-                "Warning: using legacy approximate state-preparation error "
-                "for "
-                + ", ".join(legacy_models)
-                + "."
-            )
-
-        for idx, ax in enumerate(plot_axes):
-            if not overlay:
-                round_idx = rounds[idx]
-                ax.set_title(f"Round {round_idx}")
-            ax.grid(True)
-
-            for model, sweep in sweeps.items():
-                color, marker = style_map[model]
-
-                if overlay:
-                    for round_idx in rounds:
-                        p_vals, y_vals, y_errs = sweep._metric_series_for_operator(
-                            round_idx=round_idx,
-                            operator=logical_label,
-                            metric="state_prep_error",
-                            allow_legacy_approx=allow_legacy_approx,
-                        )
-                        ax.errorbar(
-                            p_vals,
-                            y_vals,
-                            yerr=y_errs,
-                            fmt=f"-{marker}",
-                            color=color,
-                            capsize=4,
-                            label=f"{model} (r={round_idx})",
-                        )
-                else:
-                    round_idx = rounds[idx]
-                    p_vals, y_vals, y_errs = sweep._metric_series_for_operator(
-                        round_idx=round_idx,
-                        operator=logical_label,
-                        metric="state_prep_error",
-                        allow_legacy_approx=allow_legacy_approx,
-                    )
-                    ax.errorbar(
-                        p_vals,
-                        y_vals,
-                        yerr=y_errs,
-                        fmt=f"-{marker}",
-                        color=color,
-                        capsize=4,
-                        label=model,
-                    )
-
-            if log_x:
-                ax.set_xscale("log")
-            ax.set_xlabel("p", fontsize=14)
-            ylabel = "State-prep error (1 - <X_L>) / 2"
-            if legacy_models and allow_legacy_approx:
-                ylabel += " [legacy approx]"
-            ax.set_ylabel(ylabel, fontsize=14)
-
-        plt.tight_layout(rect=[0, 0, 0.75, 1])
-        fig.canvas.draw()
-        renderer = fig.canvas.get_renderer()
-        bboxes = [ax.get_tightbbox(renderer) for ax in plot_axes]
-        union_bbox = Bbox.union(bboxes)
-        bb = union_bbox.transformed(fig.transFigure.inverted())
-        lx = bb.x1 + 0.01
-        ly = bb.y0 + bb.height / 2
-
-        handles, lbls = plot_axes[0].get_legend_handles_labels()
-        fig.legend(
-            handles,
-            lbls,
-            loc="center left",
-            bbox_to_anchor=(lx, ly),
-            fontsize="small",
-        )
-
-        if save_path is not None:
-            out_path = Path(save_path)
-            out_path.parent.mkdir(parents=True, exist_ok=True)
-            fig.savefig(out_path, dpi=300, bbox_inches="tight")
-        if "agg" not in plt.get_backend().lower():
-            plt.show()
-        plt.close(fig)
