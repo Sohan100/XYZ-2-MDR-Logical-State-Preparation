@@ -24,15 +24,20 @@ def _ensure_src_on_path() -> None:
 
 _ensure_src_on_path()
 
-from xyz2_mdr.constants import (  # noqa: E402
+from mdr.constants import (  # noqa: E402
+    CODE_FAMILY_DISPLAY_NAMES,
     DEFAULT_DISTANCES,
     DEFAULT_PLOTS_DIR,
     DEFAULT_RESULTS_DIR,
     NOISE_MODEL_DISPLAY_NAMES,
     NOISE_MODEL_PARAM_NAMES,
 )
-from xyz2_mdr.mdr_noise_sweep import MdrNoiseSweep  # noqa: E402
-from xyz2_mdr.plotters import MdrNoiseSweepPlotter  # noqa: E402
+from mdr.mdr_noise_sweep import MdrNoiseSweep  # noqa: E402
+from mdr.plotters import MdrNoiseSweepPlotter  # noqa: E402
+from mdr.workflows import (  # noqa: E402
+    code_family_subdir,
+    resolve_family_search_dirs,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -47,6 +52,11 @@ def parse_args() -> argparse.Namespace:
         description="Reload sweep CSVs and regenerate threshold PDFs.")
     parser.add_argument("--distances", type=int, nargs="+",
                         default=DEFAULT_DISTANCES)
+    parser.add_argument(
+        "--code-family",
+        choices=sorted(CODE_FAMILY_DISPLAY_NAMES),
+        default="xyz2",
+    )
     parser.add_argument("--input-dir", type=Path,
                         default=DEFAULT_RESULTS_DIR)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_PLOTS_DIR)
@@ -62,18 +72,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--metric",
         choices=["observable_loss", "state_prep_error"],
-        default="state_prep_error",
+        default="observable_loss",
         help=(
-            "Plot either the legacy observable-loss metric `1 - |<X_L>|` or "
-            "the corrected logical state-preparation error `(1 - <X_L>) / 2`."
+            "Plot the original Logical-X error rate `1 - |<X_L>|`. The "
+            "`state_prep_error` option is retained as a compatibility alias."
         ),
     )
     parser.add_argument(
         "--allow-legacy-approx",
         action="store_true",
         help=(
-            "Allow old CSVs without signed logical expectations to approximate "
-            "state-preparation error as `(1 - |<X_L>|) / 2`."
+            "Retained for backwards compatibility. The restored `1 - |<X_L>|` "
+            "metric no longer requires signed logical expectations."
         ),
     )
     return parser.parse_args()
@@ -88,26 +98,42 @@ def _resolve_result_csv(
     input_dir: Path,
     noise_model: str,
     distance: int,
+    code_family: str = "xyz2",
     p_spam: float | None = None,
 ) -> Path | None:
     """Resolve a saved result CSV using legacy and spec-based naming."""
-    legacy = input_dir / f"results_{noise_model}_d{distance}.csv"
-    if legacy.exists() and (p_spam is None or _close(p_spam, 0.0)):
-        return legacy
-
-    spec_files = sorted(
-        input_dir.glob(f"results_{noise_model}_d{distance}_*.spec.json")
-    )
     matches: list[Path] = []
-    for spec_path in spec_files:
-        spec = json.loads(spec_path.read_text(encoding="utf-8"))
-        if p_spam is not None:
-            val = float(spec.get("p_spam", -1.0))
-            if not _close(val, p_spam):
-                continue
-        csv_path = spec_path.with_suffix("").with_suffix(".csv")
-        if csv_path.exists():
-            matches.append(csv_path)
+    for search_dir in resolve_family_search_dirs(input_dir, code_family):
+        legacy_candidates = [
+            search_dir / f"results_{code_family}_{noise_model}_d{distance}.csv",
+        ]
+        if code_family == "xyz2":
+            legacy_candidates.append(
+                search_dir / f"results_{noise_model}_d{distance}.csv"
+            )
+        for legacy in legacy_candidates:
+            if legacy.exists() and (p_spam is None or _close(p_spam, 0.0)):
+                return legacy
+
+        pattern_candidates = [
+            f"results_{code_family}_{noise_model}_d{distance}_*.spec.json",
+        ]
+        if code_family == "xyz2":
+            pattern_candidates.append(
+                f"results_{noise_model}_d{distance}_*.spec.json"
+            )
+        for pattern in pattern_candidates:
+            for spec_path in sorted(search_dir.glob(pattern)):
+                spec = json.loads(spec_path.read_text(encoding="utf-8"))
+                if str(spec.get("code_family", "xyz2")) != code_family:
+                    continue
+                if p_spam is not None:
+                    val = float(spec.get("p_spam", -1.0))
+                    if not _close(val, p_spam):
+                        continue
+                csv_path = spec_path.with_suffix("").with_suffix(".csv")
+                if csv_path.exists():
+                    matches.append(csv_path)
 
     if not matches:
         return None
@@ -119,6 +145,7 @@ def _load_sweeps(
     input_dir: Path,
     distances: list[int],
     noise_model: str,
+    code_family: str = "xyz2",
     p_spam: float | None = None,
 ) -> dict[str, MdrNoiseSweep]:
     """
@@ -136,7 +163,13 @@ def _load_sweeps(
     sweeps: dict[str, MdrNoiseSweep] = {}
     display = NOISE_MODEL_DISPLAY_NAMES[noise_model]
     for d in distances:
-        csv_path = _resolve_result_csv(input_dir, noise_model, d, p_spam=p_spam)
+        csv_path = _resolve_result_csv(
+            input_dir,
+            noise_model,
+            d,
+            code_family=code_family,
+            p_spam=p_spam,
+        )
         if csv_path is not None:
             sweeps[f"{display} (d={d})"] = MdrNoiseSweep(
                 load_data_filename=csv_path)
@@ -159,11 +192,24 @@ def main() -> None:
         None
     """
     args = parse_args()
-    args.output_dir.mkdir(parents=True, exist_ok=True)
+    if args.output_dir.name == "thresholds":
+        output_dir = args.output_dir
+    elif args.output_dir.name == args.code_family:
+        output_dir = args.output_dir / "thresholds"
+    else:
+        output_dir = code_family_subdir(
+            args.output_dir,
+            args.code_family,
+        ) / "thresholds"
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     for noise_model in sorted(NOISE_MODEL_PARAM_NAMES):
         sweeps = _load_sweeps(
-            args.input_dir, args.distances, noise_model, p_spam=args.p_spam
+            args.input_dir,
+            args.distances,
+            noise_model,
+            code_family=args.code_family,
+            p_spam=args.p_spam,
         )
         if not sweeps:
             print(f"Skipping {noise_model}: no CSV files found.")
@@ -175,7 +221,8 @@ def main() -> None:
             else "noise"
         )
         suffix = f"{args.metric}_{suffix_core}"
-        out_pdf = args.output_dir / f"threshold_{noise_model}_{suffix}.pdf"
+        filename = f"threshold_{args.code_family}_{noise_model}_{suffix}.pdf"
+        out_pdf = output_dir / filename
         if args.metric == "observable_loss":
             MdrNoiseSweepPlotter.plot_error_multi(
                 sweeps=sweeps,

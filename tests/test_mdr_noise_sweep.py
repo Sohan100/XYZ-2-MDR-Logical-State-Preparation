@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from xyz2_mdr.mdr_noise_sweep import MdrNoiseSweep
+from mdr.mdr_noise_sweep import MdrNoiseSweep
 
 
 def test_noise_sweep_save_and_load(
@@ -22,7 +22,7 @@ def test_noise_sweep_save_and_load(
     Returns:
         None
     """
-    out_csv = tmp_path / "results_pure_z_d3.csv"
+    out_csv = tmp_path / "results_xyz2_pure_z_d3.csv"
 
     sweep = MdrNoiseSweep(
         # type: ignore[arg-type]
@@ -54,11 +54,11 @@ def test_noise_sweep_save_and_load(
     assert loaded.has_exact_signed_results is True
 
 
-def test_state_prep_error_legacy_approx_load(
+def test_state_prep_error_uses_original_logical_x_error_rate(
     tmp_path: Path,
 ) -> None:
     """
-    Legacy CSVs without signed columns can be loaded for approximate plotting.
+    Logical-X sweep error should use the restored `1 - |<X>|` metric.
 
     Returns:
         None
@@ -84,9 +84,8 @@ def test_state_prep_error_legacy_approx_load(
         round_idx=1,
         operator="Logical X",
         metric="state_prep_error",
-        allow_legacy_approx=True,
     )
 
     assert loaded.has_exact_signed_results is False
-    assert y_vals.tolist() == pytest.approx([0.1])
-    assert y_errs.tolist() == pytest.approx([0.05])
+    assert y_vals.tolist() == pytest.approx([0.2])
+    assert y_errs.tolist() == pytest.approx([0.1])

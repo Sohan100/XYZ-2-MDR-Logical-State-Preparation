@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from xyz2_mdr.xyz2_logical_generator import XYZ2LogicalGenerator
+from xyz2.logical_generator import XYZ2LogicalGenerator
 
 
 def test_d3_logicals_match_expected() -> None:

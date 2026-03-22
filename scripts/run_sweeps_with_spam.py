@@ -23,7 +23,8 @@ def _ensure_src_on_path() -> None:
 
 _ensure_src_on_path()
 
-from xyz2_mdr.constants import (  # noqa: E402
+from mdr.constants import (  # noqa: E402
+    CODE_FAMILY_DISPLAY_NAMES,
     DEFAULT_DISTANCES,
     DEFAULT_NUM_REPLICATES,
     DEFAULT_P_SPAM,
@@ -35,7 +36,11 @@ from xyz2_mdr.constants import (  # noqa: E402
     NOISE_MODEL_PARAM_NAMES,
     default_probabilities,
 )
-from xyz2_mdr.workflows import run_noise_sweep_with_cache  # noqa: E402
+from mdr.workflows import (  # noqa: E402
+    code_family_subdir,
+    default_table_filename,
+    run_noise_sweep_with_cache,
+)
 
 SPAM_VALUE = DEFAULT_P_SPAM
 
@@ -58,6 +63,11 @@ def parse_args() -> argparse.Namespace:
         type=int,
         nargs="+",
         default=DEFAULT_DISTANCES,
+    )
+    parser.add_argument(
+        "--code-family",
+        choices=sorted(CODE_FAMILY_DISPLAY_NAMES),
+        default="xyz2",
     )
     parser.add_argument(
         "--noise-models",
@@ -90,6 +100,11 @@ def parse_args() -> argparse.Namespace:
         default="each_round",
     )
     parser.add_argument(
+        "--correction-mode",
+        choices=["physical", "pauli_frame"],
+        default="physical",
+    )
+    parser.add_argument(
         "--tables-dir",
         type=Path,
         default=DEFAULT_TABLES_DIR,
@@ -120,8 +135,10 @@ def main() -> None:
         if args.probabilities is not None
         else default_probabilities()
     )
-    args.tables_dir.mkdir(parents=True, exist_ok=True)
-    args.output_dir.mkdir(parents=True, exist_ok=True)
+    tables_dir = code_family_subdir(args.tables_dir, args.code_family)
+    output_dir = code_family_subdir(args.output_dir, args.code_family)
+    tables_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     total = len(args.distances) * len(args.noise_models)
     done = 0
@@ -129,7 +146,10 @@ def main() -> None:
 
     for distance in args.distances:
         print(f"\n--- Distance d={distance} ---")
-        table_csv = args.tables_dir / f"mdr_table_d{distance}.csv"
+        table_csv = tables_dir / default_table_filename(
+            distance=distance,
+            code_family=args.code_family,
+        )
         for noise_model in args.noise_models:
             done += 1
             display_name = NOISE_MODEL_DISPLAY_NAMES[noise_model]
@@ -146,9 +166,11 @@ def main() -> None:
                 num_replicates=args.num_replicates,
                 p_spam=SPAM_VALUE,
                 recovery_mode=args.recovery_mode,
+                correction_mode=args.correction_mode,
                 table_csv=table_csv,
-                results_dir=args.output_dir,
+                results_dir=output_dir,
                 force_rerun=args.force_rerun,
+                code_family=args.code_family,
             )
             if loaded:
                 print(f"   cache hit | loaded: {out_csv}")

@@ -23,8 +23,11 @@ def _ensure_src_on_path() -> None:
 
 _ensure_src_on_path()
 
-from xyz2_mdr.workflows import (  # noqa: E402
+from mdr.workflows import (  # noqa: E402
     build_simulation_spec,
+    code_family_subdir,
+    default_table_filename,
+    resolve_slurm_run_dir,
     simulation_results_path,
     simulation_spec_path,
 )
@@ -79,7 +82,7 @@ def main() -> None:
         None
     """
     args = parse_args()
-    run_dir = args.root_dir / args.run_name
+    run_dir = resolve_slurm_run_dir(args.root_dir, args.run_name)
     config_path = run_dir / "run_config.json"
     if not config_path.exists():
         raise FileNotFoundError(f"Missing run config: {config_path}")
@@ -96,7 +99,11 @@ def main() -> None:
     sort_cols = [*config["param_names"], "round", "operator"]
     merged = merged.sort_values(by=sort_cols).reset_index(drop=True)
 
-    merged_name = f"results_{config['noise_model']}_d{config['distance']}.csv"
+    code_family = str(config.get("code_family", "xyz2"))
+    merged_name = (
+        f"results_{code_family}_{config['noise_model']}_"
+        f"d{config['distance']}.csv"
+    )
     merged_path = run_dir / merged_name
     merged.to_csv(merged_path, index=False)
     print(
@@ -105,7 +112,8 @@ def main() -> None:
     )
 
     if not args.no_copy:
-        args.copy_to.mkdir(parents=True, exist_ok=True)
+        family_results_dir = code_family_subdir(args.copy_to, code_family)
+        family_results_dir.mkdir(parents=True, exist_ok=True)
         spec = build_simulation_spec(
             distance=int(config["distance"]),
             noise_model=str(config["noise_model"]),
@@ -115,8 +123,10 @@ def main() -> None:
             num_replicates=int(config["num_replicates"]),
             p_spam=float(config["p_spam"]),
             recovery_mode=str(config.get("recovery_mode", "each_round")),
+            correction_mode=str(config.get("correction_mode", "physical")),
+            code_family=code_family,
         )
-        copy_target = simulation_results_path(args.copy_to, spec)
+        copy_target = simulation_results_path(family_results_dir, spec)
         copy_target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(merged_path, copy_target)
         spec_path = simulation_spec_path(copy_target)
@@ -125,12 +135,24 @@ def main() -> None:
         print(f"Wrote simulation spec to {spec_path.resolve()}")
 
     if not args.no_table_copy:
-        table_name = str(config.get("table_csv", f"mdr_table_d{config['distance']}.csv"))
+        table_name = str(
+            config.get(
+                "table_csv",
+                default_table_filename(
+                    distance=int(config["distance"]),
+                    code_family=code_family,
+                ),
+            )
+        )
         table_src = run_dir / table_name
         if not table_src.exists():
             raise FileNotFoundError(f"Missing table CSV: {table_src}")
-        args.tables_copy_to.mkdir(parents=True, exist_ok=True)
-        table_dst = args.tables_copy_to / f"mdr_table_d{int(config['distance'])}.csv"
+        family_tables_dir = code_family_subdir(args.tables_copy_to, code_family)
+        family_tables_dir.mkdir(parents=True, exist_ok=True)
+        table_dst = family_tables_dir / default_table_filename(
+            distance=int(config["distance"]),
+            code_family=code_family,
+        )
         shutil.copy2(table_src, table_dst)
         print(f"Copied table CSV to {table_dst.resolve()}")
 

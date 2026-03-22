@@ -11,8 +11,8 @@ _SRC_PATH = _REPO_ROOT / "src"
 if str(_SRC_PATH) not in sys.path:
     sys.path.insert(0, str(_SRC_PATH))
 
-from xyz2_mdr.mdr_table import MDRTable
-from xyz2_mdr.workflows import build_code_inputs
+from mdr.mdr_table import MDRTable
+from mdr.workflows import build_code_inputs
 
 
 @pytest.fixture
@@ -37,5 +37,5 @@ def d3_code_inputs(tmp_path: Path) -> dict[str, object]:
     Returns:
         dict[str, object]: Code-input mapping from `build_code_inputs`.
     """
-    table_csv = tmp_path / "mdr_table_d3.csv"
+    table_csv = tmp_path / "mdr_table_xyz2_d3.csv"
     return build_code_inputs(distance=3, table_csv=table_csv)

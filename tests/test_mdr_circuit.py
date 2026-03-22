@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import stim
 
-from xyz2_mdr.mdr_circuit import MDRCircuit
-from xyz2_mdr.mdr_table import MDRTable
+from mdr.mdr_circuit import MDRCircuit
+from mdr.mdr_table import MDRTable
 
 
 def test_mdr_circuit_build_smoke(d3_table: MDRTable) -> None:
@@ -60,3 +60,22 @@ def test_mdr_circuit_can_build_without_recovery(d3_table: MDRTable) -> None:
 
     assert "rec[" not in str(syndrome_only)
     assert "rec[" in str(recovery_only)
+
+
+def test_invalid_correction_mode_raises_value_error() -> None:
+    """
+    Invalid correction-mode strings should be rejected at construction time.
+
+    Returns:
+        None
+    """
+    try:
+        MDRCircuit(
+            stabilizers=["Z0"],
+            toggles=["X0"],
+            correction_mode="bad_mode",
+        )
+    except ValueError as exc:
+        assert "correction_mode" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError for invalid correction_mode")

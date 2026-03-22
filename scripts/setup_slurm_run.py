@@ -25,7 +25,8 @@ def _ensure_src_on_path() -> None:
 
 _ensure_src_on_path()
 
-from xyz2_mdr.constants import (  # noqa: E402
+from mdr.constants import (  # noqa: E402
+    CODE_FAMILY_DISPLAY_NAMES,
     DEFAULT_NUM_REPLICATES,
     DEFAULT_P_SPAM,
     DEFAULT_ROUNDS,
@@ -33,8 +34,10 @@ from xyz2_mdr.constants import (  # noqa: E402
     NOISE_MODEL_PARAM_NAMES,
     default_probabilities,
 )
-from xyz2_mdr.workflows import (  # noqa: E402
+from mdr.workflows import (  # noqa: E402
     build_code_inputs,
+    code_family_subdir,
+    default_table_filename,
     noise_param_names,
 )
 
@@ -49,10 +52,15 @@ def parse_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(
         description=(
-            "Create a Slurm run folder and metadata for XYZ2 MDR sweeps."
+            "Create a Slurm run folder and metadata for MDR sweeps."
         )
     )
     parser.add_argument("--distance", type=int, required=True)
+    parser.add_argument(
+        "--code-family",
+        choices=sorted(CODE_FAMILY_DISPLAY_NAMES),
+        default="xyz2",
+    )
     parser.add_argument(
         "--noise-model",
         choices=sorted(NOISE_MODEL_PARAM_NAMES),
@@ -61,7 +69,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--run-name", type=str, default=None)
     parser.add_argument("--root-dir", type=Path,
                         default=Path("XYZ2-experiment-data-slurm"))
-    parser.add_argument("--code-name", type=str, default="xyz2_mdr")
+    parser.add_argument("--code-name", type=str, default="xyz2")
     parser.add_argument("--probabilities", type=float, nargs="+", default=None)
     parser.add_argument("--rounds", type=int, nargs="+",
                         default=DEFAULT_ROUNDS)
@@ -73,6 +81,11 @@ def parse_args() -> argparse.Namespace:
         "--recovery-mode",
         choices=["each_round", "final_round"],
         default="each_round",
+    )
+    parser.add_argument(
+        "--correction-mode",
+        choices=["physical", "pauli_frame"],
+        default="physical",
     )
     parser.add_argument("--overwrite", action="store_true")
     return parser.parse_args()
@@ -93,13 +106,17 @@ def main() -> None:
         probabilities = args.probabilities
     else:
         probabilities = default_probabilities()
+    code_name = args.code_name
+    if code_name == "xyz2" and args.code_family != "xyz2":
+        code_name = f"{args.code_family}_mdr"
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%SZ")
     run_name = (
         args.run_name
         or f"Run-{timestamp}-d{args.distance}-{args.noise_model}"
     )
-    run_dir = args.root_dir / run_name
+    family_root = code_family_subdir(args.root_dir, args.code_family)
+    run_dir = family_root / run_name
 
     if run_dir.exists() and not args.overwrite:
         raise FileExistsError(
@@ -110,11 +127,19 @@ def main() -> None:
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "partials").mkdir(parents=True, exist_ok=True)
 
-    table_csv = run_dir / f"mdr_table_d{args.distance}.csv"
-    build_code_inputs(distance=args.distance, table_csv=table_csv)
+    table_csv = run_dir / default_table_filename(
+        distance=args.distance,
+        code_family=args.code_family,
+    )
+    build_code_inputs(
+        distance=args.distance,
+        table_csv=table_csv,
+        code_family=args.code_family,
+    )
 
     config = {
-        "code_name": args.code_name,
+        "code_name": code_name,
+        "code_family": args.code_family,
         "distance": args.distance,
         "noise_model": args.noise_model,
         "param_names": noise_param_names(args.noise_model),
@@ -124,6 +149,7 @@ def main() -> None:
         "num_replicates": args.num_replicates,
         "p_spam": args.p_spam,
         "recovery_mode": args.recovery_mode,
+        "correction_mode": args.correction_mode,
         "table_csv": table_csv.name,
         "created_at_utc": timestamp,
     }
@@ -131,13 +157,16 @@ def main() -> None:
     config_path = run_dir / "run_config.json"
     config_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
     (run_dir /
-     "code_name.txt").write_text(f"{args.code_name}\n", encoding="utf-8")
+     "code_name.txt").write_text(f"{code_name}\n", encoding="utf-8")
 
-    working_file = args.root_dir / f"working-folder-{args.code_name}.txt"
-    args.root_dir.mkdir(parents=True, exist_ok=True)
+    working_file = family_root / f"working-folder-{args.code_family}-{code_name}.txt"
+    family_root.mkdir(parents=True, exist_ok=True)
     working_file.write_text(f"{run_name}\n", encoding="utf-8")
-    (args.root_dir /
-     "working-folder.txt").write_text(f"{run_name}\n", encoding="utf-8")
+    (family_root /
+     f"working-folder-{args.code_family}.txt").write_text(
+        f"{run_name}\n",
+        encoding="utf-8",
+    )
 
     print(f"Run name: {run_name}")
     print(f"Run dir: {run_dir.resolve()}")

@@ -5,10 +5,10 @@ from pathlib import Path
 import matplotlib
 import pandas as pd
 
-from xyz2_mdr.mdr_circuit import MDRCircuit
-from xyz2_mdr.mdr_noise_sweep import MdrNoiseSweep
-from xyz2_mdr.mdr_simulation import MDRSimulation
-from xyz2_mdr.plotters import MDRSimulationPlotter, MdrNoiseSweepPlotter
+from mdr.mdr_circuit import MDRCircuit
+from mdr.mdr_noise_sweep import MdrNoiseSweep
+from mdr.mdr_simulation import MDRSimulation
+from mdr.plotters import MDRSimulationPlotter, MdrNoiseSweepPlotter
 
 
 matplotlib.use("Agg")

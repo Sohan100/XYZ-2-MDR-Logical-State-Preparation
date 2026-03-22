@@ -33,7 +33,7 @@ SPAM, 1-qubit, and 2-qubit Pauli-channel noise models.
 
 ## Project Goals
 
-- one class per file under `src/xyz2_mdr/`
+- one class per file under the canonical packages in `src/`
 - orchestration-only entry scripts under `scripts/`
 - a Slurm workflow under `slurm/`
 - `pytest` tests under `tests/`
@@ -41,15 +41,15 @@ SPAM, 1-qubit, and 2-qubit Pauli-channel noise models.
 
 ## Layout
 
-- `src/xyz2_mdr/xyz2_stabilizer_generator.py` -> `XYZ2StabilizerGenerator`
-- `src/xyz2_mdr/xyz2_logical_generator.py` -> `XYZ2LogicalGenerator`
-- `src/xyz2_mdr/robust_toggle_generator.py` -> `RobustToggleGenerator`
-- `src/xyz2_mdr/mdr_table.py` -> `MDRTable`
-- `src/xyz2_mdr/mdr_circuit.py` -> `MDRCircuit`
-- `src/xyz2_mdr/mdr_simulation.py` -> `MDRSimulation` (round-by-round
+- `src/xyz2/stabilizer_generator.py` -> `XYZ2StabilizerGenerator`
+- `src/xyz2/logical_generator.py` -> `XYZ2LogicalGenerator`
+- `src/mdr/robust_toggle_generator.py` -> `RobustToggleGenerator`
+- `src/mdr/mdr_table.py` -> `MDRTable`
+- `src/mdr/mdr_circuit.py` -> `MDRCircuit`
+- `src/mdr/mdr_simulation.py` -> `MDRSimulation` (round-by-round
   expectation simulation core)
-- `src/xyz2_mdr/mdr_noise_sweep.py` -> `MdrNoiseSweep`
-- `src/xyz2_mdr/workflows.py` -> helper functions to wire classes together
+- `src/mdr/mdr_noise_sweep.py` -> `MdrNoiseSweep`
+- `src/mdr/workflows.py` -> helper functions to wire classes together
 
 ## Install
 
@@ -103,9 +103,9 @@ python scripts/run_distance_sweeps.py \
 
 Outputs:
 
-- `data/tables/mdr_table_d{d}.csv`
-- `data/simulation_results/results_*_spec-<hash>.csv`
-- `data/simulation_results/results_*_spec-<hash>.spec.json`
+- `data/tables/<code_family>/mdr_table_<code_family>_d{d}.csv`
+- `data/simulation_results/<code_family>/results_*_spec-<hash>.csv`
+- `data/simulation_results/<code_family>/results_*_spec-<hash>.spec.json`
 
 ## Regenerate Threshold Plots From CSV
 
@@ -131,21 +131,31 @@ When `--p-spam` is set, it resolves CSVs by reading the `.spec.json`
 sidecars and selecting the newest match for each
 `(noise_model, distance, p_spam)`.
 
+By default, regenerated threshold plots are written under
+`data/plots/<code_family>/thresholds/`.
+
 ## Slurm Workflow
 
 ### 1) Submit No-SPAM Simulation
 
 ```bash
-sbatch slurm/run_xyz2_parallel_no_spam.sh
+sbatch slurm/xyz2/run_parallel_no_spam.sh
 ```
 
 ### 2) Submit With-SPAM Simulation
 
 ```bash
-sbatch slurm/run_xyz2_parallel_with_spam.sh
+sbatch slurm/xyz2/run_parallel_with_spam.sh
 ```
 
-Both Slurm files are self-contained:
+Surface-code sweeps use the parallel entry points under `slurm/surface/`:
+
+```bash
+sbatch slurm/surface/run_parallel_no_spam.sh
+sbatch slurm/surface/run_parallel_with_spam.sh
+```
+
+The family folders under `slurm/` are self-contained:
 - create one run config per `(noise_model, distance)` pair in the default
   sweep `z_type`, `pure_z`, `unbiased` x `3 5 7 9 11`
 - launch one process per probability index in parallel for each pair
@@ -157,9 +167,9 @@ Both Slurm files are self-contained:
 
 - `XYZ2-experiment-data-slurm/<RUN_NAME>/partials/result_idx*.csv`
 - `XYZ2-experiment-data-slurm/<RUN_NAME>/results_<noise_model>_d<distance>.csv`
-- `data/simulation_results/results_<noise_model>_d<distance>_pspam..._spec-<hash>.csv`
-- `data/simulation_results/results_<...>.spec.json`
-- `data/tables/mdr_table_d<distance>.csv`
+- `data/simulation_results/<code_family>/results_<code_family>_<noise_model>_d<distance>_pspam..._spec-<hash>.csv`
+- `data/simulation_results/<code_family>/results_<...>.spec.json`
+- `data/tables/<code_family>/mdr_table_<code_family>_d<distance>.csv`
 
 ## Tests
 

@@ -24,10 +24,12 @@ def _ensure_src_on_path() -> None:
 
 _ensure_src_on_path()
 
-from xyz2_mdr.mdr_noise_sweep import MdrNoiseSweep  # noqa: E402
-from xyz2_mdr.workflows import (  # noqa: E402
+from mdr.mdr_noise_sweep import MdrNoiseSweep  # noqa: E402
+from mdr.workflows import (  # noqa: E402
     build_code_inputs,
+    default_table_filename,
     noise_param_names,
+    resolve_slurm_run_dir,
 )
 
 
@@ -41,7 +43,7 @@ def parse_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(
         description=(
-            "Run one probability index for a prepared Slurm XYZ2 MDR run."
+            "Run one probability index for a prepared Slurm MDR run."
         )
     )
     parser.add_argument("run_name", type=str)
@@ -64,7 +66,7 @@ def main() -> None:
         None
     """
     args = parse_args()
-    run_dir = args.root_dir / args.run_name
+    run_dir = resolve_slurm_run_dir(args.root_dir, args.run_name)
     config_path = run_dir / "run_config.json"
     if not config_path.exists():
         raise FileNotFoundError(f"Missing run config: {config_path}")
@@ -84,10 +86,18 @@ def main() -> None:
         if text:
             shots = int(text)
 
-    table_csv = run_dir / \
-        config.get("table_csv", f"mdr_table_d{config['distance']}.csv")
-    code_inputs = build_code_inputs(distance=int(
-        config["distance"]), table_csv=table_csv)
+    table_csv = run_dir / config.get(
+        "table_csv",
+        default_table_filename(
+            distance=int(config["distance"]),
+            code_family=str(config.get("code_family", "xyz2")),
+        ),
+    )
+    code_inputs = build_code_inputs(
+        distance=int(config["distance"]),
+        table_csv=table_csv,
+        code_family=str(config.get("code_family", "xyz2")),
+    )
     param_names = noise_param_names(str(config["noise_model"]))
 
     out_csv = run_dir / "partials" / f"result_idx{idx:03d}.csv"
@@ -107,6 +117,7 @@ def main() -> None:
         psi_circuit=code_inputs["psi_circuit"],
         p_spam=float(config["p_spam"]),
         recovery_mode=str(config.get("recovery_mode", "each_round")),
+        correction_mode=str(config.get("correction_mode", "physical")),
         param_names=param_names,
         param_values=[p_val],
         round_list=[int(x) for x in config["rounds"]],

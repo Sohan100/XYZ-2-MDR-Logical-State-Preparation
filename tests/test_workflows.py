@@ -5,7 +5,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from xyz2_mdr.workflows import (
+from mdr.workflows import (
+    build_code_inputs,
     build_simulation_spec,
     run_noise_sweep_with_cache,
     simulation_results_path,
@@ -14,13 +15,64 @@ from xyz2_mdr.workflows import (
 
 
 @pytest.mark.parametrize(
-    ("p_spam_a", "p_spam_b", "shots_a", "shots_b", "mode_a", "mode_b"),
+    (
+        "p_spam_a",
+        "p_spam_b",
+        "shots_a",
+        "shots_b",
+        "mode_a",
+        "mode_b",
+        "correction_a",
+        "correction_b",
+    ),
     [
-        (0.0, 1e-3, 100, 100, "each_round", "each_round"),
-        (0.0, 0.0, 100, 200, "each_round", "each_round"),
-        (0.0, 0.0, 100, 100, "each_round", "final_round"),
+        (
+            0.0,
+            1e-3,
+            100,
+            100,
+            "each_round",
+            "each_round",
+            "physical",
+            "physical",
+        ),
+        (
+            0.0,
+            0.0,
+            100,
+            200,
+            "each_round",
+            "each_round",
+            "physical",
+            "physical",
+        ),
+        (
+            0.0,
+            0.0,
+            100,
+            100,
+            "each_round",
+            "final_round",
+            "physical",
+            "physical",
+        ),
+        (
+            0.0,
+            0.0,
+            100,
+            100,
+            "each_round",
+            "each_round",
+            "physical",
+            "pauli_frame",
+        ),
     ],
-    ids=["different_pspam", "different_shots", "different_recovery_mode"],
+    ids=[
+        "different_pspam",
+        "different_shots",
+        "different_recovery_mode",
+        "different_correction_mode",
+    ],
 )
 def test_simulation_spec_hash_changes_with_parameters(
     p_spam_a: float,
@@ -29,6 +81,8 @@ def test_simulation_spec_hash_changes_with_parameters(
     shots_b: int,
     mode_a: str,
     mode_b: str,
+    correction_a: str,
+    correction_b: str,
 ) -> None:
     """
     Ensure specification hash changes when one simulation parameter changes.
@@ -47,6 +101,7 @@ def test_simulation_spec_hash_changes_with_parameters(
         num_replicates=3,
         p_spam=p_spam_a,
         recovery_mode=mode_a,
+        correction_mode=correction_a,
     )
     spec_b = build_simulation_spec(
         distance=3,
@@ -57,6 +112,7 @@ def test_simulation_spec_hash_changes_with_parameters(
         num_replicates=3,
         p_spam=p_spam_b,
         recovery_mode=mode_b,
+        correction_mode=correction_b,
     )
     assert simulation_spec_hash(spec_a) != simulation_spec_hash(spec_b)
 
@@ -107,11 +163,62 @@ def test_run_noise_sweep_with_cache_loads_existing(
         shots=100,
         num_replicates=3,
         p_spam=1.339e-3,
-        table_csv=tmp_path / "mdr_table_d3.csv",
+        table_csv=tmp_path / "mdr_table_xyz2_d3.csv",
         results_dir=tmp_path,
         force_rerun=False,
     )
 
     assert loaded is True
     assert out_path == csv_path
+    assert out_path.parent.name == "xyz2"
     assert "Logical X" in sweep.logical_operators
+
+
+def test_surface_workflow_uses_distinct_spec_and_filename(tmp_path: Path) -> None:
+    """
+    Surface-code caches should not collide with the legacy XYZ2 naming path.
+    """
+    xyz2_spec = build_simulation_spec(
+        distance=3,
+        noise_model="pure_z",
+        probabilities=[1e-5],
+        rounds=[1],
+        shots=100,
+        num_replicates=3,
+        p_spam=0.0,
+    )
+    surface_spec = build_simulation_spec(
+        distance=3,
+        noise_model="pure_z",
+        probabilities=[1e-5],
+        rounds=[1],
+        shots=100,
+        num_replicates=3,
+        p_spam=0.0,
+        code_family="surface",
+    )
+
+    xyz2_path = simulation_results_path(tmp_path, xyz2_spec)
+    surface_path = simulation_results_path(tmp_path, surface_spec)
+    assert simulation_spec_hash(xyz2_spec) != simulation_spec_hash(surface_spec)
+    assert xyz2_path.parent.name == "xyz2"
+    assert xyz2_path.name.startswith("results_xyz2_pure_z_d3_")
+    assert surface_path.parent.name == "surface"
+    assert surface_path.name.startswith("results_surface_pure_z_d3_")
+
+
+def test_build_code_inputs_surface_smoke(tmp_path: Path) -> None:
+    """
+    Surface-code inputs should expose the full MDR structures.
+    """
+    table_csv = tmp_path / "mdr_table_surface_d3.csv"
+    code_inputs = build_code_inputs(
+        distance=3,
+        table_csv=table_csv,
+        code_family="surface",
+    )
+
+    assert table_csv.exists()
+    assert code_inputs["logical_x"] == "X0 X5 X10"
+    assert len(code_inputs["stabilizers"]) == 12
+    assert len(code_inputs["combined_toggles"]) == 13

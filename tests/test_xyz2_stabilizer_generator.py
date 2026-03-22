@@ -4,7 +4,7 @@ from collections import Counter
 
 import pytest
 
-from xyz2_mdr.xyz2_stabilizer_generator import XYZ2StabilizerGenerator
+from xyz2.stabilizer_generator import XYZ2StabilizerGenerator
 
 
 def test_d5_stabilizer_weight_counts() -> None:
