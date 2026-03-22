@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import shutil
 from typing import Any, Dict, List, Tuple
 
 import pandas as pd
@@ -21,6 +22,7 @@ import stim
 
 from .constants import (
     DEFAULT_RESULTS_DIR,
+    DEFAULT_TABLES_DIR,
     NOISE_MODEL_PARAM_NAMES,
     SUPPORTED_CODE_FAMILIES,
 )
@@ -231,6 +233,94 @@ def default_table_filename(
     Return the canonical MDR table filename for one code family and distance.
     """
     return f"mdr_table_{code_family}_d{distance}.csv"
+
+
+def canonical_table_path(
+    distance: int,
+    code_family: str = "xyz2",
+    tables_dir: str | Path = DEFAULT_TABLES_DIR,
+) -> Path:
+    """
+    Return the canonical family-scoped MDR table path.
+
+    This helper centralizes the project convention that persisted tables live
+    under `data/tables/<code_family>/` with filenames derived only from code
+    family and distance. Slurm setup, local sweep scripts, and manual table
+    generation all rely on the same naming rule.
+
+    Args:
+        distance: Code distance identifying which table is needed.
+        code_family: Code family owning the table.
+        tables_dir: Root directory containing the family-specific table
+            subdirectories.
+
+    Returns:
+        Path: Canonical table CSV location for the requested family and
+        distance.
+    """
+    return code_family_subdir(tables_dir, code_family) / default_table_filename(
+        distance=distance,
+        code_family=code_family,
+    )
+
+
+def ensure_table_csv(
+    distance: int,
+    target_table_csv: str | Path,
+    code_family: str = "xyz2",
+    canonical_tables_dir: str | Path = DEFAULT_TABLES_DIR,
+) -> Path:
+    """
+    Ensure a table CSV exists at a requested path, reusing canonical data.
+
+    The preferred source of truth is the family-scoped table under
+    `data/tables/<code_family>/`. If that canonical table already exists, it
+    is copied into the requested target path so Slurm run folders can reuse
+    precomputed tables without regenerating them. When no canonical table is
+    available, a fresh `MDRTable` is generated and saved directly to the
+    target path.
+
+    Args:
+        distance: Code distance used to identify or generate the table.
+        target_table_csv: Path where the caller expects the table CSV to
+            exist after this helper returns.
+        code_family: Code family owning the table.
+        canonical_tables_dir: Root directory containing canonical persisted
+            tables, typically `data/tables/`.
+
+    Returns:
+        Path: The materialized target table path.
+
+    Raises:
+        ValueError: If `code_family` is unsupported.
+    """
+    if code_family not in SUPPORTED_CODE_FAMILIES:
+        raise ValueError(
+            "code_family must be one of: "
+            + ", ".join(SUPPORTED_CODE_FAMILIES)
+        )
+
+    target_path = Path(target_table_csv)
+    if target_path.exists():
+        return target_path
+
+    canonical_path = canonical_table_path(
+        distance=distance,
+        code_family=code_family,
+        tables_dir=canonical_tables_dir,
+    )
+    if canonical_path.exists():
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(canonical_path, target_path)
+        return target_path
+
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    MDRTable(
+        distance=distance,
+        save_filename=target_path,
+        code_family=code_family,
+    )
+    return target_path
 
 
 def run_noise_sweep(

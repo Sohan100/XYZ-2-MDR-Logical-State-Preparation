@@ -8,6 +8,8 @@ import pytest
 from mdr.workflows import (
     build_code_inputs,
     build_simulation_spec,
+    canonical_table_path,
+    ensure_table_csv,
     run_noise_sweep_with_cache,
     simulation_results_path,
     simulation_spec_hash,
@@ -222,3 +224,42 @@ def test_build_code_inputs_surface_smoke(tmp_path: Path) -> None:
     assert code_inputs["logical_x"] == "X0 X5 X10"
     assert len(code_inputs["stabilizers"]) == 12
     assert len(code_inputs["combined_toggles"]) == 13
+
+
+def test_ensure_table_csv_reuses_canonical_table(tmp_path: Path) -> None:
+    """
+    Slurm-prepared run folders should reuse persisted canonical tables.
+
+    Args:
+        tmp_path: Per-test temporary directory provided by pytest.
+
+    Returns:
+        None
+    """
+    tables_dir = tmp_path / "data" / "tables"
+    canonical_csv = canonical_table_path(
+        distance=3,
+        code_family="surface",
+        tables_dir=tables_dir,
+    )
+    build_code_inputs(
+        distance=3,
+        table_csv=canonical_csv,
+        code_family="surface",
+    )
+
+    run_table_csv = (
+        tmp_path / "slurm" / "surface" / "Run-test" / canonical_csv.name
+    )
+    ensure_table_csv(
+        distance=3,
+        target_table_csv=run_table_csv,
+        code_family="surface",
+        canonical_tables_dir=tables_dir,
+    )
+
+    assert canonical_csv.exists()
+    assert run_table_csv.exists()
+    assert run_table_csv.read_text(encoding="utf-8") == canonical_csv.read_text(
+        encoding="utf-8"
+    )

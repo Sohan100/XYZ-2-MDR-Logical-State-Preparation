@@ -28,6 +28,7 @@ from mdr.mdr_noise_sweep import MdrNoiseSweep  # noqa: E402
 from mdr.workflows import (  # noqa: E402
     build_code_inputs,
     default_table_filename,
+    ensure_table_csv,
     noise_param_names,
     resolve_slurm_run_dir,
 )
@@ -92,6 +93,11 @@ def main() -> None:
             distance=int(config["distance"]),
             code_family=str(config.get("code_family", "xyz2")),
         ),
+    )
+    ensure_table_csv(
+        distance=int(config["distance"]),
+        target_table_csv=table_csv,
+        code_family=str(config.get("code_family", "xyz2")),
     )
     code_inputs = build_code_inputs(
         distance=int(config["distance"]),

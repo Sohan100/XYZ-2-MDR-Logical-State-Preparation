@@ -35,9 +35,9 @@ from mdr.constants import (  # noqa: E402
     default_probabilities,
 )
 from mdr.workflows import (  # noqa: E402
-    build_code_inputs,
     code_family_subdir,
     default_table_filename,
+    ensure_table_csv,
     noise_param_names,
 )
 
@@ -131,9 +131,9 @@ def main() -> None:
         distance=args.distance,
         code_family=args.code_family,
     )
-    build_code_inputs(
+    ensure_table_csv(
         distance=args.distance,
-        table_csv=table_csv,
+        target_table_csv=table_csv,
         code_family=args.code_family,
     )
 
