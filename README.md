@@ -156,10 +156,13 @@ sbatch slurm/surface/run_parallel_with_spam.sh
 ```
 
 The family folders under `slurm/` are self-contained:
-- create one run config per `(noise_model, distance)` pair in the default
-  sweep `z_type`, `pure_z`, `unbiased` x `3 5 7 9 11`
-- launch one process per probability index in parallel for each pair
-- merge partial CSV outputs after each pair completes
+- submit one Slurm array task per `(noise_model, distance, probability)` in
+  the default sweep `z_type`, `pure_z`, `unbiased` x `3 5 7 9 11` x 29
+  probabilities
+- create one shared run config per `(noise_model, distance)` pair under a
+  lock
+- merge partial CSV outputs automatically once the final probability for a
+  pair completes
 - copy canonical spec-keyed results into `data/simulation_results/`
 - copy tables into `data/tables/`
 

@@ -30,6 +30,7 @@ def _ensure_src_on_path() -> None:
 
 _ensure_src_on_path()
 
+from mdr.constants import SUPPORTED_CODE_FAMILIES  # noqa: E402
 from mdr.workflows import (  # noqa: E402
     build_simulation_spec,
     code_family_subdir,
@@ -56,6 +57,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("run_name", type=str)
     parser.add_argument(
         "--root-dir", type=Path, default=Path("XYZ2-experiment-data-slurm")
+    )
+    parser.add_argument(
+        "--code-family",
+        choices=SUPPORTED_CODE_FAMILIES,
+        default=None,
+        help="Optional code family used to resolve the run directory.",
     )
     parser.add_argument(
         "--copy-to",
@@ -93,7 +100,11 @@ def main() -> None:
     None
     """
     args = parse_args()
-    run_dir = resolve_slurm_run_dir(args.root_dir, args.run_name)
+    run_dir = resolve_slurm_run_dir(
+        args.root_dir,
+        args.run_name,
+        code_family=args.code_family,
+    )
     config_path = run_dir / "run_config.json"
     if not config_path.exists():
         raise FileNotFoundError(f"Missing run config: {config_path}")
