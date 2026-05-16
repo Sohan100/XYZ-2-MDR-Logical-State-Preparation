@@ -32,13 +32,15 @@ codex*/
 *.err
 
 # Generated run folders
-XYZ2-experiment-data-slurm/
+/XYZ2-experiment-data-slurm/
 
 # Generated experiment outputs
-data/tables/*.csv
-data/simulation_results/*.csv
-data/plots/*.pdf
+data/analysis/**
+data/plots/**
+data/simulation_results/**
+data/tables/**
 !data/.gitkeep
+!data/analysis/.gitkeep
 !data/tables/.gitkeep
 !data/simulation_results/.gitkeep
 !data/plots/.gitkeep
@@ -46,3 +48,4 @@ data/plots/*.pdf
 # Local temporary extraction artifacts
 code_cells.py
 stim_xyz2_export.py.py
+/legacy/

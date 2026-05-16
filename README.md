@@ -14,10 +14,9 @@ The project is motivated by two linked goals:
 - evaluate whether mixed-Pauli logical structure gives stronger resilience
   under biased noise channels than under more unbiased channels
 
-This aligns with the project note in
-`legacy/XYZ_2_Code_9_excerpt.txt` (generated from your PDF) and with the
-hardware-oriented objective of characterizing encoded-state preparation
-fidelity before/alongside QPU experiments.
+This repository is meant to keep the active MDR implementation, workflows,
+and tests on `main`; historical extraction artifacts and generated run outputs
+stay outside version control.
 
 ## Background
 
@@ -37,7 +36,8 @@ SPAM, 1-qubit, and 2-qubit Pauli-channel noise models.
 - orchestration-only entry scripts under `scripts/`
 - a Slurm workflow under `slurm/`
 - `pytest` tests under `tests/`
-- systematic output folders under `data/`
+- systematic output folders under `data/`, with generated outputs ignored by
+  git
 
 ## Layout
 
@@ -164,6 +164,9 @@ The family folders under `slurm/` are self-contained:
 - copy tables into `data/tables/`
 
 ### 3) Final outputs
+
+These paths are generated locally or on the cluster and are intentionally not
+tracked on `main`:
 
 - `XYZ2-experiment-data-slurm/<RUN_NAME>/partials/result_idx*.csv`
 - `XYZ2-experiment-data-slurm/<RUN_NAME>/results_<noise_model>_d<distance>.csv`
