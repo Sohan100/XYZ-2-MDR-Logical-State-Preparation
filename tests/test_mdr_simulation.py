@@ -1,3 +1,10 @@
+"""
+
+test_mdr_simulation.py
+----------------------------------------------------------------------------
+Pytest coverage for mdr simulation behavior and regression checks.
+"""
+
 from __future__ import annotations
 
 import stim
@@ -16,7 +23,7 @@ def test_pauli_frame_matches_physical_recovery_for_single_round() -> None:
     should therefore report final `Z0 = +1`.
 
     Returns:
-        None
+    None
     """
     psi = stim.Circuit("X 0")
     physical = MDRSimulation(
@@ -54,18 +61,20 @@ def test_pauli_frame_matches_physical_recovery_for_single_round() -> None:
     assert pauli_frame._stats_stabilizers["Z0"]["centers"][1] == 1.0
 
 
-def test_pauli_frame_corrects_later_round_syndromes_in_each_round_mode() -> None:
+def test_pauli_frame_corrects_later_round_syndromes_in_each_round_mode() -> (
+    None
+):
     """
     Each-round Pauli-frame recovery must reinterpret later syndrome rounds.
 
-    Starting from `|1>`, the first `Z0` syndrome triggers an `X0` recovery.
-    In physical mode the second syndrome is measured on the corrected state,
-    so no second correction is applied. Pauli-frame mode must reproduce this
-    by interpreting the second raw syndrome in the current frame before
-    deciding whether another toggle fires.
+    Starting from `|1>`, the first `Z0` syndrome triggers an `X0` recovery. In
+    physical mode the second syndrome is measured on the corrected state, so no
+    second correction is applied. Pauli-frame mode must reproduce this by
+    interpreting the second raw syndrome in the current frame before deciding
+    whether another toggle fires.
 
     Returns:
-        None
+    None
     """
     psi = stim.Circuit("X 0")
     physical = MDRSimulation(
@@ -108,11 +117,11 @@ def test_pauli_frame_matches_physical_recovery_for_final_round_mode() -> None:
     Final-round Pauli-frame recovery should match deferred physical recovery.
 
     This case checks the simpler deferred-recovery policy where only the last
-    syndrome block is converted into a correction. Both implementations
-    should report the same final stabilizer expectation.
+    syndrome block is converted into a correction. Both implementations should
+    report the same final stabilizer expectation.
 
     Returns:
-        None
+    None
     """
     psi = stim.Circuit("X 0")
     physical = MDRSimulation(

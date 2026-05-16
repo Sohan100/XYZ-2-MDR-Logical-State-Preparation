@@ -1,12 +1,8 @@
 """
-tableau_analysis.py
--------------------
-Helpers for comparing generated MDR toggles against Stim tableau bases.
 
-This module is used for analysis and validation rather than simulation. It
-converts between the project's sparse Pauli-string representation and Stim's
-dense tableau objects, then assembles a dataframe that compares the generated
-toggle basis against Stim's destabilizer basis for the same stabilizer set.
+tableau_analysis.py
+----------------------------------------------------------------------------
+tableau_analysis.py.
 """
 
 from __future__ import annotations
@@ -27,12 +23,12 @@ def sparse_pauli_to_stim(spec: str, num_qubits: int) -> stim.PauliString:
     Convert a sparse project-format Pauli string into a dense Stim object.
 
     Args:
-        spec: Sparse Pauli string such as `"X1 Z4 Y9"`.
-        num_qubits: Total number of physical qubits in the code instance.
+    spec: Sparse Pauli string such as `"X1 Z4 Y9"`. num_qubits: Total number of
+    physical qubits in the code instance.
 
     Returns:
-        stim.PauliString: Dense Pauli operator with explicit identity support
-        on qubits not mentioned in `spec`.
+    stim.PauliString: Dense Pauli operator with explicit identity support on
+    qubits not mentioned in `spec`.
     """
     chars = ["_"] * num_qubits
     if spec.strip() and spec.strip() != "I":
@@ -46,10 +42,10 @@ def stim_pauli_to_sparse(pauli: stim.PauliString) -> str:
     Convert a dense Stim Pauli string into the project's sparse format.
 
     Args:
-        pauli: Dense Stim Pauli string.
+    pauli: Dense Stim Pauli string.
 
     Returns:
-        str: Sparse Pauli-string representation used elsewhere in the project.
+    str: Sparse Pauli-string representation used elsewhere in the project.
     """
     dense = str(pauli)
     if dense and dense[0] in "+-":
@@ -63,10 +59,10 @@ def sparse_pauli_weight(spec: str) -> int:
     Count the support weight of a sparse Pauli string.
 
     Args:
-        spec: Sparse Pauli string in project format.
+    spec: Sparse Pauli string in project format.
 
     Returns:
-        int: Number of non-identity Pauli terms in the operator support.
+    int: Number of non-identity Pauli terms in the operator support.
     """
     if not spec or spec == "I":
         return 0
@@ -85,11 +81,11 @@ def build_destabilizer_report(
     corresponding destabilizer, and the weight difference between the two.
 
     Args:
-        distance: Odd code distance `d` with `d >= 3`.
-        random_seed: Optional seed passed through to the toggle generator.
+    distance: Odd code distance `d` with `d >= 3`. random_seed: Optional seed
+    passed through to the toggle generator.
 
     Returns:
-        pd.DataFrame: Comparison table used by reports and notebook analyses.
+    pd.DataFrame: Comparison table used by reports and notebook analyses.
     """
     num_qubits = 2 * distance * distance
     stabilizers = XYZ2StabilizerGenerator(distance).generate_stabilizers()

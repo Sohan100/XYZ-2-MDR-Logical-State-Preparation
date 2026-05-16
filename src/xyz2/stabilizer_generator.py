@@ -1,13 +1,8 @@
 """
-stabilizer_generator.py
------------------------
-Utility for generating stabilizer sets for the XYZ^2 Hex Code.
 
-The generator encodes the doubled-layer diagonal indexing used by this
-project's honeycomb patch and emits the full stabilizer set in the sparse
-Pauli-string format. The resulting ordered list contains the weight-2 XX link
-checks, the weight-6 plaquette checks, and the four boundary families needed
-to keep the finite patch local while preserving a single logical qubit.
+stabilizer_generator.py
+----------------------------------------------------------------------------
+stabilizer_generator.py.
 """
 
 from __future__ import annotations
@@ -26,24 +21,18 @@ class XYZ2StabilizerGenerator:
 
     Attributes
     ----------
-    d : int
-        Odd code distance used to define the finite honeycomb patch.
-    n : int
-        Total number of physical qubits in the XYZ^2 code, equal to `2d^2`.
-    _layer_offsets : List[int]
-        Prefix offsets used to flatten the doubled diagonal layers of the
-        honeycomb layout into a single qubit-index space.
+    d : int Odd code distance used to define the finite honeycomb patch. n :
+    int Total number of physical qubits in the XYZ^2 code, equal to `2d^2`.
+    _layer_offsets : List[int] Prefix offsets used to flatten the doubled
+    diagonal layers of the honeycomb layout into a single qubit-index space.
 
     Methods
     -------
-    __init__(distance)
-        Validate the distance and precompute the diagonal-layer offsets that
-        define the lattice indexing.
-    generate_stabilizers()
-        Emit the complete ordered stabilizer list for the finite patch.
-    _coord_to_verts(i, j)
-        Map one logical lattice coordinate onto the corresponding upper and
-        lower physical vertices.
+    __init__(distance) Validate the distance and precompute the diagonal-layer
+    offsets that define the lattice indexing. generate_stabilizers() Emit the
+    complete ordered stabilizer list for the finite patch. _coord_to_verts(i,
+    j) Map one logical lattice coordinate onto the corresponding upper and
+    lower physical vertices.
     """
 
     def __init__(self, distance: int) -> None:
@@ -51,10 +40,10 @@ class XYZ2StabilizerGenerator:
         Initialize the generator and pre-compute lattice geometry.
 
         Args:
-            distance: Odd code distance `d` with `d >= 3`.
+        distance: Odd code distance `d` with `d >= 3`.
 
         Raises:
-            ValueError: If `distance` is even or smaller than 3.
+        ValueError: If `distance` is even or smaller than 3.
         """
         if distance < 3 or distance % 2 == 0:
             raise ValueError("Distance d must be odd and >= 3")
@@ -63,8 +52,7 @@ class XYZ2StabilizerGenerator:
         self.n = 2 * distance * distance
 
         diag_counts = [
-            self.d - abs((self.d - 1) - ell)
-            for ell in range(2 * self.d - 1)
+            self.d - abs((self.d - 1) - ell) for ell in range(2 * self.d - 1)
         ]
 
         self._layer_offsets: List[int] = []
@@ -79,13 +67,11 @@ class XYZ2StabilizerGenerator:
         """
         Compute the full ordered stabilizer list for distance `d`.
 
-        The output order is:
-        1. all vertical XX link checks,
-        2. all bulk six-body plaquette checks,
-        3. all four boundary families.
+        The output order is: 1. all vertical XX link checks, 2. all bulk
+        six-body plaquette checks, 3. all four boundary families.
 
         Returns:
-            List[str]: One sparse Pauli string per stabilizer generator.
+        List[str]: One sparse Pauli string per stabilizer generator.
         """
         stabs: List[str] = []
 
@@ -137,12 +123,12 @@ class XYZ2StabilizerGenerator:
         Map one logical lattice coordinate to its doubled physical vertices.
 
         Args:
-            i: Logical row index inside the triangular patch coordinates.
-            j: Logical column index inside the triangular patch coordinates.
+        i: Logical row index inside the triangular patch coordinates. j:
+        Logical column index inside the triangular patch coordinates.
 
         Returns:
-            Tuple[int, int]: `(upper_vertex, lower_vertex)` indices for the
-            doubled qubit at logical coordinate `(i, j)`.
+        Tuple[int, int]: `(upper_vertex, lower_vertex)` indices for the doubled
+        qubit at logical coordinate `(i, j)`.
         """
         ell = i + j
         max_i = min(self.d - 1, ell)

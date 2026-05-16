@@ -1,3 +1,10 @@
+"""
+
+merge_slurm_results.py
+----------------------------------------------------------------------------
+Command-line utilities for merge slurm results.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -13,7 +20,7 @@ def _ensure_src_on_path() -> None:
     Add the repository `src/` directory to `sys.path` if needed.
 
     Returns:
-        None
+    None
     """
     repo_root = Path(__file__).resolve().parents[1]
     src_path = repo_root / "src"
@@ -38,8 +45,8 @@ def parse_args() -> argparse.Namespace:
     Parse command-line arguments for merging Slurm partial CSV outputs.
 
     Returns:
-        argparse.Namespace: Parsed argument values defining run location and
-        copy behavior for merged results.
+    argparse.Namespace: Parsed argument values defining run location and copy
+    behavior for merged results.
     """
     parser = argparse.ArgumentParser(
         description=(
@@ -47,8 +54,9 @@ def parse_args() -> argparse.Namespace:
         )
     )
     parser.add_argument("run_name", type=str)
-    parser.add_argument("--root-dir", type=Path,
-                        default=Path("XYZ2-experiment-data-slurm"))
+    parser.add_argument(
+        "--root-dir", type=Path, default=Path("XYZ2-experiment-data-slurm")
+    )
     parser.add_argument(
         "--copy-to",
         type=Path,
@@ -61,8 +69,11 @@ def parse_args() -> argparse.Namespace:
         default=Path("data/tables"),
         help="Directory to copy MDR table CSV into.",
     )
-    parser.add_argument("--no-copy", action="store_true",
-                        help="Do not copy merged CSV into --copy-to.")
+    parser.add_argument(
+        "--no-copy",
+        action="store_true",
+        help="Do not copy merged CSV into --copy-to.",
+    )
     parser.add_argument(
         "--no-table-copy",
         action="store_true",
@@ -75,11 +86,11 @@ def main() -> None:
     """
     Merge partial run CSVs and optionally copy the merged result.
 
-    The merged frame is deduplicated and sorted by swept parameters, round,
-    and operator before writing.
+    The merged frame is deduplicated and sorted by swept parameters, round, and
+    operator before writing.
 
     Returns:
-        None
+    None
     """
     args = parse_args()
     run_dir = resolve_slurm_run_dir(args.root_dir, args.run_name)
@@ -88,11 +99,13 @@ def main() -> None:
         raise FileNotFoundError(f"Missing run config: {config_path}")
 
     config = json.loads(config_path.read_text(encoding="utf-8"))
+    prep_mode = str(config.get("prep_mode", "full_mdr"))
     partial_dir = run_dir / "partials"
     partial_files = sorted(partial_dir.glob("result_idx*.csv"))
     if not partial_files:
         raise FileNotFoundError(
-            f"No partial result files found in {partial_dir}")
+            f"No partial result files found in {partial_dir}"
+        )
 
     frames = [pd.read_csv(pf) for pf in partial_files]
     merged = pd.concat(frames, ignore_index=True).drop_duplicates()
@@ -125,6 +138,8 @@ def main() -> None:
             recovery_mode=str(config.get("recovery_mode", "each_round")),
             correction_mode=str(config.get("correction_mode", "physical")),
             code_family=code_family,
+            prep_mode=prep_mode,
+            ancillas=int(config.get("ancillas", 1)),
         )
         copy_target = simulation_results_path(family_results_dir, spec)
         copy_target.parent.mkdir(parents=True, exist_ok=True)
@@ -147,7 +162,9 @@ def main() -> None:
         table_src = run_dir / table_name
         if not table_src.exists():
             raise FileNotFoundError(f"Missing table CSV: {table_src}")
-        family_tables_dir = code_family_subdir(args.tables_copy_to, code_family)
+        family_tables_dir = code_family_subdir(
+            args.tables_copy_to, code_family
+        )
         family_tables_dir.mkdir(parents=True, exist_ok=True)
         table_dst = family_tables_dir / default_table_filename(
             distance=int(config["distance"]),

@@ -1,3 +1,10 @@
+"""
+
+test_tableau_analysis.py
+----------------------------------------------------------------------------
+Pytest coverage for tableau analysis behavior and regression checks.
+"""
+
 from __future__ import annotations
 
 from mdr.robust_toggle_generator import RobustToggleGenerator
@@ -11,7 +18,7 @@ def test_build_destabilizer_report_has_expected_shape_d3() -> None:
     The report should include one row for each stabilizer plus Logical X.
 
     Returns:
-        None
+    None
     """
     report = build_destabilizer_report(distance=3)
 
@@ -31,9 +38,13 @@ def test_build_destabilizer_report_has_expected_shape_d3() -> None:
     ]
     assert report["label"].iloc[-1] == "Logical X"
     assert report["category"].iloc[-1] == "Logical"
-    assert report["optimization_status"].isin(
-        ["heuristic", "exact_optimal", "exact_feasible", "exact_fallback"]
-    ).all()
+    assert (
+        report["optimization_status"]
+        .isin(
+            ["heuristic", "exact_optimal", "exact_feasible", "exact_fallback"]
+        )
+        .all()
+    )
 
 
 def test_stim_destabilizers_form_dual_basis_d3() -> None:
@@ -41,7 +52,7 @@ def test_stim_destabilizers_form_dual_basis_d3() -> None:
     Stim's extracted destabilizers should anti-commute with only one row.
 
     Returns:
-        None
+    None
     """
     distance = 3
     num_qubits = 2 * distance * distance

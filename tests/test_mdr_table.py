@@ -1,3 +1,10 @@
+"""
+
+test_mdr_table.py
+----------------------------------------------------------------------------
+Pytest coverage for mdr table behavior and regression checks.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,10 +17,10 @@ def test_mdr_table_save_and_reload(tmp_path: Path) -> None:
     Verify generated MDR tables persist and reload correctly.
 
     Args:
-        tmp_path: Per-test temporary directory provided by pytest.
+    tmp_path: Per-test temporary directory provided by pytest.
 
     Returns:
-        None
+    None
     """
     out_csv = tmp_path / "mdr_table_xyz2_d3.csv"
     table = MDRTable(distance=3, save_filename=out_csv)

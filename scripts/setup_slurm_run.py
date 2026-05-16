@@ -1,3 +1,10 @@
+"""
+
+setup_slurm_run.py
+----------------------------------------------------------------------------
+Command-line utilities for setup slurm run.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -15,7 +22,7 @@ def _ensure_src_on_path() -> None:
     requiring prior package installation.
 
     Returns:
-        None
+    None
     """
     repo_root = Path(__file__).resolve().parents[1]
     src_path = repo_root / "src"
@@ -34,7 +41,12 @@ from mdr.constants import (  # noqa: E402
     NOISE_MODEL_PARAM_NAMES,
     default_probabilities,
 )
+from mdr.preparation import (  # noqa: E402
+    PREP_MODE_FULL_MDR,
+    PREP_MODES,
+)
 from mdr.workflows import (  # noqa: E402
+    default_ancilla_count,
     code_family_subdir,
     default_table_filename,
     ensure_table_csv,
@@ -47,13 +59,11 @@ def parse_args() -> argparse.Namespace:
     Parse command-line arguments for Slurm run-folder preparation.
 
     Returns:
-        argparse.Namespace: Parsed argument values defining run metadata,
-        probabilities, and output locations.
+    argparse.Namespace: Parsed argument values defining run metadata,
+    probabilities, and output locations.
     """
     parser = argparse.ArgumentParser(
-        description=(
-            "Create a Slurm run folder and metadata for MDR sweeps."
-        )
+        description=("Create a Slurm run folder and metadata for MDR sweeps.")
     )
     parser.add_argument("--distance", type=int, required=True)
     parser.add_argument(
@@ -67,15 +77,18 @@ def parse_args() -> argparse.Namespace:
         required=True,
     )
     parser.add_argument("--run-name", type=str, default=None)
-    parser.add_argument("--root-dir", type=Path,
-                        default=Path("XYZ2-experiment-data-slurm"))
+    parser.add_argument(
+        "--root-dir", type=Path, default=Path("XYZ2-experiment-data-slurm")
+    )
     parser.add_argument("--code-name", type=str, default="xyz2")
     parser.add_argument("--probabilities", type=float, nargs="+", default=None)
-    parser.add_argument("--rounds", type=int, nargs="+",
-                        default=DEFAULT_ROUNDS)
+    parser.add_argument(
+        "--rounds", type=int, nargs="+", default=DEFAULT_ROUNDS
+    )
     parser.add_argument("--shots", type=int, default=DEFAULT_SHOTS)
-    parser.add_argument("--num-replicates", type=int,
-                        default=DEFAULT_NUM_REPLICATES)
+    parser.add_argument(
+        "--num-replicates", type=int, default=DEFAULT_NUM_REPLICATES
+    )
     parser.add_argument("--p-spam", type=float, default=DEFAULT_P_SPAM)
     parser.add_argument(
         "--recovery-mode",
@@ -86,6 +99,21 @@ def parse_args() -> argparse.Namespace:
         "--correction-mode",
         choices=["physical", "pauli_frame"],
         default="physical",
+    )
+    parser.add_argument(
+        "--prep-mode",
+        choices=PREP_MODES,
+        default=PREP_MODE_FULL_MDR,
+        help="MDR preparation variant to simulate.",
+    )
+    parser.add_argument(
+        "--ancillas",
+        type=int,
+        default=None,
+        help=(
+            "Ancilla count used during MDR syndrome extraction. If omitted, "
+            "defaults to one ancilla per active stabilizer."
+        ),
     )
     parser.add_argument("--overwrite", action="store_true")
     return parser.parse_args()
@@ -99,7 +127,7 @@ def main() -> None:
     metadata used by the batch launch script.
 
     Returns:
-        None
+    None
     """
     args = parse_args()
     if args.probabilities is not None:
@@ -107,13 +135,19 @@ def main() -> None:
     else:
         probabilities = default_probabilities()
     code_name = args.code_name
-    if code_name == "xyz2" and args.code_family != "xyz2":
-        code_name = f"{args.code_family}_mdr"
+    if code_name == "xyz2":
+        if args.code_family != "xyz2":
+            code_name = f"{args.code_family}_mdr"
+        elif args.prep_mode != PREP_MODE_FULL_MDR:
+            code_name = f"{args.code_family}_{args.prep_mode}"
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%SZ")
     run_name = (
         args.run_name
-        or f"Run-{timestamp}-d{args.distance}-{args.noise_model}"
+        or (
+            f"Run-{timestamp}-d{args.distance}-{args.noise_model}-"
+            f"{args.prep_mode}"
+        )
     )
     family_root = code_family_subdir(args.root_dir, args.code_family)
     run_dir = family_root / run_name
@@ -136,6 +170,16 @@ def main() -> None:
         target_table_csv=table_csv,
         code_family=args.code_family,
     )
+    resolved_ancillas = (
+        default_ancilla_count(
+            distance=args.distance,
+            table_csv=table_csv,
+            code_family=args.code_family,
+            prep_mode=args.prep_mode,
+        )
+        if args.ancillas is None
+        else int(args.ancillas)
+    )
 
     config = {
         "code_name": code_name,
@@ -150,20 +194,22 @@ def main() -> None:
         "p_spam": args.p_spam,
         "recovery_mode": args.recovery_mode,
         "correction_mode": args.correction_mode,
+        "prep_mode": args.prep_mode,
+        "ancillas": resolved_ancillas,
         "table_csv": table_csv.name,
         "created_at_utc": timestamp,
     }
 
     config_path = run_dir / "run_config.json"
     config_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
-    (run_dir /
-     "code_name.txt").write_text(f"{code_name}\n", encoding="utf-8")
+    (run_dir / "code_name.txt").write_text(f"{code_name}\n", encoding="utf-8")
 
-    working_file = family_root / f"working-folder-{args.code_family}-{code_name}.txt"
+    working_file = (
+        family_root / f"working-folder-{args.code_family}-{code_name}.txt"
+    )
     family_root.mkdir(parents=True, exist_ok=True)
     working_file.write_text(f"{run_name}\n", encoding="utf-8")
-    (family_root /
-     f"working-folder-{args.code_family}.txt").write_text(
+    (family_root / f"working-folder-{args.code_family}.txt").write_text(
         f"{run_name}\n",
         encoding="utf-8",
     )
@@ -172,6 +218,8 @@ def main() -> None:
     print(f"Run dir: {run_dir.resolve()}")
     print(f"Config: {config_path.resolve()}")
     print(f"Probabilities: {len(probabilities)} values")
+    print(f"Prep mode: {args.prep_mode}")
+    print(f"Ancillas: {resolved_ancillas}")
 
 
 if __name__ == "__main__":

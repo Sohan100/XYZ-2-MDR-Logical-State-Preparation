@@ -1,3 +1,10 @@
+"""
+
+test_surface_code_generators.py
+----------------------------------------------------------------------------
+Pytest coverage for surface code generators behavior and regression checks.
+"""
+
 from __future__ import annotations
 
 import stim
@@ -11,6 +18,15 @@ from surface_code.stabilizer_generator import (
 
 
 def _sparse_to_stim(spec: str, num_qubits: int) -> stim.PauliString:
+    """
+    Internal helper to sparse to stim.
+
+    Args:
+    spec: Fully specified experiment configuration. num_qubits: Num qubits.
+
+    Returns:
+    Computed value returned by this helper.
+    """
     chars = ["_"] * num_qubits
     for token in spec.split():
         chars[int(token[1:])] = token[0]
@@ -36,7 +52,7 @@ def test_surface_code_stabilizer_counts_and_commutation() -> None:
 
 def test_surface_code_logicals_match_distance_and_commutation() -> None:
     """
-    Boundary logical chains should commute with stabilizers and anti-commute.
+    Boundary logical chains should commute with stabilizers and anti- commute.
     """
     distance = 5
     stabilizer_generator = SurfaceCodeStabilizerGenerator(distance=distance)

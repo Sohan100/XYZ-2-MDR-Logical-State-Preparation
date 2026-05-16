@@ -1,5 +1,8 @@
 """
-XYZ^2 code-family helpers for threshold experiments.
+
+__init__.py
+----------------------------------------------------------------------------
+XYZ^2 code-family helpers used by MDR workflows.
 """
 
 from .logical_generator import XYZ2LogicalGenerator

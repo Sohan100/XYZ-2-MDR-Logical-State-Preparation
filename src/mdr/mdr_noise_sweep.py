@@ -1,11 +1,8 @@
 """
-mdr_noise_sweep.py
-------------------
-Parameter-sweep execution and CSV persistence for MDR simulations.
 
-This module coordinates repeated `MDRSimulation` runs over one or more noise
-parameters, aggregates the resulting observable statistics, and exposes the
-in-memory structures used by plotting helpers and cache-aware workflows.
+mdr_noise_sweep.py
+----------------------------------------------------------------------------
+mdr_noise_sweep.py.
 """
 
 from __future__ import annotations
@@ -30,81 +27,54 @@ class MdrNoiseSweep:
 
     Attributes
     ----------
-    two_qubit_index : Dict[str, int]
-        Maps two-qubit noise keys such as `ZZ` to indices into the 15-entry
-        `gate_noise_2q` list used by the MDR circuit engine.
-    single_params : set[str]
-        Valid single-qubit noise parameter names such as `g1_z` and `p_x`.
-    code_stabilizers : List[str]
-        Code operators passed into the MDR circuit builder for syndrome
-        extraction and recovery logic.
-    toggles : List[str]
-        Recovery toggle strings aligned with `code_stabilizers`.
-    measure_stabilizers : List[str]
-        Stabilizer observables reported in the stored results.
-    logical_operators : Dict[str, str]
-        Mapping from logical labels to sparse Pauli strings.
-    ancillas : int
-        Number of ancilla qubits used during syndrome extraction.
-    psi_circuit : Any
-        Optional Stim circuit preparing the initial logical state.
-    p_spam : float
-        SPAM error probability applied during state preparation and
-        measurement.
-    recovery_mode : str
-        Whether recovery toggles are applied after each round or only after
-        the final round.
-    correction_mode : str
-        Whether recovery is executed with physical Pauli gates or by a
-        tracked Pauli frame.
-    round_list : List[int]
-        MDR rounds whose results are stored in this sweep object.
-    shots : int
-        Shots used for each replicate expectation estimate.
-    num_replicates : int
-        Number of independent repeats per parameter combination.
-    split_2q : bool
-        Whether one-qubit and two-qubit probability budgets are split across
-        active parameters of the same type.
-    sync : bool
-        True when a single shared list of values is used for all parameters.
-    param_names : List[str]
-        Names of the noise parameters being varied in this sweep.
-    param_values_list : List[float]
-        Shared list of parameter values when `sync=True`.
-    param_values_map : Dict[str, List[float]]
-        Per-parameter lists of values when `sync=False`.
-    param_combos : List[Tuple[float, ...]]
-        Explicit parameter tuples simulated or loaded from CSV.
-    results : Dict[Tuple[float, ...], Dict[int, Dict[str, float]]]
-        Mean `|<O>|` values for each parameter tuple, round, and operator.
-    results_std : Dict[Tuple[float, ...], Dict[int, Dict[str, float]]]
-        Sample standard deviations corresponding to `results`.
+    two_qubit_index : Dict[str, int] Maps two-qubit noise keys such as `ZZ` to
+    indices into the 15-entry `gate_noise_2q` list used by the MDR circuit
+    engine. single_params : set[str] Valid single-qubit noise parameter names
+    such as `g1_z` and `p_x`. code_stabilizers : List[str] Code operators
+    passed into the MDR circuit builder for syndrome extraction and recovery
+    logic. toggles : List[str] Recovery toggle strings aligned with
+    `code_stabilizers`. measure_stabilizers : List[str] Stabilizer observables
+    reported in the stored results. logical_operators : Dict[str, str] Mapping
+    from logical labels to sparse Pauli strings. ancillas : int Number of
+    ancilla qubits used during syndrome extraction. psi_circuit : Any Optional
+    Stim circuit preparing the initial logical state. p_spam : float SPAM error
+    probability applied during state preparation and measurement. recovery_mode
+    : str Whether recovery toggles are applied after each round or only after
+    the final round. correction_mode : str Whether recovery is executed with
+    physical Pauli gates or by a tracked Pauli frame. round_list : List[int]
+    MDR rounds whose results are stored in this sweep object. shots : int Shots
+    used for each replicate expectation estimate. num_replicates : int Number
+    of independent repeats per parameter combination. split_2q : bool Whether
+    one-qubit and two-qubit probability budgets are split across active
+    parameters of the same type. sync : bool True when a single shared list of
+    values is used for all parameters. param_names : List[str] Names of the
+    noise parameters being varied in this sweep. param_values_list :
+    List[float] Shared list of parameter values when `sync=True`.
+    param_values_map : Dict[str, List[float]] Per-parameter lists of values
+    when `sync=False`. param_combos : List[Tuple[float, ...]] Explicit
+    parameter tuples simulated or loaded from CSV. results : Dict[Tuple[float,
+    ...], Dict[int, Dict[str, float]]] Mean `|<O>|` values for each parameter
+    tuple, round, and operator. results_std : Dict[Tuple[float, ...], Dict[int,
+    Dict[str, float]]] Sample standard deviations corresponding to `results`.
     results_signed : Dict[Tuple[float, ...], Dict[int, Dict[str, float]]]
-        Signed means for each parameter tuple, round, and operator. Legacy
-        CSVs without signed columns populate these values from `results`.
+    Signed means for each parameter tuple, round, and operator. Legacy CSVs
+    without signed columns populate these values from `results`.
     results_std_signed : Dict[Tuple[float, ...], Dict[int, Dict[str, float]]]
-        Signed sample standard deviations for each parameter tuple, round,
-        and operator.
-    has_exact_signed_results : bool
-        Whether the signed columns were produced exactly by simulation or
-        loaded exactly from a new-format CSV.
+    Signed sample standard deviations for each parameter tuple, round, and
+    operator. has_exact_signed_results : bool Whether the signed columns were
+    produced exactly by simulation or loaded exactly from a new-format CSV.
 
     Methods
     -------
-    __init__(...)
-        Configure sweep settings, build parameter combinations, and either
-        run the simulations or load results from disk.
-    _perform_sweep()
-        Run `MDRSimulation` for each parameter tuple while applying the
-        project-specific one-qubit and two-qubit splitting rules.
-    save_results(filename)
-        Export flattened simulation results to a CSV file.
-    load_results(filename)
-        Import results from a CSV file and reconstruct the in-memory sweep
-        state.
-    _metric_series_for_operator(round_idx, operator, metric, allow_legacy_approx)
-        Extract aligned x/y/error arrays for one plotted metric series.
+    __init__(...) Configure sweep settings, build parameter combinations, and
+    either run the simulations or load results from disk. _perform_sweep() Run
+    `MDRSimulation` for each parameter tuple while applying the
+    project-specific one-qubit and two-qubit splitting rules.
+    save_results(filename) Export flattened simulation results to a CSV file.
+    load_results(filename) Import results from a CSV file and reconstruct the
+    in-memory sweep state. _metric_series_for_operator(round_idx, operator,
+    metric, allow_legacy_approx) Extract aligned x/y/error arrays for one
+    plotted metric series.
     """
 
     two_qubit_index: Dict[str, int] = {
@@ -133,6 +103,7 @@ class MdrNoiseSweep:
         measure_stabilizers: Optional[List[str]] = None,
         logical_operators: Optional[Dict[str, str]] = None,
         ancillas: int = 1,
+        num_qubits: int | None = None,
         psi_circuit: Any = None,
         p_spam: float = 0.0,
         recovery_mode: str = "each_round",
@@ -149,43 +120,39 @@ class MdrNoiseSweep:
         """
         Configure, run, or load a complete MDR noise-parameter sweep.
 
-        The constructor supports two modes:
-        1. Simulation mode, where circuit inputs and sweep values are
-           provided and all parameter combinations are executed immediately.
-        2. Load mode, where an existing CSV is parsed and the in-memory result
-           structures are reconstructed without rerunning Stim.
+        The constructor supports two modes: 1. Simulation mode, where circuit
+        inputs and sweep values are provided and all parameter combinations are
+        executed immediately. 2. Load mode, where an existing CSV is parsed and
+        the in-memory result structures are reconstructed without rerunning
+        Stim.
 
         Args:
-            code_stabilizers: Pauli strings defining the code checks used by
-                the MDR circuit.
-            toggles: Recovery toggle strings aligned with the code checks.
-            measure_stabilizers: Stabilizer observables reported in outputs.
-            logical_operators: Logical observables reported in outputs.
-            ancillas: Number of ancilla qubits used during syndrome
-                extraction.
-            psi_circuit: Optional Stim circuit preparing the initial state.
-            p_spam: SPAM error probability.
-            recovery_mode: Whether recovery toggles are applied
-                `each_round` or only on the `final_round`.
-            correction_mode: Whether recovery is executed with physical Pauli
-                gates (`physical`) or deferred to a tracked Pauli frame
-                (`pauli_frame`).
-            param_names: Name or list of names of the noise parameters to
-                sweep.
-            param_values: Shared list (synchronous sweep) or per-parameter
-                mapping (asynchronous sweep) of values.
-            round_list: MDR round indices to retain in the stored results.
-            shots: Shots per replicate expectation estimate.
-            num_replicates: Independent repeats per parameter combination.
-            split_2q: If True, split a shared probability budget across all
-                active one-qubit or two-qubit channels of the same type.
-            save_data_filename: Optional CSV path written after simulation.
-            load_data_filename: Optional CSV path to load instead of running.
+        code_stabilizers: Pauli strings defining the code checks used by the
+        MDR circuit. toggles: Recovery toggle strings aligned with the code
+        checks. measure_stabilizers: Stabilizer observables reported in
+        outputs. logical_operators: Logical observables reported in outputs.
+        ancillas: Number of ancilla qubits used during syndrome extraction.
+        num_qubits: Explicit number of data qubits. If omitted, the MDR
+        circuit falls back to its historical size convention. psi_circuit:
+        Optional Stim circuit preparing the initial state. p_spam: SPAM error
+        probability. recovery_mode: Whether recovery toggles are applied
+        `each_round` or only on the `final_round`. correction_mode:
+        Whether recovery is executed with physical Pauli gates (`physical`) or
+        deferred to a tracked Pauli frame (`pauli_frame`). param_names: Name or
+        list of names of the noise parameters to sweep. param_values: Shared
+        list (synchronous sweep) or per-parameter mapping (asynchronous sweep)
+        of values. round_list: MDR round indices to retain in the stored
+        results. shots: Shots per replicate expectation estimate.
+        num_replicates: Independent repeats per parameter combination.
+        split_2q: If True, split a shared probability budget across all active
+        one-qubit or two-qubit channels of the same type. save_data_filename:
+        Optional CSV path written after simulation. load_data_filename:
+        Optional CSV path to load instead of running.
 
         Raises:
-            ValueError: If required simulation inputs are missing in
-                simulation mode, `param_names` is empty, or asynchronous sweep
-                values are missing keys for requested parameters.
+        ValueError: If required simulation inputs are missing in simulation
+        mode, `param_names` is empty, or asynchronous sweep values are missing
+        keys for requested parameters.
         """
         if load_data_filename is not None:
             self.load_results(load_data_filename)
@@ -207,6 +174,7 @@ class MdrNoiseSweep:
         self.measure_stabilizers = measure_stabilizers
         self.logical_operators = logical_operators
         self.ancillas = ancillas
+        self.num_qubits = num_qubits
         self.psi_circuit = psi_circuit
         self.p_spam = p_spam
         self.recovery_mode = recovery_mode
@@ -216,9 +184,11 @@ class MdrNoiseSweep:
         self.num_replicates = num_replicates
         self.split_2q = split_2q
 
-        self.param_names = [param_names] if isinstance(
-            param_names, str
-        ) else list(param_names)
+        self.param_names = (
+            [param_names]
+            if isinstance(param_names, str)
+            else list(param_names)
+        )
         if not self.param_names:
             raise ValueError("param_names cannot be empty in simulation mode.")
 
@@ -272,19 +242,17 @@ class MdrNoiseSweep:
         conventions, enforces a small safety margin when probabilities sum
         close to one, then runs a corresponding `MDRSimulation`. The output
         includes both absolute-value and signed summaries so later analysis
-        retains the legacy fidelity-style metrics while still preserving
-        signed logical diagnostics in the saved data.
+        retains the legacy fidelity-style metrics while still preserving signed
+        logical diagnostics in the saved data.
 
         Returns:
-            Tuple[
-                Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
-                Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
-                Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
-                Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
-            ]:
-            `(all_means, all_stds, all_signed_means, all_signed_stds)` where
-            each top-level key is a parameter tuple and each nested mapping is
-            `round_index -> {operator_label: summary_value}`.
+        Tuple[ Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
+        Dict[Tuple[float, ...], Dict[int, Dict[str, float]]], Dict[Tuple[float,
+        ...], Dict[int, Dict[str, float]]], Dict[Tuple[float, ...], Dict[int,
+        Dict[str, float]]], ]: `(all_means, all_stds, all_signed_means,
+        all_signed_stds)` where each top-level key is a parameter tuple and
+        each nested mapping is `round_index -> {operator_label:
+        summary_value}`.
         """
         all_means: Dict[Tuple[float, ...], Dict[int, Dict[str, float]]] = {}
         all_stds: Dict[Tuple[float, ...], Dict[int, Dict[str, float]]] = {}
@@ -307,6 +275,7 @@ class MdrNoiseSweep:
                 "stabilizers": self.code_stabilizers,
                 "toggles": self.toggles,
                 "ancillas": self.ancillas,
+                "num_qubits": self.num_qubits,
                 "p_spam": self.p_spam,
                 "recovery_mode": self.recovery_mode,
                 "correction_mode": self.correction_mode,
@@ -405,14 +374,13 @@ class MdrNoiseSweep:
         """
         Flatten in-memory sweep results and write them to a CSV file.
 
-        Each output row corresponds to one `(parameter_combo, round,
-        operator)` triple and contains both the legacy absolute-value metrics
-        (`mean`, `std`) and the signed logical columns
-        (`mean_signed`, `std_signed`).
+        Each output row corresponds to one `(parameter_combo, round, operator)`
+        triple and contains both the legacy absolute-value metrics (`mean`,
+        `std`) and the signed logical columns (`mean_signed`, `std_signed`).
 
         Args:
-            filename: Destination CSV path. If a bare filename is supplied, it
-                is written under `data/simulation_results/`.
+        filename: Destination CSV path. If a bare filename is supplied, it is
+        written under `data/simulation_results/`.
         """
         rows: List[Dict[str, Any]] = []
         for combo, round_dict in self.results.items():
@@ -458,22 +426,21 @@ class MdrNoiseSweep:
         """
         Load sweep results from CSV and reconstruct the analysis state.
 
-        After this method completes, the instance behaves like a sweep that
-        had been run in memory: parameter combinations, operator labels, round
+        After this method completes, the instance behaves like a sweep that had
+        been run in memory: parameter combinations, operator labels, round
         lists, and summary dictionaries are all restored. If the CSV predates
         the signed-output update, the signed dictionaries are populated from
         the absolute-value columns and `has_exact_signed_results` is set to
         False.
 
         Args:
-            filename: Path to the CSV file to load. If the exact path does not
-                exist, fallback lookups are attempted under
-                `data/simulation_results/` and the legacy
-                `simulation_results/` directory.
+        filename: Path to the CSV file to load. If the exact path does not
+        exist, fallback lookups are attempted under `data/simulation_results/`
+        and the legacy `simulation_results/` directory.
 
         Raises:
-            FileNotFoundError: If the CSV cannot be found in any supported
-                location.
+        FileNotFoundError: If the CSV cannot be found in any supported
+        location.
         """
         in_path = Path(filename)
         if not in_path.exists():
@@ -547,20 +514,24 @@ class MdrNoiseSweep:
                 op = str(row["operator"])
                 mn = float(row["mean"])
                 sd = float(row["std"])
-                mn_signed = float(row["mean_signed"]) if (
-                    self.has_exact_signed_results
-                ) else mn
-                sd_signed = float(row["std_signed"]) if (
-                    self.has_exact_signed_results
-                ) else sd
+                mn_signed = (
+                    float(row["mean_signed"])
+                    if (self.has_exact_signed_results)
+                    else mn
+                )
+                sd_signed = (
+                    float(row["std_signed"])
+                    if (self.has_exact_signed_results)
+                    else sd
+                )
                 self.results[combo].setdefault(round_idx, {})[op] = mn
                 self.results_std[combo].setdefault(round_idx, {})[op] = sd
-                self.results_signed[combo].setdefault(
-                    round_idx, {}
-                )[op] = mn_signed
-                self.results_std_signed[combo].setdefault(
-                    round_idx, {}
-                )[op] = sd_signed
+                self.results_signed[combo].setdefault(round_idx, {})[
+                    op
+                ] = mn_signed
+                self.results_std_signed[combo].setdefault(round_idx, {})[
+                    op
+                ] = sd_signed
 
         unique_ops = sorted(df["operator"].unique().tolist())
         logical_labels = [op for op in unique_ops if op.startswith("Logical")]
@@ -592,20 +563,19 @@ class MdrNoiseSweep:
         `state_prep_error` alias for the original Logical-X error rate.
 
         Args:
-            round_idx: MDR round to plot.
-            operator: Operator label to extract.
-            metric: One of `observable_loss` or `state_prep_error`.
-            allow_legacy_approx: Retained for backwards compatibility. The
-                restored Logical-X error metric now uses the stored absolute
-                expectations for both new and legacy CSVs.
+        round_idx: MDR round to plot. operator: Operator label to extract.
+        metric: One of `observable_loss` or `state_prep_error`.
+        allow_legacy_approx: Retained for backwards compatibility. The restored
+        Logical-X error metric now uses the stored absolute expectations for
+        both new and legacy CSVs.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray, np.ndarray]:
-            `(p_vals, y_vals, y_errs)` arrays ready for plotting.
+        Tuple[np.ndarray, np.ndarray, np.ndarray]: `(p_vals, y_vals, y_errs)`
+        arrays ready for plotting.
 
         Raises:
-            ValueError: If the metric name is unknown or the operator is
-                invalid for the Logical-X-only `state_prep_error` alias.
+        ValueError: If the metric name is unknown or the operator is invalid
+        for the Logical-X-only `state_prep_error` alias.
         """
         combos = sorted(
             self.param_combos,

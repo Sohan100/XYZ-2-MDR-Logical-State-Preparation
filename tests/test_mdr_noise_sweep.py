@@ -1,3 +1,10 @@
+"""
+
+test_mdr_noise_sweep.py
+----------------------------------------------------------------------------
+Pytest coverage for mdr noise sweep behavior and regression checks.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -16,11 +23,11 @@ def test_noise_sweep_save_and_load(
     Verify sweep outputs can be saved and loaded for plotting workflows.
 
     Args:
-        tmp_path: Per-test temporary directory provided by pytest.
-        d3_code_inputs: Prebuilt distance-3 code inputs fixture.
+    tmp_path: Per-test temporary directory provided by pytest. d3_code_inputs:
+    Prebuilt distance-3 code inputs fixture.
 
     Returns:
-        None
+    None
     """
     out_csv = tmp_path / "results_xyz2_pure_z_d3.csv"
 
@@ -58,10 +65,11 @@ def test_state_prep_error_uses_original_logical_x_error_rate(
     tmp_path: Path,
 ) -> None:
     """
+
     Logical-X sweep error should use the restored `1 - |<X>|` metric.
 
     Returns:
-        None
+    None
     """
     out_csv = tmp_path / "legacy_results.csv"
     pd.DataFrame(

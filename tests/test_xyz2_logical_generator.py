@@ -1,3 +1,10 @@
+"""
+
+test_xyz2_logical_generator.py
+----------------------------------------------------------------------------
+Pytest coverage for xyz2 logical generator behavior and regression checks.
+"""
+
 from __future__ import annotations
 
 from xyz2.logical_generator import XYZ2LogicalGenerator
@@ -10,7 +17,7 @@ def test_d3_logicals_match_expected() -> None:
     The expected values match the project’s reference operator definitions.
 
     Returns:
-        None
+    None
     """
     logicals = XYZ2LogicalGenerator(distance=3).generate_logicals()
     assert logicals["Logical X"] == "X9 X10 X11"

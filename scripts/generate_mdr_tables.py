@@ -1,3 +1,10 @@
+"""
+
+generate_mdr_tables.py
+----------------------------------------------------------------------------
+Command-line helpers for generating mdr tables artifacts.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -26,7 +33,10 @@ from mdr.constants import (  # noqa: E402
     DEFAULT_TABLES_DIR,
 )
 from mdr.mdr_table import MDRTable  # noqa: E402
-from mdr.workflows import code_family_subdir, default_table_filename  # noqa: E402
+from mdr.workflows import (
+    code_family_subdir,
+    default_table_filename,
+)  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -35,7 +45,8 @@ def parse_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(
         description=(
-            "Generate MDR operator tables for selected distances and code families."
+            "Generate MDR operator tables for selected distances "
+            "and code families."
         )
     )
     parser.add_argument(

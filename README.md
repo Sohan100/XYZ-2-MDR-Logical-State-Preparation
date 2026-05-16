@@ -107,7 +107,7 @@ Outputs:
 - `data/simulation_results/<code_family>/results_*_spec-<hash>.csv`
 - `data/simulation_results/<code_family>/results_*_spec-<hash>.spec.json`
 
-## Regenerate Threshold Plots From CSV
+## Regenerate MDR Noise-Sweep Plots From CSV
 
 ```bash
 python scripts/plot_thresholds_from_csv.py \
@@ -131,7 +131,7 @@ When `--p-spam` is set, it resolves CSVs by reading the `.spec.json`
 sidecars and selecting the newest match for each
 `(noise_model, distance, p_spam)`.
 
-By default, regenerated threshold plots are written under
+By default, regenerated MDR noise-sweep plots are written under
 `data/plots/<code_family>/thresholds/`.
 
 ## Slurm Workflow

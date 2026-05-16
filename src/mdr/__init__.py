@@ -1,7 +1,8 @@
 """
-mdr package exports
--------------------
-Shared MDR infrastructure used across multiple code families.
+
+__init__.py
+----------------------------------------------------------------------------
+mdr package exports.
 """
 
 from .analysis_reporting import (
@@ -25,9 +26,19 @@ from .mdr_noise_sweep import MdrNoiseSweep
 from .mdr_simulation import MDRSimulation
 from .mdr_table import MDRTable
 from .plotters import MDRSimulationPlotter, MdrNoiseSweepPlotter
+from .preparation import (
+    PREP_MODE_FULL_MDR,
+    PREP_MODE_INDEPENDENT_HIGH_WEIGHT,
+    PREP_MODE_LINK_LOGICAL_PLUS,
+    PREP_MODES,
+    PreparationPlan,
+    build_preparation_plan,
+    select_independent_high_weight_stabilizers,
+)
 from .robust_toggle_generator import RobustToggleGenerator
 from .workflows import (
     build_code_inputs,
+    default_ancilla_count,
     build_simulation_spec,
     code_family_subdir,
     default_table_filename,
@@ -61,8 +72,15 @@ __all__ = [
     "MDRSimulationPlotter",
     "MDRTable",
     "MdrNoiseSweepPlotter",
+    "PREP_MODE_FULL_MDR",
+    "PREP_MODE_INDEPENDENT_HIGH_WEIGHT",
+    "PREP_MODE_LINK_LOGICAL_PLUS",
+    "PREP_MODES",
+    "PreparationPlan",
     "RobustToggleGenerator",
     "build_code_inputs",
+    "build_preparation_plan",
+    "default_ancilla_count",
     "build_simulation_spec",
     "code_family_subdir",
     "default_table_filename",
@@ -75,4 +93,5 @@ __all__ = [
     "simulation_results_path",
     "simulation_spec_hash",
     "simulation_spec_path",
+    "select_independent_high_weight_stabilizers",
 ]

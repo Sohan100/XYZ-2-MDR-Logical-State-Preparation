@@ -1,16 +1,8 @@
 """
-logical_generator.py
---------------------
-Utility for constructing logical Pauli operators for the XYZ^2 hex code.
 
-This module derives one representative set of low-weight logical operators
-from the lattice geometry exposed by :class:`XYZ2StabilizerGenerator`. The
-logical strings are returned in the project's sparse Pauli format, where each
-token is written as `<Pauli><index>` and tokens are joined with spaces. The
-generator provides Logical X directly from the anti-diagonal strip, constructs
-Logical Y from the center-block pattern used throughout the project notes, and
-obtains Logical Z by Pauli multiplication so the three operators remain
-internally consistent.
+logical_generator.py
+----------------------------------------------------------------------------
+logical_generator.py.
 """
 
 from __future__ import annotations
@@ -32,29 +24,21 @@ class XYZ2LogicalGenerator:
 
     Attributes
     ----------
-    d : int
-        Odd code distance associated with this logical-operator generator.
-    n : int
-        Total number of physical qubits in the `[[2d^2, 1, d]]` XYZ^2 code.
-    _geom : XYZ2StabilizerGenerator
-        Shared geometry helper used to map logical lattice coordinates onto
-        flattened physical-qubit indices.
+    d : int Odd code distance associated with this logical-operator generator.
+    n : int Total number of physical qubits in the `[[2d^2, 1, d]]` XYZ^2 code.
+    _geom : XYZ2StabilizerGenerator Shared geometry helper used to map logical
+    lattice coordinates onto flattened physical-qubit indices.
 
     Methods
     -------
-    __init__(distance)
-        Validate the requested code distance and initialize the geometry
-        helper used by the logical construction routines.
-    generate_logicals()
-        Build the canonical dictionary containing Logical X, Logical Y, and
-        Logical Z in sparse Pauli-string format.
-    _get_logical_x()
-        Construct the weight-`d` anti-diagonal Logical X operator.
-    _get_logical_y()
-        Construct the mixed-Pauli Logical Y operator using the center-block
-        pattern used in the project notes.
-    _multiply_paulis(a_str, b_str)
-        Multiply two sparse Pauli strings while discarding any global phase.
+    __init__(distance) Validate the requested code distance and initialize the
+    geometry helper used by the logical construction routines.
+    generate_logicals() Build the canonical dictionary containing Logical X,
+    Logical Y, and Logical Z in sparse Pauli-string format. _get_logical_x()
+    Construct the weight-`d` anti-diagonal Logical X operator. _get_logical_y()
+    Construct the mixed-Pauli Logical Y operator using the center-block pattern
+    used in the project notes. _multiply_paulis(a_str, b_str) Multiply two
+    sparse Pauli strings while discarding any global phase.
     """
 
     def __init__(self, distance: int) -> None:
@@ -62,10 +46,10 @@ class XYZ2LogicalGenerator:
         Initialize the logical-operator generator for one code distance.
 
         Args:
-            distance: Odd code distance `d` with `d >= 3`.
+        distance: Odd code distance `d` with `d >= 3`.
 
         Raises:
-            ValueError: If `distance` is even or smaller than 3.
+        ValueError: If `distance` is even or smaller than 3.
         """
         if distance < 3 or distance % 2 == 0:
             raise ValueError("Distance d must be odd and >= 3")
@@ -82,8 +66,8 @@ class XYZ2LogicalGenerator:
         is computed as the phase-agnostic Pauli product of X and Y.
 
         Returns:
-            Dict[str, str]: Mapping with keys `"Logical X"`, `"Logical Y"`,
-            and `"Logical Z"`.
+        Dict[str, str]: Mapping with keys `"Logical X"`, `"Logical Y"`, and
+        `"Logical Z"`.
         """
         logical_x = self._get_logical_x()
         logical_y = self._get_logical_y()
@@ -103,7 +87,7 @@ class XYZ2LogicalGenerator:
         coordinate pair. The resulting operator has weight `d`.
 
         Returns:
-            str: Sparse Pauli string for Logical X.
+        str: Sparse Pauli string for Logical X.
         """
         qubits: List[int] = []
         for i in range(self.d):
@@ -123,7 +107,7 @@ class XYZ2LogicalGenerator:
         flanking `X` arms whose endpoints depend on the code radius.
 
         Returns:
-            str: Sparse Pauli string for Logical Y.
+        str: Sparse Pauli string for Logical Y.
         """
         center = (self.d - 1) // 2
         u_cc, l_cc = self._geom._coord_to_verts(center, center)
@@ -155,12 +139,10 @@ class XYZ2LogicalGenerator:
         Pauli format expected by the rest of the project.
 
         Args:
-            a_str: First sparse Pauli string.
-            b_str: Second sparse Pauli string.
+        a_str: First sparse Pauli string. b_str: Second sparse Pauli string.
 
         Returns:
-            str: Product operator in sparse format, with any global phase
-            removed.
+        str: Product operator in sparse format, with any global phase removed.
         """
         x_res = [0] * self.n
         z_res = [0] * self.n

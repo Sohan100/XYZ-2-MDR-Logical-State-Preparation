@@ -1,179 +1,8 @@
 """
+
 robust_toggle_generator.py
---------------------------
-Protocol for synthesizing MDR recovery toggles.
-
-This module builds one Pauli *toggle* for each measured code constraint:
-every stabilizer row plus the final `Logical X` row. A toggle `T_i` is
-constructed so that it
-
-1. anti-commutes with exactly one target constraint `C_i`,
-2. commutes with every other constraint row,
-3. commutes with every previously accepted toggle, and
-4. is as low-weight as the configured optimizer can make it.
-
-The implementation uses the following pipeline.
-
-Representation
---------------
-Operators are stored in binary symplectic form. A Pauli on `n` qubits is
-encoded as a length-`2n` vector in standard stacked order `[z | x]`, where
-
-- `X_q` has `x[q] = 1`,
-- `Z_q` has `z[q] = 1`,
-- `Y_q` has both bits set.
-
-Constraint rows are additionally assembled into an interleaved GF(2) matrix
-`[x_0, z_0, x_1, z_1, ...]` because that layout is convenient for restricted
-linear solves over selected qubits.
-
-Step 1: Build the target syndrome system
-----------------------------------------
-Let the ordered constraint list be
-
-`constraints = stabilizers + [logical_x]`.
-
-For toggle `i`, the desired commutation pattern is the unit syndrome vector
-`e_i`: the toggle must anti-commute with row `i` and commute with all other
-rows. Solving the binary symplectic system with right-hand side `e_i`
-produces a valid toggle candidate.
-
-Step 2: Graph-guided restricted solves
---------------------------------------
-The stabilizer support induces a qubit interaction graph: two qubits are
-connected if they appear together in at least one stabilizer. For each target
-row:
-
-- pick the first qubit in the target operator as a center node,
-- enumerate graph-distance layers from that center,
-- for each candidate target node in those layers, form a *beam* consisting of
-  all qubits that lie on at least one shortest path from the center to that
-  node,
-- try a GF(2) solve using only columns associated with those beam qubits,
-- if that fails, expand the beam by one graph hop and try again,
-- if all local solves fail, fall back to a full unrestricted solve over all
-  qubits.
-
-This does not change the algebraic constraint. It is only a structured way to
-find compact seed solutions before any weight optimization happens.
-
-Step 3: Weight reduction inside the commuting coset
----------------------------------------------------
-Once a valid seed toggle is found, the code reduces its support by multiplying
-it by operators that preserve the target syndrome. Those operators are exactly
-the commuting constraints:
-
-`coset_vecs = stabilizers + [logical_x]`.
-
-Because each of those rows commutes with every constraint except its own dual
-toggle role, XORing a valid toggle with any commuting constraint keeps the
-toggle paired to the same target row. The heuristic pass does:
-
-- greedy single-row descent: accept any single commuting constraint that
-  strictly lowers support weight,
-- pair-move descent: if no single move helps, try products of two commuting
-  constraints and take the best improving one,
-- randomized restarts: reshuffle move order several times and keep the best
-  result found.
-
-Step 4: Enforce pairwise toggle commutation
--------------------------------------------
-The toggle family is built sequentially. After heuristic reduction, the new
-toggle is adjusted so it commutes with every previously accepted toggle.
-
-If the current toggle anti-commutes with an earlier toggle `T_j`, multiplying
-the current toggle by the corresponding earlier constraint row `C_j`
-
-- preserves the current target syndrome, and
-- flips commutation only with `T_j`,
-
-so this fixes pairwise toggle commutation without breaking already enforced
-relations to constraints or to earlier toggles.
-
-Step 5: Exact minimum-support refinement when available
--------------------------------------------------------
-If OR-Tools CP-SAT is available and `optimization_mode="exact"`, the module
-solves a binary optimization problem seeded by the heuristic toggle.
-
-Decision variables:
-
-- `x_q`, `z_q`: Pauli action on each qubit,
-- `w_q`: whether qubit `q` is in the support.
-
-Constraints:
-
-- `x_q <= w_q`, `z_q <= w_q`, `w_q <= x_q + z_q`,
-- symplectic parity equations enforcing the desired syndrome `e_i`,
-- additional parity equations enforcing commutation with all previously
-  accepted toggles,
-- `sum(w_q) <= current_heuristic_weight`, so the exact solve never returns a
-  heavier result than the heuristic seed.
-
-Objective:
-
-- minimize total support `sum(w_q)`,
-- then use a deterministic lexicographic-style tie break on the `(x, z)` bits
-  so equal-weight optima are reproducible.
-
-If the exact solver finds an optimal or feasible solution within the timeout,
-that refined toggle is returned. Otherwise the heuristic commuting toggle is
-kept. When the first exact pass returns only a feasible incumbent, the module
-can retry that row with a longer timeout schedule until the result is proven
-optimal or the retry budget is exhausted.
-
-Environment-dependent behavior
-------------------------------
-- If OR-Tools is installed and `optimization_mode="exact"`, the full pipeline
-  runs.
-- If OR-Tools is unavailable, or `optimization_mode="heuristic"`, the module
-  still guarantees the required commutation relations, but the final toggle
-  weights are the heuristic ones.
-
-Outputs
--------
-`generate_toggles()` returns
-
-- a list of stabilizer toggles aligned with the stabilizer order, and
-- one final toggle paired to `Logical X`.
-
-The auxiliary field `last_optimization_statuses` records, for each generated
-row, whether the result came from heuristic optimization, an exact optimal
-solve, an exact feasible solve, or an exact fallback.
-
-LaTeX-style summary
--------------------
-Let the ordered constraints be
-
-`C = (C_0, C_1, ..., C_{m-1}) = (S_0, S_1, ..., S_{m-2}, L_X)`.
-
-For each row index `i`, the goal is to construct a Pauli toggle `T_i` such
-that
-
-`<T_i, C_j>_s = delta_{ij}`
-
-where `<., .>_s` is the binary symplectic inner product and `delta_{ij}` is
-the Kronecker delta. Sequentially, we also enforce
-
-`<T_i, T_j>_s = 0  for all j < i`.
-
-If exact refinement is available, the final optimization problem is
-
-`min   sum_q w_q`
-
-subject to
-
-`<T, C_j>_s = delta_{ij}                  for all constraint rows j`
-
-`<T, T_j>_s = 0                           for all previously accepted toggles`
-
-`x_q <= w_q,  z_q <= w_q,  w_q <= x_q + z_q`
-
-with binary decision variables `x_q, z_q, w_q in {0,1}` and Pauli vector
-`T = [z | x]`.
-
-The heuristic phase solves the same algebraic constraints but uses graph-local
-GF(2) seed solves followed by greedy coset descent instead of a global binary
-optimization.
+----------------------------------------------------------------------------
+robust_toggle_generator.py.
 """
 
 from __future__ import annotations
@@ -195,107 +24,75 @@ class RobustToggleGenerator:
     """
     Generate a commuting family of low-weight MDR toggles.
 
-    For each ordered constraint row `C_i` in
-    `stabilizers + [logical_x]`, this class constructs a Pauli operator
-    `T_i` such that
+    For each ordered constraint row `C_i` in `stabilizers + [logical_x]`, this
+    class constructs a Pauli operator `T_i` such that
 
-    - `<T_i, C_i>_s = 1`,
-    - `<T_i, C_j>_s = 0` for all `j != i`,
-    - `<T_i, T_j>_s = 0` for all previously generated toggles `T_j`.
+    - `<T_i, C_i>_s = 1`, - `<T_i, C_j>_s = 0` for all `j != i`, - `<T_i,
+    T_j>_s = 0` for all previously generated toggles `T_j`.
 
-    Here `<., .>_s` denotes the GF(2) symplectic inner product, so `1`
-    means anti-commutation and `0` means commutation.
+    Here `<., .>_s` denotes the GF(2) symplectic inner product, so `1` means
+    anti-commutation and `0` means commutation.
 
     The actual synthesis protocol is:
 
-    1. solve the target syndrome equation on graph-local qubit subsets,
-    2. reduce weight by commuting-coset descent,
-    3. enforce commutation with earlier toggles,
-    4. optionally run an exact CP-SAT minimum-support refinement, retrying
-       only the unproven rows with longer time limits.
+    1. solve the target syndrome equation on graph-local qubit subsets, 2.
+    reduce weight by commuting-coset descent, 3. enforce commutation with
+    earlier toggles, 4. optionally run an exact CP-SAT minimum-support
+    refinement, retrying only the unproven rows with longer time limits.
 
     The long module docstring above describes the protocol in full detail.
 
     Attributes
     ----------
-    stab_specs : List[str]
-        Input stabilizer specifications used as toggle constraints.
-    log_x_spec : str
-        Logical-X specification appended as the final toggle constraint.
-    n : int
-        Number of physical qubits in the code.
-    _rng : random.Random
-        Deterministic random source used for tie-breaking and restart order.
-    constraints : List[str]
-        Combined list of stabilizers plus Logical X.
-    num_constraints : int
-        Number of syndrome constraints to satisfy.
-    full_matrix : np.ndarray
-        Binary symplectic matrix in interleaved column order.
-    constraint_vecs : List[np.ndarray]
-        Constraint vectors in standard `[z | x]` order, aligned with
-        `constraints`.
-    qubit_graph : nx.Graph
-        Interaction graph induced by shared stabilizer support.
-    all_pairs_dist : Dict[int, Dict[int, int]]
-        Cached all-pairs shortest-path lengths on `qubit_graph`.
-    stab_vecs : List[np.ndarray]
-        Stabilizer vectors in standard `[z | x]` order.
-    logical_x_vec : np.ndarray
-        Logical-X constraint vector in standard `[z | x]` order.
-    coset_vecs : List[np.ndarray]
-        Commuting constraint vectors that preserve a toggle's syndrome label
-        when multiplied into it.
-    pair_move_vecs : np.ndarray
-        Precomputed pairwise products of commuting constraints used to escape
-        single-step local minima during weight optimization.
-    optimization_mode : str
-        Weight minimization strategy. `"exact"` uses CP-SAT after a heuristic
-        seed when OR-Tools is available; `"heuristic"` skips the exact pass.
-    exact_timeout_s : float
-        Base time limit for each exact toggle optimization attempt.
-    exact_retry_timeouts : Tuple[float, ...]
-        Additional per-row retry limits used only when the first exact pass
-        finds an incumbent but does not yet prove optimality.
-    last_optimization_statuses : List[str]
-        Status labels from the most recent toggle-generation run, aligned with
-        the returned toggle order including the Logical-X row.
+    stab_specs : List[str] Input stabilizer specifications used as toggle
+    constraints. log_x_spec : str Logical-X specification appended as the final
+    toggle constraint. n : int Number of physical qubits in the code. _rng :
+    random.Random Deterministic random source used for tie-breaking and restart
+    order. constraints : List[str] Combined list of stabilizers plus Logical X.
+    num_constraints : int Number of syndrome constraints to satisfy.
+    full_matrix : np.ndarray Binary symplectic matrix in interleaved column
+    order. constraint_vecs : List[np.ndarray] Constraint vectors in standard
+    `[z | x]` order, aligned with `constraints`. qubit_graph : nx.Graph
+    Interaction graph induced by shared stabilizer support. all_pairs_dist :
+    Dict[int, Dict[int, int]] Cached all-pairs shortest-path lengths on
+    `qubit_graph`. stab_vecs : List[np.ndarray] Stabilizer vectors in standard
+    `[z | x]` order. logical_x_vec : np.ndarray Logical-X constraint vector in
+    standard `[z | x]` order. coset_vecs : List[np.ndarray] Commuting
+    constraint vectors that preserve a toggle's syndrome label when multiplied
+    into it. pair_move_vecs : np.ndarray Precomputed pairwise products of
+    commuting constraints used to escape single-step local minima during weight
+    optimization. optimization_mode : str Weight minimization strategy.
+    `"exact"` uses CP-SAT after a heuristic seed when OR-Tools is available;
+    `"heuristic"` skips the exact pass. exact_timeout_s : float Base time limit
+    for each exact toggle optimization attempt. exact_retry_timeouts :
+    Tuple[float, ...] Additional per-row retry limits used only when the first
+    exact pass finds an incumbent but does not yet prove optimality.
+    last_optimization_statuses : List[str] Status labels from the most recent
+    toggle-generation run, aligned with the returned toggle order including the
+    Logical-X row.
 
     Methods
     -------
-    __init__(...)
-        Build the binary symplectic system and graph structures used for
-        toggle synthesis.
-    generate_toggles()
-        Generate one toggle for each stabilizer plus one for Logical X.
-    _get_beam(source, target)
-        Return nodes on a shortest-path beam between two qubits.
-    _expand_beam(nodes)
-        Expand a beam by one graph hop around each node.
-    _get_distance_layers(start_node)
-        Group graph nodes by their distance from a starting node.
-    _solve_restricted(qubit_indices, target_vec)
-        Solve the binary symplectic system using only selected qubits.
-    _optimize_weight(vec, target_idx)
-        Run the configured heuristic/exact support minimization pipeline.
-    _optimize_weight_deep(vec, attempts)
-        Reduce operator weight by commuting-constraint local search.
-    _get_weight(vec)
-        Compute the support weight of a symplectic vector.
-    _symp_product(v1, v2)
-        Compute the GF(2) symplectic inner product of two vectors.
-    _solve_gf2(matrix, rhs)
-        Solve a linear system over GF(2).
-    _build_qubit_graph(specs)
-        Build the interaction graph induced by shared operator support.
-    _str_to_zx_arrays(op_str)
-        Convert a sparse Pauli string into separate z and x indicator arrays.
-    _str_to_vec_standard(op_str)
-        Convert a sparse Pauli string into standard `[z | x]` vector form.
-    _vec_standard_to_str(vec)
-        Convert a standard symplectic vector back to sparse Pauli text.
-    _get_qubits_in_op(op_str)
-        Return the qubit indices referenced by a sparse Pauli string.
+    __init__(...) Build the binary symplectic system and graph structures used
+    for toggle synthesis. generate_toggles() Generate one toggle for each
+    stabilizer plus one for Logical X. _get_beam(source, target) Return nodes
+    on a shortest-path beam between two qubits. _expand_beam(nodes) Expand a
+    beam by one graph hop around each node. _get_distance_layers(start_node)
+    Group graph nodes by their distance from a starting node.
+    _solve_restricted(qubit_indices, target_vec) Solve the binary symplectic
+    system using only selected qubits. _optimize_weight(vec, target_idx) Run
+    the configured heuristic/exact support minimization pipeline.
+    _optimize_weight_deep(vec, attempts) Reduce operator weight by
+    commuting-constraint local search. _get_weight(vec) Compute the support
+    weight of a symplectic vector. _symp_product(v1, v2) Compute the GF(2)
+    symplectic inner product of two vectors. _solve_gf2(matrix, rhs) Solve a
+    linear system over GF(2). _build_qubit_graph(specs) Build the interaction
+    graph induced by shared operator support. _str_to_zx_arrays(op_str) Convert
+    a sparse Pauli string into separate z and x indicator arrays.
+    _str_to_vec_standard(op_str) Convert a sparse Pauli string into standard
+    `[z | x]` vector form. _vec_standard_to_str(vec) Convert a standard
+    symplectic vector back to sparse Pauli text. _get_qubits_in_op(op_str)
+    Return the qubit indices referenced by a sparse Pauli string.
     """
 
     # ─────────────────────────────────────────────────────────────────────
@@ -321,20 +118,17 @@ class RobustToggleGenerator:
         optimization.
 
         Args:
-            stabilizer_specs: Stabilizer operator strings.
-            logical_x_spec: Logical-X operator string appended as the final
-                constraint.
-            num_qubits: Number of data qubits in the code.
-            random_seed: Seed used for deterministic tie-breaking and search
-                randomization.
-            optimization_mode: `"exact"` to run a CP-SAT minimum-support
-                solve after heuristic seeding, or `"heuristic"` to keep the
-                cheaper local-search-only path.
-            exact_timeout_s: Per-toggle time limit, in seconds, for the exact
-                CP-SAT solve when enabled.
-            exact_retry_timeouts: Additional time limits, in seconds, retried
-                only when an exact pass returns an incumbent without proving
-                optimality. Values at or below `exact_timeout_s` are ignored.
+        stabilizer_specs: Stabilizer operator strings. logical_x_spec:
+        Logical-X operator string appended as the final constraint. num_qubits:
+        Number of data qubits in the code. random_seed: Seed used for
+        deterministic tie-breaking and search randomization. optimization_mode:
+        `"exact"` to run a CP-SAT minimum-support solve after heuristic
+        seeding, or `"heuristic"` to keep the cheaper local-search-only path.
+        exact_timeout_s: Per-toggle time limit, in seconds, for the exact
+        CP-SAT solve when enabled. exact_retry_timeouts: Additional time
+        limits, in seconds, retried only when an exact pass returns an
+        incumbent without proving optimality. Values at or below
+        `exact_timeout_s` are ignored.
         """
         if optimization_mode not in {"exact", "heuristic"}:
             raise ValueError(
@@ -368,7 +162,7 @@ class RobustToggleGenerator:
         )
         for row_idx, constraint_vec in enumerate(self.constraint_vecs):
             z_arr = constraint_vec[: self.n]
-            x_arr = constraint_vec[self.n:]
+            x_arr = constraint_vec[self.n :]
             for qubit in range(self.n):
                 self.full_matrix[row_idx, 2 * qubit] = x_arr[qubit]
                 self.full_matrix[row_idx, 2 * qubit + 1] = z_arr[qubit]
@@ -398,9 +192,8 @@ class RobustToggleGenerator:
         minimum-support pass.
 
         Returns:
-            Tuple[List[str], str]:
-            `(stabilizer_toggles, logical_x_toggle)` where the final element
-            corresponds to the Logical-X constraint.
+        Tuple[List[str], str]: `(stabilizer_toggles, logical_x_toggle)` where
+        the final element corresponds to the Logical-X constraint.
         """
         toggles: List[str] = []
         toggle_vecs: List[np.ndarray] = []
@@ -466,13 +259,13 @@ class RobustToggleGenerator:
         Minimize toggle support weight using the configured optimization mode.
 
         Args:
-            vec: Initial valid toggle vector in standard order `[z | x]`.
-            target_idx: Index of the targeted syndrome constraint.
-            previous_toggle_vecs: Already-accepted toggles that the new toggle
-                must commute with.
+        vec: Initial valid toggle vector in standard order `[z | x]`.
+        target_idx: Index of the targeted syndrome constraint.
+        previous_toggle_vecs: Already-accepted toggles that the new toggle must
+        commute with.
 
         Returns:
-            np.ndarray: Lowest-weight valid toggle found.
+        np.ndarray: Lowest-weight valid toggle found.
         """
         heuristic_best = self._optimize_weight_deep(vec)
         commuting_seed = self._enforce_commutation_with_previous_toggles(
@@ -511,13 +304,12 @@ class RobustToggleGenerator:
         Return nodes that lie on at least one shortest `source -> target` path.
 
         Args:
-            source: Start qubit index.
-            target: End qubit index.
+        source: Start qubit index. target: End qubit index.
 
         Returns:
-            List[int]: Node set defining the strict radial beam. If either node
-            is disconnected in the cached distance map, the fallback beam is
-            `[source, target]`.
+        List[int]: Node set defining the strict radial beam. If either node is
+        disconnected in the cached distance map, the fallback beam is `[source,
+        target]`.
         """
         try:
             d_st = self.all_pairs_dist[source][target]
@@ -540,11 +332,11 @@ class RobustToggleGenerator:
         Expand a beam by one graph hop around every node.
 
         Args:
-            nodes: Input beam nodes.
+        nodes: Input beam nodes.
 
         Returns:
-            List[int]: Unique node list containing the original nodes and all
-            immediate graph neighbors.
+        List[int]: Unique node list containing the original nodes and all
+        immediate graph neighbors.
         """
         expanded = set(nodes)
         for node in nodes:
@@ -557,11 +349,11 @@ class RobustToggleGenerator:
         Partition graph nodes into BFS distance layers from `start_node`.
 
         Args:
-            start_node: Root node used to define the ring ordering.
+        start_node: Root node used to define the ring ordering.
 
         Returns:
-            List[List[int]]: `layers[k]` contains all nodes at graph distance
-            `k` from `start_node`.
+        List[List[int]]: `layers[k]` contains all nodes at graph distance `k`
+        from `start_node`.
         """
         layers: List[List[int]] = []
         seen = {start_node}
@@ -601,13 +393,12 @@ class RobustToggleGenerator:
         match the rest of this module.
 
         Args:
-            qubit_indices: Qubits whose `(x,z)` columns are enabled.
-            target_vec: Desired syndrome bit vector.
+        qubit_indices: Qubits whose `(x,z)` columns are enabled. target_vec:
+        Desired syndrome bit vector.
 
         Returns:
-            np.ndarray | None: A full-length binary symplectic vector in
-            standard order `[z | x]`, or `None` if the restricted system is
-            inconsistent.
+        np.ndarray | None: A full-length binary symplectic vector in standard
+        order `[z | x]`, or `None` if the restricted system is inconsistent.
         """
         col_indices: List[int] = []
         for q in qubit_indices:
@@ -634,18 +425,18 @@ class RobustToggleGenerator:
         Reduce operator weight by greedy coset descent plus pair moves.
 
         Each restart shuffles the commuting-constraint order and repeatedly
-        applies any single constraint that strictly lowers weight until a
-        local minimum is reached. If single-step descent stalls, the optimizer
-        also checks whether multiplying by a product of two commuting
-        constraints lowers the weight, which helps remove support redundancy
-        missed by purely greedy single-move descent.
+        applies any single constraint that strictly lowers weight until a local
+        minimum is reached. If single-step descent stalls, the optimizer also
+        checks whether multiplying by a product of two commuting constraints
+        lowers the weight, which helps remove support redundancy missed by
+        purely greedy single-move descent.
 
         Args:
-            vec: Initial binary symplectic vector in standard order.
-            attempts: Number of randomized restarts.
+        vec: Initial binary symplectic vector in standard order. attempts:
+        Number of randomized restarts.
 
         Returns:
-            np.ndarray: Best vector found across all restarts.
+        np.ndarray: Best vector found across all restarts.
         """
         current_best = vec.copy()
         current_best_wt = self._get_weight(vec)
@@ -688,12 +479,12 @@ class RobustToggleGenerator:
         Return the best improving product of two commuting constraints.
 
         Args:
-            vec: Current toggle candidate in standard order `[z | x]`.
-            current_weight: Weight of `vec`.
+        vec: Current toggle candidate in standard order `[z | x]`.
+        current_weight: Weight of `vec`.
 
         Returns:
-            np.ndarray | None: Improved vector, or `None` if no pair move
-            lowers the weight.
+        np.ndarray | None: Improved vector, or `None` if no pair move lowers
+        the weight.
         """
         if len(self.pair_move_vecs) == 0:
             return None
@@ -723,12 +514,11 @@ class RobustToggleGenerator:
         while leaving commutation with earlier toggles unchanged.
 
         Args:
-            vec: Valid toggle vector with the desired syndrome signature.
-            previous_toggle_vecs: Already accepted toggles in constraint order.
+        vec: Valid toggle vector with the desired syndrome signature.
+        previous_toggle_vecs: Already accepted toggles in constraint order.
 
         Returns:
-            np.ndarray: Adjusted toggle that commutes with all previous
-            toggles.
+        np.ndarray: Adjusted toggle that commutes with all previous toggles.
         """
         adjusted = vec.copy()
         for idx, previous_toggle in enumerate(previous_toggle_vecs):
@@ -747,17 +537,16 @@ class RobustToggleGenerator:
         Solve for a minimum-support toggle with CP-SAT using `vec` as a hint.
 
         Args:
-            vec: Heuristic valid toggle used as an incumbent and solver hint.
-            target_idx: Index of the targeted syndrome constraint.
-            previous_toggle_vecs: Already accepted toggles that the new toggle
-                must commute with.
-            timeout_s: Optional override for the CP-SAT time limit used for
-                this solve attempt.
+        vec: Heuristic valid toggle used as an incumbent and solver hint.
+        target_idx: Index of the targeted syndrome constraint.
+        previous_toggle_vecs: Already accepted toggles that the new toggle must
+        commute with. timeout_s: Optional override for the CP-SAT time limit
+        used for this solve attempt.
 
         Returns:
-            np.ndarray: Exact minimum-support toggle if solved, otherwise the
-            best feasible toggle found within the time limit, falling back to
-            the heuristic input if the exact pass fails.
+        np.ndarray: Exact minimum-support toggle if solved, otherwise the best
+        feasible toggle found within the time limit, falling back to the
+        heuristic input if the exact pass fails.
         """
         assert cp_model is not None
 
@@ -778,7 +567,7 @@ class RobustToggleGenerator:
             target_bit = 1 if row_idx == target_idx else 0
             constraint_vec = self.constraint_vecs[row_idx]
             z_constraint = constraint_vec[: self.n]
-            x_constraint = constraint_vec[self.n:]
+            x_constraint = constraint_vec[self.n :]
             expr_terms = []
             for q in range(self.n):
                 if z_constraint[q]:
@@ -794,7 +583,7 @@ class RobustToggleGenerator:
 
         for toggle_idx, toggle_vec in enumerate(previous_toggle_vecs):
             z_toggle = toggle_vec[: self.n]
-            x_toggle = toggle_vec[self.n:]
+            x_toggle = toggle_vec[self.n :]
             expr_terms = []
             for q in range(self.n):
                 if z_toggle[q]:
@@ -809,7 +598,7 @@ class RobustToggleGenerator:
             model.Add(sum(expr_terms) - 2 * parity_aux == 0)
 
         z_hint = vec[: self.n]
-        x_hint = vec[self.n:]
+        x_hint = vec[self.n :]
         for q in range(self.n):
             model.AddHint(x_vars[q], int(x_hint[q]))
             model.AddHint(z_vars[q], int(z_hint[q]))
@@ -845,9 +634,7 @@ class RobustToggleGenerator:
             self._last_optimization_status = "exact_fallback"
             return vec
         self._last_optimization_status = (
-            "exact_optimal"
-            if status == cp_model.OPTIMAL
-            else "exact_feasible"
+            "exact_optimal" if status == cp_model.OPTIMAL else "exact_feasible"
         )
         return exact_vec
 
@@ -857,26 +644,26 @@ class RobustToggleGenerator:
         vector.
 
         Args:
-            vec: Vector encoded as `[z | x]`.
+        vec: Vector encoded as `[z | x]`.
 
         Returns:
-            int: Number of qubits with non-identity action.
+        int: Number of qubits with non-identity action.
         """
-        return int(np.sum(vec[: self.n] | vec[self.n:]))
+        return int(np.sum(vec[: self.n] | vec[self.n :]))
 
     def _symp_product(self, v1: np.ndarray, v2: np.ndarray) -> int:
         """
         Compute the GF(2) symplectic inner product `<v1, v2>_s`.
 
         Args:
-            v1: First vector in `[z | x]` order.
-            v2: Second vector in `[z | x]` order.
+        v1: First vector in `[z | x]` order. v2: Second vector in `[z | x]`
+        order.
 
         Returns:
-            int: `1` if operators anti-commute, `0` if they commute.
+        int: `1` if operators anti-commute, `0` if they commute.
         """
-        left = np.sum(v1[: self.n] & v2[self.n:])
-        right = np.sum(v1[self.n:] & v2[: self.n])
+        left = np.sum(v1[: self.n] & v2[self.n :])
+        right = np.sum(v1[self.n :] & v2[: self.n])
         return int((left + right) % 2)
 
     def _solve_gf2(
@@ -888,12 +675,11 @@ class RobustToggleGenerator:
         Solve `matrix * x = rhs` using Gaussian elimination over GF(2).
 
         Args:
-            matrix: Binary coefficient matrix.
-            rhs: Binary right-hand side vector.
+        matrix: Binary coefficient matrix. rhs: Binary right-hand side vector.
 
         Returns:
-            np.ndarray | None: One solution vector if the system is consistent;
-            otherwise `None`.
+        np.ndarray | None: One solution vector if the system is consistent;
+        otherwise `None`.
         """
         rows, cols = matrix.shape
         augmented = np.hstack([matrix, rhs.reshape(-1, 1)])
@@ -944,10 +730,10 @@ class RobustToggleGenerator:
         string.
 
         Args:
-            specs: Pauli operator strings.
+        specs: Pauli operator strings.
 
         Returns:
-            nx.Graph: Undirected qubit interaction graph.
+        nx.Graph: Undirected qubit interaction graph.
         """
         graph = nx.Graph()
         graph.add_nodes_from(range(self.n))
@@ -963,8 +749,8 @@ class RobustToggleGenerator:
         Precompute all pairwise products of commuting constraint vectors.
 
         Returns:
-            np.ndarray: Array of shape `(num_pairs, 2n)` containing pairwise
-            XOR combinations of the commuting constraint basis.
+        np.ndarray: Array of shape `(num_pairs, 2n)` containing pairwise XOR
+        combinations of the commuting constraint basis.
         """
         num_vecs = len(self.coset_vecs)
         if num_vecs < 2:
@@ -986,10 +772,10 @@ class RobustToggleGenerator:
         arrays.
 
         Args:
-            op_str: Sparse Pauli string like `"X0 Y3 Z9"`.
+        op_str: Sparse Pauli string like `"X0 Y3 Z9"`.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: `(z, x)` arrays of length `n`.
+        Tuple[np.ndarray, np.ndarray]: `(z, x)` arrays of length `n`.
         """
         z = np.zeros(self.n, dtype=np.uint8)
         x = np.zeros_like(z)
@@ -1008,10 +794,10 @@ class RobustToggleGenerator:
         Convert a sparse Pauli string to stacked binary symplectic form.
 
         Args:
-            op_str: Sparse Pauli string.
+        op_str: Sparse Pauli string.
 
         Returns:
-            np.ndarray: Vector in standard order `[z | x]`.
+        np.ndarray: Vector in standard order `[z | x]`.
         """
         z, x = self._str_to_zx_arrays(op_str)
         return np.concatenate([z, x])
@@ -1021,13 +807,13 @@ class RobustToggleGenerator:
         Convert a `[z | x]` binary symplectic vector to sparse Pauli text.
 
         Args:
-            vec: Vector in standard order.
+        vec: Vector in standard order.
 
         Returns:
-            str: Sparse Pauli string, or `"I"` if weight is zero.
+        str: Sparse Pauli string, or `"I"` if weight is zero.
         """
         z = vec[: self.n]
-        x = vec[self.n:]
+        x = vec[self.n :]
         terms: List[str] = []
         for i in range(self.n):
             if x[i] and z[i]:
@@ -1043,10 +829,10 @@ class RobustToggleGenerator:
         Extract sorted qubit indices referenced by a sparse Pauli string.
 
         Args:
-            op_str: Sparse Pauli operator.
+        op_str: Sparse Pauli operator.
 
         Returns:
-            List[int]: Qubit indices in the order they appear.
+        List[int]: Qubit indices in the order they appear.
         """
         qubits: List[int] = []
         for term in op_str.split():

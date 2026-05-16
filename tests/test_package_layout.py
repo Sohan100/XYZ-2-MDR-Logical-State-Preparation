@@ -1,6 +1,12 @@
+"""
+
+test_package_layout.py
+----------------------------------------------------------------------------
+Pytest coverage for package layout behavior and regression checks.
+"""
+
 from __future__ import annotations
 
-import threshold_experiments
 from mdr import MDRCircuit
 from surface_code import (
     SurfaceCodeLogicalGenerator,
@@ -19,19 +25,10 @@ def test_canonical_packages_expose_core_classes() -> None:
     """
     assert MDRCircuit.__name__ == "MDRCircuit"
     assert XYZ2LogicalGenerator.__name__ == "XYZ2LogicalGenerator"
-    assert SurfaceCodeLogicalGenerator.__name__ == "SurfaceCodeLogicalGenerator"
+    assert (
+        SurfaceCodeLogicalGenerator.__name__ == "SurfaceCodeLogicalGenerator"
+    )
     assert callable(build_destabilizer_report)
-
-
-def test_threshold_experiments_namespace_is_not_a_wrapper_surface() -> None:
-    """
-    Threshold experiments should stay a namespace package, not a mirror export.
-    """
-    assert threshold_experiments.__all__ == [
-        "decoders",
-        "experiments",
-        "noise_models",
-    ]
 
 
 def test_code_family_generators_smoke() -> None:

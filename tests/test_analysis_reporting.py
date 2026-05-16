@@ -1,3 +1,10 @@
+"""
+
+test_analysis_reporting.py
+----------------------------------------------------------------------------
+Pytest coverage for analysis reporting behavior and regression checks.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,11 +17,16 @@ from mdr.analysis_reporting import (
     NotebookThresholdAnalysis,
 )
 
-
 matplotlib.use("Agg")
 
 
 def test_notebook_threshold_analysis_loads_and_plots(tmp_path: Path) -> None:
+    """
+    Test that notebook threshold analysis loads and plots.
+
+    Args:
+    tmp_path: Tmp path.
+    """
     results_dir = tmp_path / "results"
     plots_dir = tmp_path / "plots"
     family_results_dir = results_dir / "xyz2"
@@ -22,7 +34,10 @@ def test_notebook_threshold_analysis_loads_and_plots(tmp_path: Path) -> None:
 
     csv_path = (
         family_results_dir
-        / "results_xyz2_pure_z_d3_pspam0.000e00_shots10_reps2_spec-testcase.csv"
+        / (
+            "results_xyz2_pure_z_d3_pspam0.000e00_"
+            "shots10_reps2_spec-testcase.csv"
+        )
     )
     pd.DataFrame(
         [
@@ -42,9 +57,18 @@ def test_notebook_threshold_analysis_loads_and_plots(tmp_path: Path) -> None:
     ).to_csv(csv_path, index=False)
     (
         family_results_dir
-        / "results_xyz2_pure_z_d3_pspam0.000e00_shots10_reps2_spec-testcase.spec.json"
+        / (
+            "results_xyz2_pure_z_d3_pspam0.000e00_"
+            "shots10_reps2_spec-testcase.spec.json"
+        )
     ).write_text(
-        '{\n  "p_spam": 0.0,\n  "recovery_mode": "final_round",\n  "correction_mode": "pauli_frame"\n}',
+        (
+            "{\n"
+            '  "p_spam": 0.0,\n'
+            '  "recovery_mode": "final_round",\n'
+            '  "correction_mode": "pauli_frame"\n'
+            "}"
+        ),
         encoding="utf-8",
     )
 
@@ -81,10 +105,10 @@ def test_notebook_threshold_analysis_loads_mode_comparison(
     Comparison loading should return physical and Pauli-frame sweeps together.
 
     Args:
-        tmp_path: Per-test temporary directory provided by pytest.
+    tmp_path: Per-test temporary directory provided by pytest.
 
     Returns:
-        None
+    None
     """
     results_dir = tmp_path / "results"
     plots_dir = tmp_path / "plots"
@@ -97,7 +121,10 @@ def test_notebook_threshold_analysis_loads_mode_comparison(
     ):
         csv_path = (
             family_results_dir
-            / f"results_xyz2_pure_z_d3_pspam0.000e00_shots10_reps2_spec-{tag}.csv"
+            / (
+                "results_xyz2_pure_z_d3_pspam0.000e00_"
+                f"shots10_reps2_spec-{tag}.csv"
+            )
         )
         pd.DataFrame(
             [
@@ -148,6 +175,12 @@ def test_notebook_threshold_analysis_loads_mode_comparison(
 def test_notebook_final_round_analysis_summarizes_and_plots(
     tmp_path: Path,
 ) -> None:
+    """
+    Test that notebook final round analysis summarizes and plots.
+
+    Args:
+    tmp_path: Tmp path.
+    """
     dataset_csv = tmp_path / "final_round.csv"
     plots_dir = tmp_path / "plots"
     rows = []

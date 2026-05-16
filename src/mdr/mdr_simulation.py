@@ -1,8 +1,8 @@
 """
+
 mdr_simulation.py
------------------
-Core MDR simulation object responsible for computing and caching per-round
-observable statistics.
+----------------------------------------------------------------------------
+mdr_simulation.py.
 """
 
 from __future__ import annotations
@@ -23,92 +23,67 @@ class MDRSimulation:
 
     Attributes
     ----------
-    mdr : MDRCircuit
-        Stored MDR circuit builder supplying the syndrome and recovery
-        templates for this simulation instance.
-    prepare_circuit_function : Callable[[], stim.Circuit]
-        Callable returning the initial state-preparation circuit.
-    recovery_mode : str
-        Recovery timing policy inherited from the MDR circuit
-        (`each_round` or `final_round`).
-    correction_mode : str
-        Recovery implementation policy inherited from the MDR circuit
-        (`physical` or `pauli_frame`).
-    mdr_circuit : stim.Circuit
-        One complete MDR round template used by this simulation. In physical
-        recovery mode this includes recovery when recovery is applied after
-        each round. In Pauli-frame mode it contains only syndrome extraction.
-    syndrome_round_circuit : stim.Circuit
-        One syndrome-extraction round without appended recovery toggles.
-    recovery_circuit : stim.Circuit
-        Standalone recovery circuit used when recovery is deferred until the
-        final round in physical-recovery mode.
-    num_syndrome_bits_per_round : int
-        Number of recorded syndrome bits produced by one MDR round.
-    _toggle_x_masks : np.ndarray
-        Binary X-support masks for each recovery toggle.
-    _toggle_z_masks : np.ndarray
-        Binary Z-support masks for each recovery toggle.
-    _stabilizer_x_masks : np.ndarray
-        Binary X-support masks for each syndrome operator measured per round.
-    _stabilizer_z_masks : np.ndarray
-        Binary Z-support masks for each syndrome operator measured per round.
-    _operator_mask_cache : Dict[str, Tuple[np.ndarray, np.ndarray]]
-        Cache from sparse Pauli strings to symplectic X/Z masks.
-    stabilizer_pauli_strings : List[str]
-        Stabilizer observables measured by the simulation.
-    logical_pauli_strings : Dict[str, str]
-        Mapping from logical labels to sparse Pauli strings.
-    shots_per_measurement : int
-        Number of Stim samples used for each replicate estimate.
-    total_mdr_rounds : int
-        Maximum MDR round index simulated and cached.
-    num_replicates : int
-        Number of independent replicate estimates recorded per round.
-    _replicate_means_stabilizers : Dict[str, Dict[int, List[float]]]
-        Replicate distributions for stabilizer observables by round.
+    mdr : MDRCircuit Stored MDR circuit builder supplying the syndrome and
+    recovery templates for this simulation instance. prepare_circuit_function :
+    Callable[[], stim.Circuit] Callable returning the initial state-preparation
+    circuit. recovery_mode : str Recovery timing policy inherited from the MDR
+    circuit (`each_round` or `final_round`). correction_mode : str Recovery
+    implementation policy inherited from the MDR circuit (`physical` or
+    `pauli_frame`). mdr_circuit : stim.Circuit One complete MDR round template
+    used by this simulation. In physical recovery mode this includes recovery
+    when recovery is applied after each round. In Pauli-frame mode it contains
+    only syndrome extraction. syndrome_round_circuit : stim.Circuit One
+    syndrome-extraction round without appended recovery toggles.
+    recovery_circuit : stim.Circuit Standalone recovery circuit used when
+    recovery is deferred until the final round in physical-recovery mode.
+    num_syndrome_bits_per_round : int Number of recorded syndrome bits produced
+    by one MDR round. _toggle_x_masks : np.ndarray Binary X-support masks for
+    each recovery toggle. _toggle_z_masks : np.ndarray Binary Z-support masks
+    for each recovery toggle. _stabilizer_x_masks : np.ndarray Binary X-support
+    masks for each syndrome operator measured per round. _stabilizer_z_masks :
+    np.ndarray Binary Z-support masks for each syndrome operator measured per
+    round. _operator_mask_cache : Dict[str, Tuple[np.ndarray, np.ndarray]]
+    Cache from sparse Pauli strings to symplectic X/Z masks.
+    stabilizer_pauli_strings : List[str] Stabilizer observables measured by the
+    simulation. logical_pauli_strings : Dict[str, str] Mapping from logical
+    labels to sparse Pauli strings. shots_per_measurement : int Number of Stim
+    samples used for each replicate estimate. total_mdr_rounds : int Maximum
+    MDR round index simulated and cached. num_replicates : int Number of
+    independent replicate estimates recorded per round.
+    _replicate_means_stabilizers : Dict[str, Dict[int, List[float]]] Replicate
+    distributions for stabilizer observables by round.
     _replicate_means_logicals : Dict[str, Dict[int, List[float]]]
-        Absolute-value replicate distributions for logical observables.
-    _replicate_means_logicals_signed : Dict[str, Dict[int, List[float]]]
-        Signed replicate distributions for logical observables.
-    _stats_stabilizers : Dict[str, Dict[str, List[float]]]
-        Per-round summary statistics for stabilizer observables.
-    _stats_logicals : Dict[str, Dict[str, List[float]]]
-        Per-round summary statistics for absolute-value logical observables.
-    _stats_logicals_signed : Dict[str, Dict[str, List[float]]]
-        Per-round summary statistics for signed logical observables.
-    _avg_stabilizers : Dict[str, float]
-        Average stabilizer fidelity across cached rounds for each stabilizer.
-    _avg_logicals : Dict[str, float]
-        Average absolute-value logical fidelity across cached rounds.
-    _avg_logicals_signed : Dict[str, float]
-        Average signed logical expectation across cached rounds.
+    Absolute-value replicate distributions for logical observables.
+    _replicate_means_logicals_signed : Dict[str, Dict[int, List[float]]] Signed
+    replicate distributions for logical observables. _stats_stabilizers :
+    Dict[str, Dict[str, List[float]]] Per-round summary statistics for
+    stabilizer observables. _stats_logicals : Dict[str, Dict[str, List[float]]]
+    Per-round summary statistics for absolute-value logical observables.
+    _stats_logicals_signed : Dict[str, Dict[str, List[float]]] Per-round
+    summary statistics for signed logical observables. _avg_stabilizers :
+    Dict[str, float] Average stabilizer fidelity across cached rounds for each
+    stabilizer. _avg_logicals : Dict[str, float] Average absolute-value logical
+    fidelity across cached rounds. _avg_logicals_signed : Dict[str, float]
+    Average signed logical expectation across cached rounds.
 
     Methods
     -------
-    __init__(...)
-        Initialize the simulation object and precompute all cached
-        distributions and summary statistics.
-    spec_to_measurement_ops(pauli_specification)
-        Convert a sparse Pauli string into the corresponding Stim
-        single-qubit measurement operations.
-    _pauli_spec_to_mask(pauli_specification)
-        Convert a sparse Pauli string into symplectic X/Z support masks.
-    _frame_anticommutation(frame_x, frame_z, operator_x, operator_z)
-        Compute per-shot anti-commutation parities between frames and an
-        operator.
-    _accumulate_pauli_frame(syndrome_bits, round_count)
-        Reconstruct the net Pauli frame implied by measured syndrome history.
+    __init__(...) Initialize the simulation object and precompute all cached
+    distributions and summary statistics.
+    spec_to_measurement_ops(pauli_specification) Convert a sparse Pauli string
+    into the corresponding Stim single-qubit measurement operations.
+    _pauli_spec_to_mask(pauli_specification) Convert a sparse Pauli string into
+    symplectic X/Z support masks. _frame_anticommutation(frame_x, frame_z,
+    operator_x, operator_z) Compute per-shot anti-commutation parities between
+    frames and an operator. _accumulate_pauli_frame(syndrome_bits, round_count)
+    Reconstruct the net Pauli frame implied by measured syndrome history.
     compute_parity_expectation(circuit, pauli_specification, measurement_ops,
-        round_count, absolute_value)
-        Sample a measured operator parity and return the signed or
-        absolute-value expectation, including Pauli-frame correction when
-        requested.
-    calculate_replicated_means_vs_rounds(pauli_specification, absolute_value)
-        Compute replicate means for one observable across all MDR rounds.
-    _summarize_distribution_map(dist_map)
-        Reduce replicate distributions into per-round centers and standard
-        deviations.
+    round_count, absolute_value) Sample a measured operator parity and return
+    the signed or absolute-value expectation, including Pauli-frame correction
+    when requested. calculate_replicated_means_vs_rounds(pauli_specification,
+    absolute_value) Compute replicate means for one observable across all MDR
+    rounds. _summarize_distribution_map(dist_map) Reduce replicate
+    distributions into per-round centers and standard deviations.
     """
 
     def __init__(
@@ -132,12 +107,11 @@ class MDRSimulation:
         Stim.
 
         Args:
-            mdr: Configured MDR circuit builder.
-            stabilizer_pauli_strings: Stabilizer observables to measure.
-            logical_pauli_strings: Logical observables to measure.
-            shots_per_measurement: Shot count for each replicate estimate.
-            total_mdr_rounds: Largest MDR round index to evaluate.
-            num_replicates: Number of replicate estimates per round.
+        mdr: Configured MDR circuit builder. stabilizer_pauli_strings:
+        Stabilizer observables to measure. logical_pauli_strings: Logical
+        observables to measure. shots_per_measurement: Shot count for each
+        replicate estimate. total_mdr_rounds: Largest MDR round index to
+        evaluate. num_replicates: Number of replicate estimates per round.
         """
         self.mdr = mdr
         self.prepare_circuit_function = mdr.psi
@@ -171,14 +145,18 @@ class MDRSimulation:
                 mdr.num_qubits,
             )
         )
-        self._operator_mask_cache: Dict[str, Tuple[np.ndarray, np.ndarray]] = {}
+        self._operator_mask_cache: Dict[str, Tuple[np.ndarray, np.ndarray]] = (
+            {}
+        )
         self.stabilizer_pauli_strings = stabilizer_pauli_strings
         self.logical_pauli_strings = logical_pauli_strings
         self.shots_per_measurement = shots_per_measurement
         self.total_mdr_rounds = total_mdr_rounds
         self.num_replicates = num_replicates
 
-        self._replicate_means_stabilizers: Dict[str, Dict[int, List[float]]] = {}
+        self._replicate_means_stabilizers: Dict[
+            str, Dict[int, List[float]]
+        ] = {}
         for spec in stabilizer_pauli_strings:
             self._replicate_means_stabilizers[spec] = (
                 self.calculate_replicated_means_vs_rounds(spec)
@@ -235,13 +213,13 @@ class MDRSimulation:
         parity convention used later remains deterministic.
 
         Args:
-            pauli_specification: Sparse Pauli string such as `"X0 Z1 Y4"`.
+        pauli_specification: Sparse Pauli string such as `"X0 Z1 Y4"`.
 
         Returns:
-            List[Tuple[str, int]]: Ordered `(measurement_gate, qubit)` pairs.
+        List[Tuple[str, int]]: Ordered `(measurement_gate, qubit)` pairs.
 
         Raises:
-            ValueError: If a token starts with an unsupported Pauli letter.
+        ValueError: If a token starts with an unsupported Pauli letter.
         """
         ops: List[Tuple[str, int]] = []
         gate_map = {"X": "MX", "Y": "MY", "Z": "MZ"}
@@ -261,13 +239,12 @@ class MDRSimulation:
         Convert a list of sparse Pauli strings into aligned X/Z mask tables.
 
         Args:
-            pauli_specifications: Sparse Pauli strings to encode.
-            num_qubits: Number of data qubits represented by the masks.
+        pauli_specifications: Sparse Pauli strings to encode. num_qubits:
+        Number of data qubits represented by the masks.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]:
-            `(x_masks, z_masks)` with shape
-            `(len(pauli_specifications), num_qubits)` and `uint8` entries.
+        Tuple[np.ndarray, np.ndarray]: `(x_masks, z_masks)` with shape
+        `(len(pauli_specifications), num_qubits)` and `uint8` entries.
         """
         if not pauli_specifications:
             empty = np.zeros((0, num_qubits), dtype=np.uint8)
@@ -301,11 +278,11 @@ class MDRSimulation:
         Convert one sparse Pauli string into cached X/Z support masks.
 
         Args:
-            pauli_specification: Sparse Pauli string such as `"X0 Z3 Y8"`.
+        pauli_specification: Sparse Pauli string such as `"X0 Z3 Y8"`.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]:
-            `(x_mask, z_mask)` vectors over the data-qubit register.
+        Tuple[np.ndarray, np.ndarray]: `(x_mask, z_mask)` vectors over the
+        data-qubit register.
         """
         cached = self._operator_mask_cache.get(pauli_specification)
         if cached is not None:
@@ -330,14 +307,14 @@ class MDRSimulation:
         Compute anti-commutation parity between frames and one Pauli operator.
 
         Args:
-            frame_x: Per-shot X support for the accumulated frame.
-            frame_z: Per-shot Z support for the accumulated frame.
-            operator_x: X support mask for the operator of interest.
-            operator_z: Z support mask for the operator of interest.
+        frame_x: Per-shot X support for the accumulated frame. frame_z:
+        Per-shot Z support for the accumulated frame. operator_x: X support
+        mask for the operator of interest. operator_z: Z support mask for the
+        operator of interest.
 
         Returns:
-            np.ndarray: Length-`shots` vector with `1` where the frame
-            anti-commutes with the operator and `0` otherwise.
+        np.ndarray: Length-`shots` vector with `1` where the frame
+        anti-commutes with the operator and `0` otherwise.
         """
         parity = (frame_x @ operator_z) + (frame_z @ operator_x)
         return np.mod(parity, 2).astype(np.uint8)
@@ -353,21 +330,20 @@ class MDRSimulation:
         In `physical` mode the circuit itself already applies recovery and no
         frame reconstruction is needed. In `pauli_frame` mode this method
         emulates the same logical recovery policy without applying any data
-        gates:
-        - `final_round`: use only the last raw syndrome block, matching the
-          physical deferred-recovery circuit.
-        - `each_round`: interpret each round's syndrome in the current frame,
-          then update the frame with the round's inferred toggle.
+        gates: - `final_round`: use only the last raw syndrome block, matching
+        the physical deferred-recovery circuit. - `each_round`: interpret each
+        round's syndrome in the current frame, then update the frame with the
+        round's inferred toggle.
 
         Args:
-            syndrome_bits: Array of shape `(shots, round_count * n_stabilizers)`
-                containing the raw syndrome measurements preceding the final
-                observable measurement.
-            round_count: Number of MDR rounds executed before final readout.
+        syndrome_bits: Array of shape `(shots, round_count * n_stabilizers)`
+        containing the raw syndrome measurements preceding the final observable
+        measurement. round_count: Number of MDR rounds executed before final
+        readout.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]:
-            `(frame_x, frame_z)` arrays of shape `(shots, num_qubits)`.
+        Tuple[np.ndarray, np.ndarray]: `(frame_x, frame_z)` arrays of shape
+        `(shots, num_qubits)`.
         """
         shots = syndrome_bits.shape[0]
         frame_x = np.zeros((shots, self.mdr.num_qubits), dtype=np.uint8)
@@ -423,24 +399,22 @@ class MDRSimulation:
         """
         Measure an operator parity and return its expectation value.
 
-        This method appends the requested basis measurements to a circuit
-        copy, optionally inserts X-type SPAM noise before each measurement,
-        samples the circuit, and converts the measured parity bits into
-        `+1/-1` eigenvalues. The returned mean is either signed or absolute
-        depending on `absolute_value`.
+        This method appends the requested basis measurements to a circuit copy,
+        optionally inserts X-type SPAM noise before each measurement, samples
+        the circuit, and converts the measured parity bits into `+1/-1`
+        eigenvalues. The returned mean is either signed or absolute depending
+        on `absolute_value`.
 
         Args:
-            circuit: Circuit ending in the state to be measured.
-            pauli_specification: Sparse Pauli string defining the measured
-                operator.
-            measurement_ops: Ordered measurement operations produced by
-                :meth:`spec_to_measurement_ops`.
-            round_count: Number of MDR rounds represented by `circuit`.
-            absolute_value: If True, return `|<O>|`; otherwise return the
-                signed expectation `<O>`.
+        circuit: Circuit ending in the state to be measured.
+        pauli_specification: Sparse Pauli string defining the measured
+        operator. measurement_ops: Ordered measurement operations produced by
+        :meth:`spec_to_measurement_ops`. round_count: Number of MDR rounds
+        represented by `circuit`. absolute_value: If True, return `|<O>|`;
+        otherwise return the signed expectation `<O>`.
 
         Returns:
-            float: Mean parity eigenvalue for the requested observable.
+        float: Mean parity eigenvalue for the requested observable.
         """
         pre_measurement_count = circuit.num_measurements
         for gate, qubit in measurement_ops:
@@ -497,12 +471,11 @@ class MDRSimulation:
         standard deviations.
 
         Args:
-            pauli_specification: Sparse Pauli string defining the observable.
-            absolute_value: If True, record `|<O>|`; otherwise record signed
-                `<O>`.
+        pauli_specification: Sparse Pauli string defining the observable.
+        absolute_value: If True, record `|<O>|`; otherwise record signed `<O>`.
 
         Returns:
-            Dict[int, List[float]]: Mapping `round_index -> replicate_means`.
+        Dict[int, List[float]]: Mapping `round_index -> replicate_means`.
         """
         measurement_ops = self.spec_to_measurement_ops(pauli_specification)
         dist_map: Dict[int, List[float]] = {}
@@ -536,14 +509,14 @@ class MDRSimulation:
         Reduce replicate distributions to per-round summary statistics.
 
         Args:
-            dist_map: Mapping from round index to the replicate values
-                collected for that round.
+        dist_map: Mapping from round index to the replicate values collected
+        for that round.
 
         Returns:
-            Dict[str, List[float]]: Dictionary with aligned `rounds`,
-            `centers`, and `stds` lists suitable for plotting and CSV export.
-            The standard deviation is computed with `ddof=1` when at least two
-            replicate values are available, otherwise `0.0` is reported.
+        Dict[str, List[float]]: Dictionary with aligned `rounds`, `centers`,
+        and `stds` lists suitable for plotting and CSV export. The standard
+        deviation is computed with `ddof=1` when at least two replicate values
+        are available, otherwise `0.0` is reported.
         """
         rounds = sorted(dist_map)
         centers: List[float] = []

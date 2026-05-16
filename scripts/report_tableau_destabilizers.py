@@ -1,3 +1,10 @@
+"""
+
+report_tableau_destabilizers.py
+----------------------------------------------------------------------------
+Command-line utilities for report tableau destabilizers.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -12,7 +19,7 @@ def _ensure_src_on_path() -> None:
     Add the repository `src/` directory to `sys.path` if needed.
 
     Returns:
-        None
+    None
     """
     repo_root = Path(__file__).resolve().parents[1]
     src_path = repo_root / "src"
@@ -31,7 +38,7 @@ def parse_args() -> argparse.Namespace:
     Parse command-line arguments for tableau destabilizer reporting.
 
     Returns:
-        argparse.Namespace: Parsed distances, output path, and random seed.
+    argparse.Namespace: Parsed distances, output path, and random seed.
     """
     parser = argparse.ArgumentParser(
         description=(
@@ -65,7 +72,7 @@ def main() -> None:
     Build and optionally save a destabilizer comparison report.
 
     Returns:
-        None
+    None
     """
     args = parse_args()
     reports = [
@@ -74,16 +81,13 @@ def main() -> None:
     ]
     report = pd.concat(reports, ignore_index=True)
 
-    summary = (
-        report.groupby("distance", as_index=False)
-        .agg(
-            generated_total_weight=("generated_weight", "sum"),
-            generated_avg_weight=("generated_weight", "mean"),
-            generated_max_weight=("generated_weight", "max"),
-            stim_total_weight=("stim_weight", "sum"),
-            stim_avg_weight=("stim_weight", "mean"),
-            stim_max_weight=("stim_weight", "max"),
-        )
+    summary = report.groupby("distance", as_index=False).agg(
+        generated_total_weight=("generated_weight", "sum"),
+        generated_avg_weight=("generated_weight", "mean"),
+        generated_max_weight=("generated_weight", "max"),
+        stim_total_weight=("stim_weight", "sum"),
+        stim_avg_weight=("stim_weight", "mean"),
+        stim_max_weight=("stim_weight", "max"),
     )
     summary["total_weight_delta"] = (
         summary["stim_total_weight"] - summary["generated_total_weight"]

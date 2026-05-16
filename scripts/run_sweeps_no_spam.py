@@ -1,3 +1,10 @@
+"""
+
+run_sweeps_no_spam.py
+----------------------------------------------------------------------------
+Command-line entry point for running sweeps no spam workflows.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -13,7 +20,7 @@ def _ensure_src_on_path() -> None:
     requiring prior package installation.
 
     Returns:
-        None
+    None
     """
     repo_root = Path(__file__).resolve().parents[1]
     src_path = repo_root / "src"
@@ -35,6 +42,10 @@ from mdr.constants import (  # noqa: E402
     NOISE_MODEL_PARAM_NAMES,
     default_probabilities,
 )
+from mdr.preparation import (  # noqa: E402
+    PREP_MODE_FULL_MDR,
+    PREP_MODES,
+)
 from mdr.workflows import (  # noqa: E402
     code_family_subdir,
     default_table_filename,
@@ -49,8 +60,8 @@ def parse_args() -> argparse.Namespace:
     Parse command-line arguments for no-SPAM full-grid sweeps.
 
     Returns:
-        argparse.Namespace: Parsed values controlling sweep dimensions,
-        probabilities, output locations, and cache policy.
+    argparse.Namespace: Parsed values controlling sweep dimensions,
+    probabilities, output locations, and cache policy.
     """
     parser = argparse.ArgumentParser(
         description=(
@@ -104,6 +115,12 @@ def parse_args() -> argparse.Namespace:
         default="physical",
     )
     parser.add_argument(
+        "--prep-mode",
+        choices=PREP_MODES,
+        default=PREP_MODE_FULL_MDR,
+        help="MDR preparation variant to simulate.",
+    )
+    parser.add_argument(
         "--tables-dir",
         type=Path,
         default=DEFAULT_TABLES_DIR,
@@ -126,7 +143,7 @@ def main() -> None:
     Execute the full grid for all distances/models with no SPAM noise.
 
     Returns:
-        None
+    None
     """
     args = parse_args()
     probabilities = (
@@ -170,6 +187,7 @@ def main() -> None:
                 results_dir=output_dir,
                 force_rerun=args.force_rerun,
                 code_family=args.code_family,
+                prep_mode=args.prep_mode,
             )
             if loaded:
                 print(f"   cache hit | loaded: {out_csv}")

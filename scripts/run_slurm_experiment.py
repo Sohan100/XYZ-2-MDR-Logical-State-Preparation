@@ -1,3 +1,10 @@
+"""
+
+run_slurm_experiment.py
+----------------------------------------------------------------------------
+Command-line entry point for running slurm experiment workflows.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -14,7 +21,7 @@ def _ensure_src_on_path() -> None:
     requiring prior package installation.
 
     Returns:
-        None
+    None
     """
     repo_root = Path(__file__).resolve().parents[1]
     src_path = repo_root / "src"
@@ -39,20 +46,22 @@ def parse_args() -> argparse.Namespace:
     Parse command-line arguments for one Slurm probability-index task.
 
     Returns:
-        argparse.Namespace: Parsed argument values containing run name, index,
-        root directory, and overwrite policy.
+    argparse.Namespace: Parsed argument values containing run name, index, root
+    directory, and overwrite policy.
     """
     parser = argparse.ArgumentParser(
-        description=(
-            "Run one probability index for a prepared Slurm MDR run."
-        )
+        description=("Run one probability index for a prepared Slurm MDR run.")
     )
     parser.add_argument("run_name", type=str)
     parser.add_argument("probability_index", type=int)
-    parser.add_argument("--root-dir", type=Path,
-                        default=Path("XYZ2-experiment-data-slurm"))
-    parser.add_argument("--force", action="store_true",
-                        help="Overwrite existing partial output file.")
+    parser.add_argument(
+        "--root-dir", type=Path, default=Path("XYZ2-experiment-data-slurm")
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing partial output file.",
+    )
     return parser.parse_args()
 
 
@@ -64,7 +73,7 @@ def main() -> None:
     index, runs the corresponding sweep slice, and stores the partial result.
 
     Returns:
-        None
+    None
     """
     args = parse_args()
     run_dir = resolve_slurm_run_dir(args.root_dir, args.run_name)
@@ -73,11 +82,13 @@ def main() -> None:
         raise FileNotFoundError(f"Missing run config: {config_path}")
 
     config = json.loads(config_path.read_text(encoding="utf-8"))
+    prep_mode = str(config.get("prep_mode", "full_mdr"))
     probs = list(config["probabilities"])
     idx = args.probability_index
     if idx < 0 or idx >= len(probs):
         raise IndexError(
-            f"probability_index {idx} out of range [0, {len(probs) - 1}]")
+            f"probability_index {idx} out of range [0, {len(probs) - 1}]"
+        )
 
     p_val = float(probs[idx])
     shots = int(config["shots"])
@@ -103,8 +114,12 @@ def main() -> None:
         distance=int(config["distance"]),
         table_csv=table_csv,
         code_family=str(config.get("code_family", "xyz2")),
+        prep_mode=prep_mode,
     )
     param_names = noise_param_names(str(config["noise_model"]))
+    ancillas = int(
+        config.get("ancillas", len(code_inputs["active_stabilizers"]))
+    )
 
     out_csv = run_dir / "partials" / f"result_idx{idx:03d}.csv"
     if out_csv.exists() and not args.force:
@@ -119,7 +134,8 @@ def main() -> None:
         measure_stabilizers=code_inputs["stabilizers"],
         # type: ignore[arg-type]
         logical_operators=code_inputs["logical_operators"],
-        ancillas=1,
+        ancillas=ancillas,
+        num_qubits=int(code_inputs["num_qubits"]),
         psi_circuit=code_inputs["psi_circuit"],
         p_spam=float(config["p_spam"]),
         recovery_mode=str(config.get("recovery_mode", "each_round")),

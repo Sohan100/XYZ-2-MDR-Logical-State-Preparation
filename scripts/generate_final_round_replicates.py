@@ -1,12 +1,8 @@
 """
-generate_final_round_replicates.py
-----------------------------------
-Build a replicate-level final-round-recovery dataset for notebook plots.
 
-This script runs one `MDRSimulation` per named noise model at a chosen
-reference physical-noise point, stores every replicate fidelity for every
-operator and MDR round, and writes the resulting long-form CSV into the
-family-specific `data/analysis/` directory used by `analysis_plots.ipynb`.
+generate_final_round_replicates.py
+----------------------------------------------------------------------------
+generate_final_round_replicates.py.
 """
 
 from __future__ import annotations
@@ -27,7 +23,7 @@ def _ensure_src_on_path() -> None:
     without requiring a package installation step first.
 
     Returns:
-        None
+    None
     """
     repo_root = Path(__file__).resolve().parents[1]
     src_path = repo_root / "src"
@@ -45,6 +41,10 @@ from mdr.constants import (  # noqa: E402
 from mdr.mdr_circuit import MDRCircuit  # noqa: E402
 from mdr.mdr_noise_sweep import MdrNoiseSweep  # noqa: E402
 from mdr.mdr_simulation import MDRSimulation  # noqa: E402
+from mdr.preparation import (  # noqa: E402
+    PREP_MODE_FULL_MDR,
+    PREP_MODES,
+)
 from mdr.workflows import (  # noqa: E402
     build_code_inputs,
     canonical_table_path,
@@ -63,8 +63,8 @@ def parse_args() -> argparse.Namespace:
     Parse command-line arguments for final-round dataset generation.
 
     Returns:
-        argparse.Namespace: Parsed arguments defining the code family,
-        distance, reference noise points, and CSV output path.
+    argparse.Namespace: Parsed arguments defining the code family, distance,
+    reference noise points, and CSV output path.
     """
     parser = argparse.ArgumentParser(
         description=(
@@ -100,6 +100,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-rounds", type=int, default=10)
     parser.add_argument("--p-spam", type=float, default=DEFAULT_P_SPAM)
     parser.add_argument(
+        "--prep-mode",
+        choices=PREP_MODES,
+        default=PREP_MODE_FULL_MDR,
+        help="MDR preparation variant to simulate.",
+    )
+    parser.add_argument(
         "--output-csv",
         type=Path,
         default=None,
@@ -120,18 +126,18 @@ def parse_noise_points(
     Build the per-noise-model probability map used by the round scan.
 
     Args:
-        overrides: CLI overrides supplied as `MODEL=VALUE` strings.
-        selected_models: Noise models that will be simulated.
+    overrides: CLI overrides supplied as `MODEL=VALUE` strings.
+    selected_models: Noise models that will be simulated.
 
     Returns:
-        Dict[str, float]: Reference probability for each requested noise
-        model.
+    Dict[str, float]: Reference probability for each requested noise model.
 
     Raises:
-        ValueError: If an override is malformed or names an unknown model.
+    ValueError: If an override is malformed or names an unknown model.
     """
     points = {
-        model: float(REFERENCE_NOISE_POINTS[model]) for model in selected_models
+        model: float(REFERENCE_NOISE_POINTS[model])
+        for model in selected_models
     }
     for item in overrides:
         if "=" not in item:
@@ -163,12 +169,12 @@ def build_noise_kwargs(
     per-channel probability written into the circuit.
 
     Args:
-        param_names: Ordered active parameter names for one noise model.
-        probability: Model-level probability assigned to each active
-            parameter before one-qubit/two-qubit splitting.
+    param_names: Ordered active parameter names for one noise model.
+    probability: Model-level probability assigned to each active parameter
+    before one-qubit/two-qubit splitting.
 
     Returns:
-        Dict[str, Any]: Keyword arguments ready to merge into `MDRCircuit`.
+    Dict[str, Any]: Keyword arguments ready to merge into `MDRCircuit`.
     """
     kwargs: Dict[str, Any] = {
         "p_x": 0.0,
@@ -191,7 +197,9 @@ def build_noise_kwargs(
             kwargs[name] = probability / max(len(one_q_params), 1)
             continue
         index = MdrNoiseSweep.two_qubit_index[name]
-        kwargs["gate_noise_2q"][index] = probability / max(len(two_q_params), 1)
+        kwargs["gate_noise_2q"][index] = probability / max(
+            len(two_q_params), 1
+        )
 
     sum_2q = float(sum(kwargs["gate_noise_2q"]))
     if sum_2q > 1.0 - 1e-9:
@@ -218,23 +226,22 @@ def rows_for_noise_model(
     shots: int,
     num_replicates: int,
     max_rounds: int,
+    prep_mode: str = PREP_MODE_FULL_MDR,
 ) -> List[Dict[str, object]]:
     """
     Run one final-round simulation and return notebook-compatible rows.
 
     Args:
-        code_family: Code family to simulate.
-        distance: Code distance used to load operators and the MDR table.
-        noise_model: Named noise model key such as `pure_z`.
-        probability: Reference model-level physical-noise probability.
-        p_spam: SPAM error probability.
-        shots: Shot count used for each replicate estimate.
-        num_replicates: Number of replicate estimates per round.
-        max_rounds: Largest MDR round index included in the dataset.
+    code_family: Code family to simulate. distance: Code distance used to load
+    operators and the MDR table. noise_model: Named noise model key such as
+    `pure_z`. probability: Reference model-level physical-noise probability.
+    p_spam: SPAM error probability. shots: Shot count used for each replicate
+    estimate. num_replicates: Number of replicate estimates per round.
+    max_rounds: Largest MDR round index included in the dataset.
 
     Returns:
-        List[Dict[str, object]]: Long-form replicate rows matching the schema
-        expected by `NotebookFinalRoundAnalysis`.
+    List[Dict[str, object]]: Long-form replicate rows matching the schema
+    expected by `NotebookFinalRoundAnalysis`.
     """
     table_csv = canonical_table_path(
         distance=distance,
@@ -244,23 +251,29 @@ def rows_for_noise_model(
         distance=distance,
         table_csv=table_csv,
         code_family=code_family,
+        prep_mode=prep_mode,
     )
     param_names = noise_param_names(noise_model)
     noise_kwargs = build_noise_kwargs(param_names, probability)
 
     sim = MDRSimulation(
         mdr=MDRCircuit(
-            stabilizers=code_inputs["code_stabilizers"],  # type: ignore[arg-type]
+            # type: ignore[arg-type]
+            stabilizers=code_inputs["code_stabilizers"],
             toggles=code_inputs["combined_toggles"],  # type: ignore[arg-type]
-            ancillas=1,
+            # type: ignore[arg-type]
+            ancillas=len(code_inputs["active_stabilizers"]),
+            num_qubits=int(code_inputs["num_qubits"]),
             p_spam=p_spam,
             psi_circuit=code_inputs["psi_circuit"],
             recovery_mode="final_round",
             correction_mode="physical",
             **noise_kwargs,
         ),
-        stabilizer_pauli_strings=code_inputs["stabilizers"],  # type: ignore[arg-type]
-        logical_pauli_strings=code_inputs["logical_operators"],  # type: ignore[arg-type]
+        # type: ignore[arg-type]
+        stabilizer_pauli_strings=code_inputs["stabilizers"],
+        # type: ignore[arg-type]
+        logical_pauli_strings=code_inputs["logical_operators"],
         shots_per_measurement=shots,
         total_mdr_rounds=max_rounds,
         num_replicates=num_replicates,
@@ -286,6 +299,7 @@ def rows_for_noise_model(
                         "shots": int(shots),
                         "num_replicates": int(num_replicates),
                         "distance": int(distance),
+                        "prep_mode": prep_mode,
                         "signed_fidelity": None,
                     }
                 )
@@ -311,6 +325,7 @@ def rows_for_noise_model(
                         "shots": int(shots),
                         "num_replicates": int(num_replicates),
                         "distance": int(distance),
+                        "prep_mode": prep_mode,
                         "signed_fidelity": float(signed_fidelity),
                     }
                 )
@@ -318,22 +333,30 @@ def rows_for_noise_model(
     return rows
 
 
-def default_output_csv(code_family: str, distance: int) -> Path:
+def default_output_csv(
+    code_family: str,
+    distance: int,
+    prep_mode: str = PREP_MODE_FULL_MDR,
+) -> Path:
     """
     Return the canonical analysis CSV path for one final-round dataset.
 
     Args:
-        code_family: Code family owning the dataset.
-        distance: Code distance encoded in the filename.
+    code_family: Code family owning the dataset. distance: Code distance
+    encoded in the filename. prep_mode: MDR preparation variant.
 
     Returns:
-        Path: Family-scoped analysis CSV path under `data/analysis/`.
+    Path: Family-scoped analysis CSV path under `data/analysis/`.
     """
+    mode_suffix = "" if prep_mode == PREP_MODE_FULL_MDR else f"_{prep_mode}"
     return (
         Path("data")
         / "analysis"
         / code_family
-        / f"d{distance}_{code_family}_final_round_fidelity_replicates.csv"
+        / (
+            f"d{distance}_{code_family}{mode_suffix}_"
+            "final_round_fidelity_replicates.csv"
+        )
     )
 
 
@@ -342,13 +365,14 @@ def main() -> None:
     Generate the requested final-round replicate dataset and save it.
 
     Returns:
-        None
+    None
     """
     args = parse_args()
     noise_points = parse_noise_points(args.noise_point, args.noise_models)
     output_csv = args.output_csv or default_output_csv(
         code_family=args.code_family,
         distance=args.distance,
+        prep_mode=args.prep_mode,
     )
 
     all_rows: List[Dict[str, object]] = []
@@ -369,6 +393,7 @@ def main() -> None:
                 shots=args.shots,
                 num_replicates=args.num_replicates,
                 max_rounds=args.max_rounds,
+                prep_mode=args.prep_mode,
             )
         )
 
@@ -387,6 +412,7 @@ def main() -> None:
             "shots",
             "num_replicates",
             "distance",
+            "prep_mode",
             "signed_fidelity",
         ]
     ]

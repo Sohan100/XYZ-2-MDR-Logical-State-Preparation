@@ -1,5 +1,8 @@
 """
-Surface-code helpers for threshold experiments.
+
+__init__.py
+----------------------------------------------------------------------------
+Surface-code helpers used by the MDR comparison workflows.
 """
 
 from .logical_generator import SurfaceCodeLogicalGenerator

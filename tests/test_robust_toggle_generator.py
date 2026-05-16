@@ -1,3 +1,10 @@
+"""
+
+test_robust_toggle_generator.py
+----------------------------------------------------------------------------
+Pytest coverage for robust toggle generator behavior and regression checks.
+"""
+
 from __future__ import annotations
 
 import pytest
@@ -19,7 +26,7 @@ def test_toggles_commutation_structure(distance: int) -> None:
     paired constraint and commutation with all others.
 
     Returns:
-        None
+    None
     """
     n = 2 * distance * distance
     stabs = XYZ2StabilizerGenerator(distance).generate_stabilizers()
@@ -54,7 +61,7 @@ def test_toggles_commute_pairwise(distance: int) -> None:
     The synthesized toggle family should commute internally.
 
     Returns:
-        None
+    None
     """
     n = 2 * distance * distance
     stabs = XYZ2StabilizerGenerator(distance).generate_stabilizers()
@@ -79,7 +86,7 @@ def test_toggle_weight_reduction_regression_d5() -> None:
     The commuting exact post-pass should stay well below tableau weights.
 
     Returns:
-        None
+    None
     """
     d = 5
     n = 2 * d * d
@@ -88,7 +95,9 @@ def test_toggle_weight_reduction_regression_d5() -> None:
 
     tg = RobustToggleGenerator(stabs, logical_x, n, random_seed=0)
     stab_toggles, logical_toggle = tg.generate_toggles()
-    weights = [len(toggle.split()) for toggle in stab_toggles + [logical_toggle]]
+    weights = [
+        len(toggle.split()) for toggle in stab_toggles + [logical_toggle]
+    ]
 
     assert sum(weights) <= 139
     assert max(weights) <= 7

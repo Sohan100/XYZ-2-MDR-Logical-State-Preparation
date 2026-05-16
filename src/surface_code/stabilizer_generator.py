@@ -1,13 +1,8 @@
 """
-stabilizer_generator.py
------------------------
-Utility for generating stabilizers for the standard unrotated surface code.
 
-This module constructs the stabilizer generators for the usual planar surface
-code patch with open boundaries. Data qubits live on the even-parity sites of
-a `(2d - 1) x (2d - 1)` square lattice, while stabilizer centers live on the
-odd-parity sites. Bulk checks have weight 4 and boundary checks are naturally
-truncated by the patch boundary.
+stabilizer_generator.py
+----------------------------------------------------------------------------
+stabilizer_generator.py.
 """
 
 from __future__ import annotations
@@ -21,35 +16,25 @@ class SurfaceCodeStabilizerGenerator:
 
     The generator precomputes the full data-qubit coordinate map for the open
     patch and emits the stabilizers in deterministic row order. X checks are
-    returned first, followed by Z checks, matching the ordering used by the
-    MDR table builder and the surface-code logical generator.
+    returned first, followed by Z checks, matching the ordering used by the MDR
+    table builder and the surface-code logical generator.
 
     Attributes
     ----------
-    d : int
-        Odd code distance for the planar patch.
-    n : int
-        Number of data qubits in the patch, equal to
-        `d^2 + (d - 1)^2`.
-    data_coordinates : List[Tuple[int, int]]
-        Row-major list of all even-parity lattice coordinates that host data
-        qubits.
-    _coord_to_index_map : Dict[Tuple[int, int], int]
-        Mapping from lattice coordinates onto flattened physical-qubit
-        indices.
+    d : int Odd code distance for the planar patch. n : int Number of data
+    qubits in the patch, equal to `d^2 + (d - 1)^2`. data_coordinates :
+    List[Tuple[int, int]] Row-major list of all even-parity lattice coordinates
+    that host data qubits. _coord_to_index_map : Dict[Tuple[int, int], int]
+    Mapping from lattice coordinates onto flattened physical-qubit indices.
 
     Methods
     -------
-    __init__(distance)
-        Validate the distance and initialize the unrotated patch geometry.
-    generate_stabilizers()
-        Return the full ordered stabilizer list for the patch.
-    coord_to_index(x, y)
-        Convert a data-qubit lattice coordinate into a physical qubit index.
-    _iter_check_coordinates()
-        Enumerate all stabilizer-center coordinates in row order.
-    _neighbor_indices(x, y)
-        Return the adjacent data-qubit indices for one stabilizer center.
+    __init__(distance) Validate the distance and initialize the unrotated patch
+    geometry. generate_stabilizers() Return the full ordered stabilizer list
+    for the patch. coord_to_index(x, y) Convert a data-qubit lattice coordinate
+    into a physical qubit index. _iter_check_coordinates() Enumerate all
+    stabilizer-center coordinates in row order. _neighbor_indices(x, y) Return
+    the adjacent data-qubit indices for one stabilizer center.
     """
 
     def __init__(self, distance: int) -> None:
@@ -57,10 +42,10 @@ class SurfaceCodeStabilizerGenerator:
         Initialize surface-code geometry for a chosen odd distance.
 
         Args:
-            distance: Odd code distance `d` with `d >= 3`.
+        distance: Odd code distance `d` with `d >= 3`.
 
         Raises:
-            ValueError: If `distance` is even or smaller than 3.
+        ValueError: If `distance` is even or smaller than 3.
         """
         if distance < 3 or distance % 2 == 0:
             raise ValueError("Distance d must be odd and >= 3")
@@ -82,8 +67,8 @@ class SurfaceCodeStabilizerGenerator:
         Return the full ordered stabilizer list for the surface-code patch.
 
         Returns:
-            List[str]: Sparse Pauli strings for all X-type checks followed by
-            all Z-type checks.
+        List[str]: Sparse Pauli strings for all X-type checks followed by all
+        Z-type checks.
         """
         stabilizers: List[str] = []
 
@@ -106,11 +91,11 @@ class SurfaceCodeStabilizerGenerator:
         Map a data-qubit lattice coordinate onto the corresponding index.
 
         Args:
-            x: Lattice x coordinate of a data-qubit site.
-            y: Lattice y coordinate of a data-qubit site.
+        x: Lattice x coordinate of a data-qubit site. y: Lattice y coordinate
+        of a data-qubit site.
 
         Returns:
-            int: Flattened physical-qubit index.
+        int: Flattened physical-qubit index.
         """
         return self._coord_to_index_map[(x, y)]
 
@@ -119,7 +104,7 @@ class SurfaceCodeStabilizerGenerator:
         Enumerate all odd-parity stabilizer-center coordinates in row order.
 
         Returns:
-            List[Tuple[int, int]]: Stabilizer-center coordinates.
+        List[Tuple[int, int]]: Stabilizer-center coordinates.
         """
         return [
             (x, y)
@@ -133,11 +118,10 @@ class SurfaceCodeStabilizerGenerator:
         Return the adjacent data-qubit indices for one stabilizer center.
 
         Args:
-            x: Stabilizer-center x coordinate.
-            y: Stabilizer-center y coordinate.
+        x: Stabilizer-center x coordinate. y: Stabilizer-center y coordinate.
 
         Returns:
-            List[int]: Sorted data-qubit indices adjacent to that center.
+        List[int]: Sorted data-qubit indices adjacent to that center.
         """
         qubits: List[int] = []
         for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:

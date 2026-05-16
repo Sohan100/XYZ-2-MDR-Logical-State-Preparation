@@ -1,3 +1,10 @@
+"""
+
+test_xyz2_stabilizer_generator.py
+----------------------------------------------------------------------------
+Pytest coverage for xyz2 stabilizer generator behavior and regression checks.
+"""
+
 from __future__ import annotations
 
 from collections import Counter
@@ -14,7 +21,7 @@ def test_d5_stabilizer_weight_counts() -> None:
     The expected counts follow the XYZ^2 lattice construction rules.
 
     Returns:
-        None
+    None
     """
     stabs = XYZ2StabilizerGenerator(distance=5).generate_stabilizers()
     weight_counts = Counter(len(s.split()) for s in stabs)
@@ -32,7 +39,7 @@ def test_distance_validation(invalid_distance: int) -> None:
     The generator only supports odd distances greater than or equal to 3.
 
     Returns:
-        None
+    None
     """
     with pytest.raises(ValueError, match="odd and >= 3"):
         XYZ2StabilizerGenerator(distance=invalid_distance)
