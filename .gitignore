@@ -48,4 +48,6 @@ data/tables/**
 # Local temporary extraction artifacts
 code_cells.py
 stim_xyz2_export.py.py
-/legacy/
+/legacy/*
+!/legacy/
+!/legacy/Stim XYZ2 code.ipynb
