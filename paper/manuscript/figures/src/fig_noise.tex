@@ -1,0 +1,33 @@
+\documentclass[border=1.5pt]{standalone}
+\input{preamble}
+\begin{document}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular}{@{}l@{\hspace{6mm}}l@{}}
+\textbf{(a)} & \textbf{(b)}\\[-2pt]
+\raisebox{-0.5\height}{%
+\begin{quantikz}[row sep={0.95cm,between origins}, column sep=0.2cm]
+\lstick{\footnotesize data $u$} & \gate[style={fill=PauliX!30, draw=PauliX}]{R_{b_u}} & \gate[style={fill=ErrFlip!26, draw=ErrFlip}]{\mathcal{F}^{Q_{b_u}}_{p_{\rm r}}} & \gate[style={fill=Idle!26, draw=Idle}]{\mathcal{D}_{p_{\rm i}}} \slice[style={draw=InkSoft, dash pattern=on 2pt off 1.5pt, line width=0.45pt}, label style={text=InkSoft}]{\scriptsize reset} & \targ{} & \gate[2, style={fill=TwoQ!26, draw=TwoQ}]{\mathcal{D}^{(2)}_{p_2}} \slice[style={draw=InkSoft, dash pattern=on 2pt off 1.5pt, line width=0.45pt}, label style={text=InkSoft}]{\scriptsize layer 1} &  & \gate[style={fill=Idle!26, draw=Idle}]{\mathcal{D}_{p_{\rm i}}} \slice[style={draw=InkSoft, dash pattern=on 2pt off 1.5pt, line width=0.45pt}, label style={text=InkSoft}]{\scriptsize layer 2} &  & \gate[style={fill=Idle!26, draw=Idle}]{\mathcal{D}_{p_{\rm i}}} \slice[style={draw=InkSoft, dash pattern=on 2pt off 1.5pt, line width=0.45pt}, label style={text=InkSoft}]{\scriptsize measure} & \ \cdots\  & \gate[style={fill=ErrFlip!26, draw=ErrFlip}]{\mathcal{F}^{Q_{b_u}}_{p_{\rm m}}} & \meter[style={fill=PauliZ!28, draw=PauliZ}]{b_u} \\
+\lstick{\footnotesize ancilla} & \gate[style={fill=PauliX!30, draw=PauliX}]{R_{\textcolor{PauliXText}{\boldsymbol{X}}}} & \gate[style={fill=ErrFlip!26, draw=ErrFlip}]{\mathcal{F}^{\textcolor{PauliZText}{\boldsymbol{Z}}}_{p_{\rm r}}} &  & \ctrl{-1} &  & \ctrl{1} & \gate[2, style={fill=TwoQ!26, draw=TwoQ}]{\mathcal{D}^{(2)}_{p_2}} & \gate[style={fill=ErrFlip!26, draw=ErrFlip}]{\mathcal{F}^{\textcolor{PauliZText}{\boldsymbol{Z}}}_{p_{\rm m}}} & \gate[style={fill=PauliZ!28, draw=PauliZ}]{M_{\textcolor{PauliXText}{\boldsymbol{X}}}} & \setwiretype{n} &  &  \\
+\lstick{\footnotesize data $l$} & \gate[style={fill=PauliX!30, draw=PauliX}]{R_{b_l}} & \gate[style={fill=ErrFlip!26, draw=ErrFlip}]{\mathcal{F}^{Q_{b_l}}_{p_{\rm r}}} & \gate[style={fill=Idle!26, draw=Idle}]{\mathcal{D}_{p_{\rm i}}} &  & \gate[style={fill=Idle!26, draw=Idle}]{\mathcal{D}_{p_{\rm i}}} & \targ{} &  &  & \gate[style={fill=Idle!26, draw=Idle}]{\mathcal{D}_{p_{\rm i}}} & \ \cdots\  & \gate[style={fill=ErrFlip!26, draw=ErrFlip}]{\mathcal{F}^{Q_{b_l}}_{p_{\rm m}}} & \meter[style={fill=PauliZ!28, draw=PauliZ}]{b_l}
+\end{quantikz}}
+&
+\raisebox{-0.5\height}{%
+\begin{tikzpicture}[
+  op/.style={draw=#1, fill=#1!26, line width=0.7pt, rounded corners=0.7mm, minimum height=0.56cm, minimum width=0.62cm, font=\footnotesize, inner sep=1.5pt},
+  wl/.style={line width=0.6pt, draw=InkDark},
+]
+\node[font=\footnotesize\bfseries, anchor=west] at (-0.1,1.75) {preparation};
+\node[font=\footnotesize\bfseries, anchor=west] at (2.85,1.75) {measurement};
+\foreach \y/\b/\f in {1.1/X/Z, 0.35/Y/X, -0.4/Z/X}{
+  \draw[wl] (0,\y) -- (2.3,\y);
+  \node[op=PauliX] at (0.5,\y) {$R_{\textcolor{Pauli\b Text}{\boldsymbol{\b}}}$};
+  \node[op=ErrFlip] at (1.55,\y) {$\textcolor{Pauli\f Text}{\boldsymbol{\f}}$};
+  \draw[wl] (2.9,\y) -- (5.05,\y);
+  \node[op=ErrFlip] at (3.5,\y) {$\textcolor{Pauli\f Text}{\boldsymbol{\f}}$};
+  \node[op=PauliZ, minimum width=0.72cm] at (4.5,\y) {$M_{\textcolor{Pauli\b Text}{\boldsymbol{\b}}}$};
+}
+\node[font=\scriptsize, text=InkSoft, align=left, anchor=north west] at (-0.1,-0.85) {The flip $Q_b$ anticommutes with the prepared\\ or measured Pauli $b$, so $Q_{\textcolor{PauliXText}{X}}=\textcolor{PauliZText}{Z}$ and $Q_{\textcolor{PauliYText}{Y}}=Q_{\textcolor{PauliZText}{Z}}=\textcolor{PauliXText}{X}$.};
+\end{tikzpicture}}
+\end{tabular}
+
+\end{document}

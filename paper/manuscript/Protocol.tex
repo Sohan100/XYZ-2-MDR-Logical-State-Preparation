@@ -1,0 +1,117 @@
+\section{Fault-tolerant MDR}
+\label{sec:protocol}
+
+The fault-tolerant protocol keeps the structure of MDR but changes each of its steps. It prepares $\plusL$ as follows (\autoref{fig:protocol}):
+\begin{enumerate}
+  \item \emph{Prepare.} Initialize every data qubit in a single-qubit state chosen in the CSS frame of the code. The operator $\Xb$ and the group $\Sz$ of \autoref{eq:S0}, which then has $d^2$ independent generators, are deterministic.
+  \item \emph{Measure.} Measure all $2d^2-1$ generators for $r$ rounds with one ancilla per generator and a depth-six interleaved schedule. The logical operator is never measured directly.
+  \item \emph{Decode.} Decode the full space-time detector history after the last round.
+  \item \emph{Recover.} Update the Pauli frame with the logical bit returned by the decoder and with the toggles of the generators whose first outcomes are random.
+\end{enumerate}
+We describe the four steps below and then give the fault distance.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{fig_protocol.pdf}
+  \caption{The fault-tolerant MDR protocol. (1)~Every data qubit is prepared in a single-qubit eigenstate of its frame Pauli, which fixes $\Xb$ and the $d^2$ elements of $\Sz$. (2)~All $2d^2-1$ generators are measured for $r$ rounds with one ancilla each. (3)~A decoder processes the detectors of all rounds at once. In hierarchical correlated matching the gauge detectors form a lower level that reweights the matching of the $\Sz$ detectors. (4)~The recovery is a Pauli frame update. For verification on hardware the data qubits are read out destructively in the frame basis, which reconstructs $\Xb$ and every element of $\Sz$.}
+  \label{fig:protocol}
+\end{figure*}
+
+\subsection{Frame initialization}
+\label{sec:frame}
+
+The YZZY surface code of \autoref{sec:blocks} becomes a CSS code under a block-local Clifford map. On even blocks we keep $\eff{Z}$ and map $\eff{Y}\mapsto\eff{X}$. On odd blocks we map $\eff{Y}\mapsto\eff{Z}$ and $\eff{Z}\mapsto\eff{X}$. By \autoref{eq:yzzy}, every class-B plaquette becomes $\eff{Z}^{\otimes4}$ and every class-A plaquette becomes $\eff{X}^{\otimes4}$. The logical operator $\Xb$ acts as $\eff{Z}$ on the even blocks of the anti-diagonal, so it becomes a $Z$-type logical operator. In this frame $\plusL$ corresponds to the logical zero state of a CSS surface code, which is prepared fault tolerantly from the product state of effective zero states [\autoref{fig:code}(c)]. Mapping back to the $XYZ^2$ code, every even block has to be a $+1$ eigenstate of $\eff{Z}=X_u$ and every odd block a $+1$ eigenstate of $\eff{Y}\simeq Z_uY_l$.
+
+We realize these effective eigenstates with the single-qubit product state
+\begin{equation}
+  \ket{\psi_F}=\bigotimes_{i+j\ \mathrm{even}}\ket{+}_{u_{ij}}\ket{+}_{l_{ij}}\;\otimes\bigotimes_{i+j\ \mathrm{odd}}\ket{0}_{u_{ij}}\ket{{+}i}_{l_{ij}}.
+  \label{eq:frame}
+\end{equation}
+Every data qubit is thus an eigenstate of one frame Pauli, $X$ on both vertices of an even block, $Z$ on the upper and $Y$ on the lower vertex of an odd block. \autoref{fig:frame}(c) shows this frame for $d=5$. The even blocks are also eigenstates of their links. The odd blocks are not, because a state of the $[[2,1,1]]$ code with a definite value of $\eff{Y}$ is entangled. We accept this and keep the initialization free of entangling gates.
+
+A stabilizer has a definite value on $\ket{\psi_F}$ exactly when it is a product of frame Paulis, so $\Sz$ of \autoref{eq:S0} is the set of such stabilizers. For the frame state it has $d^2$ independent generators, namely the $(d^2+1)/2$ even links, the $(d-1)^2/2$ class-B hexagons and the $d-1$ class-B boundary checks. Some of these generators are multiplied by an odd link so that they become products of frame Paulis. For $d=3$, for example, the class-B hexagon $H_{00}$ enters $\Sz$ as $H_{00}L_{01}=X_1Z_2Z_3Y_4Y_5X_7$. The remaining $d^2-1$ generators are the odd links, the class-A hexagons and the class-A boundary checks. These are the gauge generators, whose first outcomes are random. The operator $\Xb$ of \autoref{eq:xbar} acts on lower vertices of even blocks, so it is also a product of frame Paulis and has the value $+1$ on $\ket{\psi_F}$.
+
+Every single-qubit error on the frame state either acts trivially or flips one or two elements of $\Sz$. \autoref{fig:frame} compares this with the $\ket{+}^{\otimes n}$ start. There, $Z$ errors on the two vertices of a block flip only the shared link. In the frame state the same two errors flip different class-B hexagons, so the decoder can tell which of them flipped $\Xb$. The smallest set of single-qubit errors that flips $\Xb$ without flipping any element of $\Sz$ has weight $d+1$.
+
+At the end of the protocol we read out the data qubits destructively in the same frame. Even blocks are measured in the $X$ basis, the upper vertex of every odd block in the $Z$ basis and the lower vertex in the $Y$ basis. These outcomes reconstruct $\Xb$ and every element of $\Sz$, so the final comparison also has distance $d+1$. This readout is used to verify the prepared state. In a computation it is replaced by the next logical operation.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{fig_frame.pdf}
+  \caption{Initial states. Qubit colors give the single-qubit basis ($X$ orange, $Y$ pink, $Z$ purple) and the violet band marks $\Xb$. (a)~Start from $\ket{+}^{\otimes n}$. Only the links (coral) and $\Xb$ are deterministic. The errors $Z_7$ and $Z_{10}$ (black rings) flip the same link (black), but only $Z_{10}$ flips $\Xb$. (b)~Frame start $\ket{\psi_F}$. The coral even links and the coral hexagons belong to $\Sz$. $Z_7$ flips the hexagon $H_{00}L_{01}$ and $Z_{10}$ flips $H_{11}L_{12}$ (dashed outlines), so the two errors are distinguishable. The dashed sunflower links are odd links, which are gauge generators with random first outcomes. (c)~The frame for $d=5$, with class-B cells in coral and class-A cells in sunflower.}
+  \label{fig:frame}
+\end{figure}
+
+\subsection{Syndrome extraction}
+\label{sec:schedule}
+
+Each generator has its own ancilla. One round of extraction consists of the following steps:
+\begin{enumerate}
+  \item prepare every ancilla in $\ket{+}$,
+  \item apply six layers of controlled-Pauli gates, in which each ancilla controls the Pauli of its check on one data qubit,
+  \item measure every ancilla in the $X$ basis.
+\end{enumerate}
+A hexagon ancilla takes part in all six layers, a boundary ancilla in three and a link ancilla in two. Every data qubit takes part in at most one gate per layer. \autoref{fig:schedule}(a) shows the circuit for one hexagon.
+
+The order of the gates matters in two ways. First, interleaved circuits measure the intended operators only if every pair of overlapping checks is compatible. On the shared qubits where two checks $a$ and $b$ apply anticommuting Paulis, the number of qubits on which $a$ acts before $b$ must be even. Second, a fault on an ancilla in the middle of its check spreads to the data qubits that the ancilla touches later. These hook errors can lower the circuit-level distance~\cite{dennis2002,tomita2014}.
+
+We restrict to translation-invariant schedules, in which the layer of each hexagon vertex depends only on its position in the hexagon and on the class of the cell, and the link gates use fixed layers. Boundary checks inherit the layers of their cells. We enumerated every such schedule of depth six that satisfies the compatibility condition and found 8928 of them. For each one we computed the circuit-level fault distance of the $d=3$ protocol with three rounds. 3968 schedules reach distance 2, 3834 reach 3 and 1126 reach the maximum of 4 [\autoref{fig:schedule}(d)]. We chose one of the 1126 and verified that it reaches $d+1$ at $d=5$ and $d=7$. In this schedule a class-A hexagon visits its vertices in the order top, upper left, upper right, lower left, lower right, bottom. A class-B hexagon uses the order top, upper right, lower right, bottom, upper left, lower left. A link ancilla acts on the upper vertex in the first layer and on the lower vertex in the second [\autoref{fig:schedule}(b,c)].
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{fig_schedule.pdf}
+  \caption{Syndrome extraction. (a)~Circuit for a class-A hexagon. The ancilla controls the Pauli of the check on each vertex, in the layer given at the top. (b)~Layer in which each vertex of a class-A hexagon is visited, with qubits colored by the Pauli of the check. (c)~The same for class-B hexagons and for links. (d)~Circuit-level fault distance of all 8928 compatible translation-invariant depth-six schedules at $d=3$. The violet bar contains the schedule used here.}
+  \label{fig:schedule}
+\end{figure}
+
+\subsection{Detectors}
+\label{sec:detectors}
+
+The detectors of \autoref{eq:detectors} fall into two families (\autoref{fig:detectors}):
+\begin{enumerate}
+  \item \emph{$\Sz$ detectors.} For each of the $d^2$ generators of $\Sz$ we compare its value in round 1 with its known initial value and its value in round $t$ with round $t-1$. The destructive readout reconstructs every element of $\Sz$, and we compare it with round $r$. This gives $d^2(r+1)$ detectors.
+  \item \emph{Gauge detectors.} The $d^2-1$ gauge generators have random outcomes in round 1. From round 2 onward we compare each with its previous value, which gives $(d^2-1)(r-1)$ detectors. The frame readout does not reconstruct these generators, so they have no final detector.
+\end{enumerate}
+The observable is the value of $\Xb$ in the frame readout,
+\begin{equation}
+  \ell=\bigoplus_{i+j=d-1} m_{l_{ij}},
+  \label{eq:observable}
+\end{equation}
+where $m_q\in\{0,1\}$ is the outcome of the $X$-basis readout of qubit $q$. After Stim decomposes each fault into graphlike components, every component flips at most two $\Sz$ detectors~\cite{gidney2021stim}. The $\Sz$ detectors alone therefore define a matching graph, in the same way as the $Z$-type detectors of a CSS surface code. The gauge detectors add information that a matching decoder on $\Sz$ ignores. We use them in \autoref{sec:decoding}. For $r=1$ there are no gauge detectors.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{fig_detectors.pdf}
+  \caption{Detectors of the protocol. Columns are the initial state, the $r$ extraction rounds and the frame readout. Each coral dot compares the $d^2$ generators of $\Sz$ between two neighboring columns. Each sunflower square compares the $d^2-1$ gauge generators between two neighboring rounds. The gauge generators are random in round 1 and are not reconstructed by the readout.}
+  \label{fig:detectors}
+\end{figure}
+
+\subsection{Decoding and recovery}
+\label{sec:recovery}
+
+The decoder receives the detection events of all rounds and returns one bit $\hat\ell$, the prediction of whether the observable $\Xb$ was flipped. We correct the readout of $\Xb$ with this bit, and a shot is a logical failure if the corrected value differs from $+1$. The logical error rate is therefore
+\begin{equation}
+  \pL=\Pr\big[\ell\oplus\hat\ell=1\big].
+  \label{eq:pL}
+\end{equation}
+When the state is not read out, the bit is applied as a logical Pauli frame update, together with the toggles of the gauge generators whose round-1 outcomes were $-1$. These toggles commute with $\Xb$ and with $\Sz$, so they do not affect the logical value. Pauli frame updates are applied in software, and a physical correction is only needed before a non-Clifford gate~\cite{knill2005,gottesman1998}. The baseline decoder is minimum-weight perfect matching (MWPM) on the $\Sz$ detectors~\cite{dennis2002,higgott2025sparse}. The decoders that also use the gauge detectors are the subject of \autoref{sec:decoding}.
+
+The protocol is decoded once, after the last round, so that a measurement error in one round and a data error are told apart by the rounds around them. In a computation the last round of preparation is decoded together with the rounds of error correction that follow it. To score the prepared state on its own, we end the circuit either with the destructive frame readout or with one noiseless round of all generators and $\Xb$, which we call the ideal readout.
+
+\subsection{Fault distance}
+\label{sec:fd}
+
+We computed the circuit-level fault distance of the protocol exactly by solving the minimum-weight problem of \autoref{eq:undetectable} on the detector error model (Appendix~\ref{app:distance}). For $d=3$ and $5$, with $r=1$ and $r=d$ rounds and either readout, and for $d=7$ with one round, the minimum number of faults that flips $\Xb$ without triggering an $\Sz$ detector is $d+1$ (\autoref{tab:fd}). For $d=7$ with seven rounds a linear-programming bound shows that every undetectable logical error contains at least seven faults, and the undetectable-error search of Stim finds one with eight. The protocol is therefore fault tolerant with the full distance available for $\plusL$, and the extraction circuit does not lose distance to hook errors. The $\ket{+}^{\otimes n}$ start with the same schedule and all detectors has fault distance two at every $d$, which confirms that the initial state, and not the circuit, limits that variant.
+
+\begin{table}[t]
+  \caption{Circuit-level fault distance for the preparation of $\plusL$. The values of the fault-tolerant protocol hold for $r=1$ and $r=d$ rounds and for the destructive or the ideal final readout. They are exact for $d=3$ and $5$ and for $d=7$ with one round (Appendix~\ref{app:distance}). For $d=7$ with seven rounds we prove that the fault distance is at least seven, and the search of Stim finds an undetectable logical error with eight faults.}
+  \label{tab:fd}
+  \begin{ruledtabular}
+  \begin{tabular}{lccc}
+    Initial state & $d=3$ & $d=5$ & $d=7$ \\
+    \hline
+    $\ket{+}^{\otimes n}$, all detectors & 2 & 2 & 2 \\
+    Frame state $\ket{\psi_F}$, $\Sz$ detectors & 4 & 6 & 8 \\
+  \end{tabular}
+  \end{ruledtabular}
+\end{table}

@@ -33,12 +33,14 @@ _ensure_src_on_path()
 from mdr.constants import (  # noqa: E402
     CODE_FAMILY_DISPLAY_NAMES,
     DEFAULT_DISTANCES,
+    DEFAULT_NOISE_MODELS,
     DEFAULT_PLOTS_DIR,
     DEFAULT_RESULTS_DIR,
     DEFAULT_ROUNDS,
     NOISE_MODEL_DISPLAY_NAMES,
     NOISE_MODEL_PARAM_NAMES,
 )
+from mdr.decoders.factory import SUPPORTED_DECODER_MODES  # noqa: E402
 from mdr.mdr_noise_sweep import MdrNoiseSweep  # noqa: E402
 from mdr.preparation import (  # noqa: E402
     PREP_MODE_FULL_MDR,
@@ -68,7 +70,7 @@ def parse_args() -> argparse.Namespace:
         "--noise-models",
         nargs="+",
         choices=sorted(NOISE_MODEL_PARAM_NAMES),
-        default=sorted(NOISE_MODEL_PARAM_NAMES),
+        default=DEFAULT_NOISE_MODELS,
     )
     parser.add_argument(
         "--distances",
@@ -93,6 +95,16 @@ def parse_args() -> argparse.Namespace:
         choices=["physical", "pauli_frame"],
         default=None,
     )
+    parser.add_argument(
+        "--decoder-mode",
+        choices=SUPPORTED_DECODER_MODES,
+        default=None,
+    )
+    parser.add_argument(
+        "--decoder-max-bond-dimension",
+        type=int,
+        default=None,
+    )
     parser.add_argument("--input-dir", type=Path, default=DEFAULT_RESULTS_DIR)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_PLOTS_DIR)
     return parser.parse_args()
@@ -115,6 +127,8 @@ def _resolve_result_csv(
     p_spam: float | None,
     recovery_mode: str | None,
     correction_mode: str | None,
+    decoder_mode: str | None,
+    decoder_max_bond_dimension: int | None,
 ) -> Path | None:
     """
     Resolve the newest spec-matched sweep CSV for one configuration.
@@ -149,6 +163,18 @@ def _resolve_result_csv(
                     != correction_mode
                 ):
                     continue
+                if decoder_mode is not None and (
+                    str(spec.get("decoder_mode", "toggle_frame"))
+                    != decoder_mode
+                ):
+                    continue
+                if decoder_max_bond_dimension is not None:
+                    config = dict(spec.get("decoder_config", {}))
+                    if (
+                        int(config.get("max_bond_dimension", -1))
+                        != decoder_max_bond_dimension
+                    ):
+                        continue
 
                 csv_path = spec_path.with_suffix("").with_suffix(".csv")
                 if csv_path.exists():
@@ -294,6 +320,10 @@ def _suffix(args: argparse.Namespace) -> str:
         parts.append(args.recovery_mode)
     if args.correction_mode is not None:
         parts.append(args.correction_mode)
+    if args.decoder_mode is not None:
+        parts.append(args.decoder_mode)
+    if args.decoder_max_bond_dimension is not None:
+        parts.append(f"chi{args.decoder_max_bond_dimension}")
     return "_".join(parts)
 
 
@@ -321,6 +351,8 @@ def main() -> None:
                 p_spam=args.p_spam,
                 recovery_mode=args.recovery_mode,
                 correction_mode=args.correction_mode,
+                decoder_mode=args.decoder_mode,
+                decoder_max_bond_dimension=args.decoder_max_bond_dimension,
             )
             if csv_path is None:
                 print(

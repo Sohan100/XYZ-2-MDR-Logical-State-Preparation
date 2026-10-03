@@ -54,6 +54,8 @@ def test_noise_sweep_save_and_load(
     saved = pd.read_csv(out_csv)
     assert "mean_signed" in saved.columns
     assert "std_signed" in saved.columns
+    assert "decoder_mode" in saved.columns
+    assert "decoder_unknown_fraction" in saved.columns
 
     loaded = MdrNoiseSweep(load_data_filename=out_csv)
     assert len(loaded.param_combos) == 2
@@ -97,3 +99,50 @@ def test_state_prep_error_uses_original_logical_x_error_rate(
     assert loaded.has_exact_signed_results is False
     assert y_vals.tolist() == pytest.approx([0.2])
     assert y_errs.tolist() == pytest.approx([0.1])
+
+
+def test_si1000_sweep_uses_single_p_parameter(tmp_path: Path) -> None:
+    """
+    SI1000 sweeps should save one physical p column.
+    """
+    out_csv = tmp_path / "results_si1000.csv"
+
+    sweep = MdrNoiseSweep(
+        code_stabilizers=["Z0"],
+        toggles=["X0"],
+        measure_stabilizers=["Z0"],
+        logical_operators={"Logical X": "X0"},
+        ancillas=1,
+        num_qubits=1,
+        param_names=["p"],
+        param_values=[0.03],
+        round_list=[1],
+        shots=8,
+        num_replicates=1,
+        save_data_filename=out_csv,
+    )
+    saved = pd.read_csv(out_csv)
+
+    assert sweep.param_names == ["p"]
+    assert "p" in saved.columns
+    assert saved["p"].tolist() == pytest.approx([0.03, 0.03])
+
+
+def test_si1000_sweep_rejects_too_large_p() -> None:
+    """
+    p values above 0.2 would make MERR(5p) invalid.
+    """
+    with pytest.raises(ValueError, match="MERR"):
+        MdrNoiseSweep(
+            code_stabilizers=["Z0"],
+            toggles=["X0"],
+            measure_stabilizers=["Z0"],
+            logical_operators={"Logical X": "X0"},
+            ancillas=1,
+            num_qubits=1,
+            param_names=["p"],
+            param_values=[0.21],
+            round_list=[1],
+            shots=1,
+            num_replicates=1,
+        )

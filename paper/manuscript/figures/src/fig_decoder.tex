@@ -1,0 +1,63 @@
+\documentclass[border=1.5pt]{standalone}
+\input{preamble}
+\begin{document}
+\begin{tikzpicture}[
+  udet/.style={circle, draw=Szero, line width=0.7pt, fill=white, minimum size=2.6mm, inner sep=0pt},
+  ldet/.style={rectangle, draw=Gauge, line width=0.7pt, fill=white, minimum size=2.4mm, inner sep=0pt},
+  hot/.style={fill=ErrRed, draw=ErrRed},
+  uedge/.style={line width=0.6pt, draw=Szero!55},
+  ledge/.style={line width=0.6pt, draw=Gauge!60},
+  step/.style={draw=#1, fill=#1!12, line width=0.9pt, rounded corners=1.2mm, font=\scriptsize, align=center, minimum width=3.6cm},
+]
+% ===================== panel (a): two levels of the detector graph
+\begin{scope}[shift={(0,0)}]
+  \node[panel] at (-0.6,3.55) {(a)};
+  % upper plane (S0)
+  \draw[fill=ClassB!70, draw=Szero, line width=0.7pt] (0,1.6) -- (4.2,1.6) -- (5.0,3.0) -- (0.8,3.0) -- cycle;
+  \node[font=\scriptsize, text=Szero, anchor=west] at (5.05,2.75) {upper level, $S_0$ detectors};
+  % lower plane (gauge)
+  \draw[fill=Gauge!16, draw=Gauge, line width=0.7pt] (0,0) -- (4.2,0) -- (5.0,1.4) -- (0.8,1.4) -- cycle;
+  \node[font=\scriptsize, text=GaugeText, anchor=west] at (5.05,1.15) {lower level, gauge detectors};
+  % grids
+  \foreach \i in {0,...,4}{
+    \foreach \j in {0,...,2}{
+      \pgfmathsetmacro{\x}{0.45+0.8*\i+0.35*\j}
+      \pgfmathsetmacro{\y}{1.85+0.45*\j}
+      \pgfmathsetmacro{\yl}{0.25+0.45*\j}
+      \coordinate (U\i\j) at (\x,\y);
+      \coordinate (L\i\j) at (\x,\yl);
+    }
+  }
+  \foreach \i in {0,...,3}{\foreach \j in {0,...,2}{
+    \pgfmathtruncatemacro{\ii}{\i+1}
+    \draw[uedge] (U\i\j) -- (U\ii\j); \draw[ledge] (L\i\j) -- (L\ii\j);}}
+  \foreach \i in {0,...,4}{\foreach \j in {0,...,1}{
+    \pgfmathtruncatemacro{\jj}{\j+1}
+    \draw[uedge] (U\i\j) -- (U\i\jj); \draw[ledge] (L\i\j) -- (L\i\jj);}}
+  \foreach \i in {0,...,4}{\foreach \j in {0,...,2}{
+    \node[udet] at (U\i\j) {}; \node[ldet] at (L\i\j) {};}}
+  % fault: one gauge detector + two S0 detectors
+  \node[udet, hot] at (U11) {}; \node[udet, hot] at (U21) {};
+  \node[ldet, hot] at (L11) {};
+  \draw[line width=1.6pt, draw=ErrRed] (U11) -- (U21);
+  % the fault sits in the gap between two detectors of the lowest row
+  \coordinate (F) at ($(U10)!0.5!(U20)$);
+  \draw[densely dashed, line width=0.9pt, draw=ErrRed] ($(U11)!0.5!(U21)$) -- (F) -- (L11);
+  \node[star, star points=5, star point ratio=2.2, fill=ErrRed, minimum size=2.6mm, inner sep=0pt] at (F) {};
+  \node[font=\scriptsize, text=ErrRed, anchor=west, align=left] at (2.65,-0.45) {one fault flips an $S_0$ edge $e_U$\\ and a gauge edge $e_L$};
+\end{scope}
+% ===================== panel (b): two passes
+\begin{scope}[shift={(9.3,0.2)}]
+  \node[panel] at (-0.75,3.35) {(b)};
+  \node[step=StepMeas] (p1) at (1.9,2.6)
+     {\textbf{pass 1}\\ match both levels\\ with prior weights};
+  \node[step=StepRec] (rw) at (1.9,1.35)
+     {\textbf{reweight}\\ for every matched edge $e$\\ $p(e')\;\to\;p(e'\,|\,e)$ for its partners};
+  \node[step=StepDec] (p2) at (1.9,0.0)
+     {\textbf{pass 2}\\ match again and read\\ the $\bar X$ prediction from $S_0$};
+  \draw[-{Stealth[length=2mm]}, line width=0.9pt, draw=InkSoft] (p1) -- (rw);
+  \draw[-{Stealth[length=2mm]}, line width=0.9pt, draw=InkSoft] (rw) -- (p2);
+\end{scope}
+\end{tikzpicture}
+
+\end{document}

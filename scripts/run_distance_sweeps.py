@@ -35,6 +35,7 @@ from mdr.constants import (  # noqa: E402
     DEFAULT_RESULTS_DIR,
     DEFAULT_TABLES_DIR,
     DEFAULT_DISTANCES,
+    DEFAULT_NOISE_MODELS,
     DEFAULT_NUM_REPLICATES,
     DEFAULT_P_SPAM,
     DEFAULT_ROUNDS,
@@ -43,6 +44,7 @@ from mdr.constants import (  # noqa: E402
     NOISE_MODEL_PARAM_NAMES,
     default_probabilities,
 )
+from mdr.decoders.factory import SUPPORTED_DECODER_MODES  # noqa: E402
 from mdr.preparation import (  # noqa: E402
     PREP_MODE_FULL_MDR,
     PREP_MODES,
@@ -80,7 +82,7 @@ def parse_args() -> argparse.Namespace:
         "--noise-models",
         nargs="+",
         choices=sorted(NOISE_MODEL_PARAM_NAMES),
-        default=sorted(NOISE_MODEL_PARAM_NAMES),
+        default=DEFAULT_NOISE_MODELS,
     )
     parser.add_argument(
         "--probabilities",
@@ -106,6 +108,18 @@ def parse_args() -> argparse.Namespace:
         "--correction-mode",
         choices=["physical", "pauli_frame"],
         default="physical",
+    )
+    parser.add_argument(
+        "--decoder-mode",
+        choices=SUPPORTED_DECODER_MODES,
+        default="toggle_frame",
+        help="Decoder used for Pauli-frame state-prep correction.",
+    )
+    parser.add_argument(
+        "--decoder-max-bond-dimension",
+        type=int,
+        default=None,
+        help="Maximum frontier states kept by mps_mld; omit for exact mode.",
     )
     parser.add_argument(
         "--prep-mode",
@@ -134,6 +148,9 @@ def main() -> None:
         probabilities = args.probabilities
     else:
         probabilities = default_probabilities()
+    decoder_config = {}
+    if args.decoder_max_bond_dimension is not None:
+        decoder_config["max_bond_dimension"] = args.decoder_max_bond_dimension
     tables_dir = code_family_subdir(args.tables_dir, args.code_family)
     output_dir = code_family_subdir(args.output_dir, args.code_family)
     tables_dir.mkdir(parents=True, exist_ok=True)
@@ -163,6 +180,8 @@ def main() -> None:
                 force_rerun=args.force_rerun,
                 code_family=args.code_family,
                 prep_mode=args.prep_mode,
+                decoder_mode=args.decoder_mode,
+                decoder_config=decoder_config,
             )
             if loaded:
                 print(f"   cache hit | loaded: {out_csv}")

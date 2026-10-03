@@ -38,6 +38,7 @@ from mdr.constants import (  # noqa: E402
     NOISE_MODEL_DISPLAY_NAMES,
     SUPPORTED_CODE_FAMILIES,
 )
+from mdr.decoders.factory import SUPPORTED_DECODER_MODES  # noqa: E402
 from mdr.mdr_circuit import MDRCircuit  # noqa: E402
 from mdr.mdr_noise_sweep import MdrNoiseSweep  # noqa: E402
 from mdr.mdr_simulation import MDRSimulation  # noqa: E402
@@ -56,6 +57,18 @@ REFERENCE_NOISE_POINTS: Dict[str, float] = {
     "z_type": 0.0036307805477,
     "unbiased": 0.00758577575029,
 }
+H2_SINGLE_QUBIT_COMPONENT = 8.0e-5
+H2_TWO_QUBIT_COMPONENT = 1.4e-3
+H2_Z_TYPE_TWO_QUBIT_COMPONENTS = {
+    "IZ",
+    "XZ",
+    "YZ",
+    "ZI",
+    "ZX",
+    "ZY",
+    "ZZ",
+}
+H2_PURE_Z_TWO_QUBIT_COMPONENTS = {"IZ", "ZI", "ZZ"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -81,8 +94,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--noise-models",
         nargs="+",
-        default=["z_type", "pure_z", "unbiased"],
+        default=["unbiased", "z_type", "pure_z"],
         choices=sorted(REFERENCE_NOISE_POINTS),
+    )
+    parser.add_argument(
+        "--calibration",
+        choices=["legacy_scalar", "h2_quantinuum"],
+        default="legacy_scalar",
+        help=(
+            "Noise calibration to write into the circuit. legacy_scalar uses "
+            "the historical scalar notebook points; h2_quantinuum uses the "
+            "direct per-channel H2 values from the Quantinuum model."
+        ),
     )
     parser.add_argument(
         "--noise-point",
@@ -98,12 +121,50 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--shots", type=int, default=2000)
     parser.add_argument("--num-replicates", type=int, default=30)
     parser.add_argument("--max-rounds", type=int, default=10)
+    parser.add_argument(
+        "--rounds",
+        nargs="+",
+        type=int,
+        default=None,
+        help=(
+            "Specific MDR rounds to save. The simulation still runs through "
+            "max(rounds), but the CSV and notebook plots keep only these "
+            "round indices."
+        ),
+    )
     parser.add_argument("--p-spam", type=float, default=DEFAULT_P_SPAM)
     parser.add_argument(
         "--prep-mode",
         choices=PREP_MODES,
         default=PREP_MODE_FULL_MDR,
         help="MDR preparation variant to simulate.",
+    )
+    parser.add_argument(
+        "--recovery-mode",
+        choices=["each_round", "final_round"],
+        default="final_round",
+        help="Recovery timing used by the MDR circuit.",
+    )
+    parser.add_argument(
+        "--correction-mode",
+        choices=["physical", "pauli_frame"],
+        default="physical",
+        help="Correction implementation used by the MDR circuit.",
+    )
+    parser.add_argument(
+        "--decoder-mode",
+        choices=SUPPORTED_DECODER_MODES,
+        default="toggle_frame",
+        help="Decoder used for logical-frame correction.",
+    )
+    parser.add_argument(
+        "--decoder-max-bond-dimension",
+        type=int,
+        default=None,
+        help=(
+            "Maximum MPS bond dimension for mps_mld. Omit to use the decoder "
+            "factory default."
+        ),
     )
     parser.add_argument(
         "--output-csv",
@@ -216,17 +277,60 @@ def build_noise_kwargs(
     return kwargs
 
 
+def build_h2_quantinuum_noise_kwargs(noise_model: str) -> Dict[str, Any]:
+    """
+    Construct direct per-channel H2 Quantinuum noise parameters.
+
+    Args:
+    noise_model: Named H2 model: `unbiased`, `z_type`, or `pure_z`.
+
+    Returns:
+    Dict[str, Any]: Keyword arguments ready to merge into `MDRCircuit`.
+    """
+    kwargs: Dict[str, Any] = {
+        "p_x": 0.0,
+        "p_y": 0.0,
+        "p_z": 0.0,
+        "g1_x": 0.0,
+        "g1_y": 0.0,
+        "g1_z": H2_SINGLE_QUBIT_COMPONENT,
+        "gate_noise_2q": [0.0] * 15,
+    }
+    if noise_model == "unbiased":
+        kwargs["g1_x"] = H2_SINGLE_QUBIT_COMPONENT
+        kwargs["g1_y"] = H2_SINGLE_QUBIT_COMPONENT
+        two_q_components = set(MdrNoiseSweep.two_qubit_index)
+    elif noise_model == "z_type":
+        two_q_components = H2_Z_TYPE_TWO_QUBIT_COMPONENTS
+    elif noise_model == "pure_z":
+        two_q_components = H2_PURE_Z_TWO_QUBIT_COMPONENTS
+    else:
+        raise ValueError(f"Unknown H2 noise model: {noise_model}")
+
+    for component in two_q_components:
+        index = MdrNoiseSweep.two_qubit_index[component]
+        kwargs["gate_noise_2q"][index] = H2_TWO_QUBIT_COMPONENT
+
+    return kwargs
+
+
 def rows_for_noise_model(
     *,
     code_family: str,
     distance: int,
     noise_model: str,
     probability: float,
+    calibration: str,
     p_spam: float,
     shots: int,
     num_replicates: int,
     max_rounds: int,
+    rounds_to_save: List[int] | None,
     prep_mode: str = PREP_MODE_FULL_MDR,
+    recovery_mode: str = "final_round",
+    correction_mode: str = "physical",
+    decoder_mode: str = "toggle_frame",
+    decoder_config: Dict[str, Any] | None = None,
 ) -> List[Dict[str, object]]:
     """
     Run one final-round simulation and return notebook-compatible rows.
@@ -254,7 +358,11 @@ def rows_for_noise_model(
         prep_mode=prep_mode,
     )
     param_names = noise_param_names(noise_model)
-    noise_kwargs = build_noise_kwargs(param_names, probability)
+    if calibration == "h2_quantinuum":
+        noise_kwargs = build_h2_quantinuum_noise_kwargs(noise_model)
+    else:
+        noise_kwargs = build_noise_kwargs(param_names, probability)
+    rounds_filter = set(rounds_to_save) if rounds_to_save is not None else None
 
     sim = MDRSimulation(
         mdr=MDRCircuit(
@@ -266,8 +374,8 @@ def rows_for_noise_model(
             num_qubits=int(code_inputs["num_qubits"]),
             p_spam=p_spam,
             psi_circuit=code_inputs["psi_circuit"],
-            recovery_mode="final_round",
-            correction_mode="physical",
+            recovery_mode=recovery_mode,
+            correction_mode=correction_mode,
             **noise_kwargs,
         ),
         # type: ignore[arg-type]
@@ -277,6 +385,8 @@ def rows_for_noise_model(
         shots_per_measurement=shots,
         total_mdr_rounds=max_rounds,
         num_replicates=num_replicates,
+        decoder_mode=decoder_mode,
+        decoder_config=decoder_config,
     )
 
     rows: List[Dict[str, object]] = []
@@ -284,6 +394,8 @@ def rows_for_noise_model(
 
     for operator, dist_map in sim._replicate_means_stabilizers.items():
         for round_idx, values in sorted(dist_map.items()):
+            if rounds_filter is not None and round_idx not in rounds_filter:
+                continue
             for replicate_idx, fidelity in enumerate(values):
                 rows.append(
                     {
@@ -294,8 +406,11 @@ def rows_for_noise_model(
                         "round": int(round_idx),
                         "replicate_idx": int(replicate_idx),
                         "fidelity": float(fidelity),
+                        "calibration": calibration,
                         "p_spam": float(p_spam),
-                        "recovery_mode": "final_round",
+                        "recovery_mode": recovery_mode,
+                        "correction_mode": correction_mode,
+                        "decoder_mode": decoder_mode,
                         "shots": int(shots),
                         "num_replicates": int(num_replicates),
                         "distance": int(distance),
@@ -307,6 +422,8 @@ def rows_for_noise_model(
     for operator, dist_map in sim._replicate_means_logicals.items():
         signed_map = sim._replicate_means_logicals_signed[operator]
         for round_idx, values in sorted(dist_map.items()):
+            if rounds_filter is not None and round_idx not in rounds_filter:
+                continue
             signed_values = signed_map[round_idx]
             for replicate_idx, (fidelity, signed_fidelity) in enumerate(
                 zip(values, signed_values)
@@ -320,8 +437,11 @@ def rows_for_noise_model(
                         "round": int(round_idx),
                         "replicate_idx": int(replicate_idx),
                         "fidelity": float(fidelity),
+                        "calibration": calibration,
                         "p_spam": float(p_spam),
-                        "recovery_mode": "final_round",
+                        "recovery_mode": recovery_mode,
+                        "correction_mode": correction_mode,
+                        "decoder_mode": decoder_mode,
                         "shots": int(shots),
                         "num_replicates": int(num_replicates),
                         "distance": int(distance),
@@ -369,6 +489,15 @@ def main() -> None:
     """
     args = parse_args()
     noise_points = parse_noise_points(args.noise_point, args.noise_models)
+    rounds_to_save = (
+        sorted(dict.fromkeys(args.rounds)) if args.rounds is not None else None
+    )
+    max_rounds = args.max_rounds
+    if rounds_to_save is not None:
+        max_rounds = max(max_rounds, max(rounds_to_save))
+    decoder_config: Dict[str, Any] = {}
+    if args.decoder_max_bond_dimension is not None:
+        decoder_config["max_bond_dimension"] = args.decoder_max_bond_dimension
     output_csv = args.output_csv or default_output_csv(
         code_family=args.code_family,
         distance=args.distance,
@@ -381,7 +510,7 @@ def main() -> None:
         print(
             "Running "
             f"{args.code_family} d={args.distance} {noise_model} "
-            f"at p={probability:.12g}"
+            f"with {args.calibration}"
         )
         all_rows.extend(
             rows_for_noise_model(
@@ -389,11 +518,17 @@ def main() -> None:
                 distance=args.distance,
                 noise_model=noise_model,
                 probability=probability,
+                calibration=args.calibration,
                 p_spam=args.p_spam,
                 shots=args.shots,
                 num_replicates=args.num_replicates,
-                max_rounds=args.max_rounds,
+                max_rounds=max_rounds,
+                rounds_to_save=rounds_to_save,
                 prep_mode=args.prep_mode,
+                recovery_mode=args.recovery_mode,
+                correction_mode=args.correction_mode,
+                decoder_mode=args.decoder_mode,
+                decoder_config=decoder_config,
             )
         )
 
@@ -407,8 +542,11 @@ def main() -> None:
             "round",
             "replicate_idx",
             "fidelity",
+            "calibration",
             "p_spam",
             "recovery_mode",
+            "correction_mode",
+            "decoder_mode",
             "shots",
             "num_replicates",
             "distance",

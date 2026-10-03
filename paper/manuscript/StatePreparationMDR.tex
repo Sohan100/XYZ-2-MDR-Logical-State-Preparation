@@ -1,0 +1,74 @@
+\section{Measurement, decoding and recovery}
+\label{sec:mdr}
+
+\subsection{Projective preparation}
+\label{sec:mdr_basic}
+
+Let $\mathcal{S}$ be the stabilizer group of the code and let $\mathcal{G}=\{G_1,\dots,G_m\}$ be a set of commuting Pauli operators whose joint $+1$ eigenspace is one dimensional. For $\plusL$ we take the $2d^2-1$ stabilizer generators together with $\Xb$, so that
+\begin{equation}
+  \plusL\!\bra{\bar{+}}=\prod_{k=1}^{m}\Pi_k^{+},\qquad \Pi_k^{\pm}=\tfrac{1}{2}\left(I\pm G_k\right).
+  \label{eq:target}
+\end{equation}
+Measurement, decoding and recovery (MDR) prepares this state as follows:
+\begin{enumerate}
+  \item Prepare the data qubits in a product state $\ket{\psi_0}$.
+  \item Measure every $G_k$ with an ancilla, which gives an outcome $s_k\in\{0,1\}$.
+  \item Decode the outcomes into a Pauli recovery $R$.
+  \item Apply $R$, or record it in the Pauli frame.
+\end{enumerate}
+\autoref{fig:mdr}(a) shows the measurement of a single operator $G$. The ancilla starts in $\ket{0}$ and the first Hadamard gate prepares $\ket{+}$. The controlled-$G$ gate then maps
+\begin{align}
+  \ket{+}\ket{\psi}\;&\mapsto\;\tfrac{1}{\sqrt{2}}\big(\ket{0}\ket{\psi}+\ket{1}G\ket{\psi}\big)\nonumber\\
+  &=\ket{+}\,\Pi^{+}\ket{\psi}+\ket{-}\,\Pi^{-}\ket{\psi}.
+  \label{eq:projection}
+\end{align}
+The second Hadamard gate and the measurement in the $Z$ basis read out the ancilla in the $X$ basis. The outcome $s$ occurs with probability $\|\Pi^{(-1)^s}\ket{\psi}\|^2$ and leaves the data in the state $\Pi^{(-1)^s}\ket{\psi}$, up to normalization. To undo the outcome $s=1$ we choose a toggle $P$, a Pauli operator that anticommutes with $G$ and commutes with every other element of $\mathcal{G}$. It satisfies
+\begin{equation}
+  P\,\Pi^{-}=\Pi^{+}P,
+  \label{eq:toggle}
+\end{equation}
+so the classically controlled gate $P^{s}$ moves the data into the $+1$ eigenspace of $G$ without disturbing the other eigenvalues. For $\Xb$ the toggle is a logical operator that anticommutes with $\Xb$, for example $\Yb$. Without noise the recovery
+\begin{equation}
+  R=\prod_{k=1}^{m}P_k^{s_k}
+  \label{eq:recovery}
+\end{equation}
+maps the post-measurement state to $\plusL$ for every set of outcomes. In the circuits of this paper each ancilla is prepared directly in $\ket{+}$ and measured in the $X$ basis, which removes the two Hadamard gates, and every recovery is applied in the Pauli frame.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{fig_mdr.pdf}
+  \caption{MDR circuits. (a)~Measurement of one operator $G$ with feedforward. (1)~The Hadamard gate prepares the ancilla in $\ket{+}$. (2)~The controlled-$G$ gate entangles the ancilla with the data as in \autoref{eq:projection}. (3)~The second Hadamard gate maps the $X$ basis of the ancilla to the $Z$ basis. (4)~The outcome $s$ controls the toggle $P$, which anticommutes with $G$, and the data end in the $+1$ eigenspace of $G$. (b)~The fault-tolerant protocol of \autoref{sec:protocol}. The $2d^2$ data qubits start in the frame state $\ket{\psi_F}$. Each round measures all $m=2d^2-1$ generators with $m$ ancillas in $\ket{+}$, six layers of controlled Pauli gates and $X$-basis measurements. The outcomes $\mathbf{s}^{(t)}$ of consecutive rounds are combined into detectors. The decoder processes all rounds at once and returns the logical bit $\hat\ell$ and the gauge toggles $\hat{\mathbf{g}}$, which update the Pauli frame. The dashed path is the destructive readout in the frame basis that we use to verify the prepared state.}
+  \label{fig:mdr}
+\end{figure*}
+
+\subsection{Deterministic checks and fault distance}
+\label{sec:s0}
+
+With noise the outcomes $s_k$ are not reliable. A data error before a measurement changes the outcome of every generator that anticommutes with it, and a measurement error changes a single outcome. The decoder has to tell these apart, and it can only do so with outcomes whose values are known in advance. Before the first round the data qubits are in the state $\ket{\psi_0}$. We define
+\begin{equation}
+  \Sz=\left\{S\in\mathcal{S}\;:\;S\ket{\psi_0}=\pm\ket{\psi_0}\right\}
+  \label{eq:S0}
+\end{equation}
+as the group of stabilizers whose values are fixed by the initial state. The subscript $0$ refers to round zero, the state before any measurement. Without faults, the value of an element of $\Sz$ in the first round equals its value on $\ket{\psi_0}$, and every later value equals the one before. A generator of $\mathcal{S}$ outside $\Sz$ has a uniformly random first outcome, and only its changes from one round to the next are deterministic. We call these generators gauge generators, because their random values are absorbed into the Pauli frame and carry no logical information.
+
+A detector is a parity of outcomes that is deterministic in the absence of faults. Let $s_S^{(t)}\in\{0,1\}$ be the measured value of a stabilizer $S$ in round $t$, which for a product of generators is the parity of their outcomes, and let $s_S^{(0)}$ be the known value of an element of $\Sz$ on $\ket{\psi_0}$. The detectors of the $r$ rounds are
+\begin{equation}
+  D_S^{(t)}=s_S^{(t)}\oplus s_S^{(t-1)},
+  \label{eq:detectors}
+\end{equation}
+with $t=1,\dots,r$ for the generators of $\Sz$ and $t=2,\dots,r$ for the gauge generators.
+An error that occurs before the first measurement of a generator is visible only in a detector with $t=1$, and these exist only for $\Sz$. The choice of $\ket{\psi_0}$ therefore decides which early errors can be detected.
+
+We quantify this with the circuit-level fault distance. An elementary fault is a Pauli error after a gate, a preparation or an idle step, or a flipped measurement outcome. The detector error model (DEM) of a circuit lists every elementary fault $j$ with its probability $p_j$, the detectors it flips and whether it flips the logical observable~\cite{gidney2021stim}. We write the detectors of fault $j$ as the column $H_j$ of a binary matrix $H$ and its effect on the observable as the entry $L_j$ of a binary row vector $L$. A set of faults, written as a binary vector $x$, is an undetectable logical error if
+\begin{equation}
+  Hx=0\pmod 2,\qquad Lx=1\pmod 2.
+  \label{eq:undetectable}
+\end{equation}
+The fault distance $d_f$ is the smallest Hamming weight of such an $x$. A decoder that corrects every set of fewer than $d_f/2$ faults then has a logical error rate
+\begin{equation}
+  \pL=O\big(p^{\lceil d_f/2\rceil}\big)
+  \label{eq:scaling}
+\end{equation}
+at small physical error rate $p$. For $\plusL$ the largest possible value is $d_f=d+1$, the weight of the lightest logical operator that anticommutes with $\Xb$ (\autoref{sec:code}).
+
+The simplest product state on which $\Xb$ is deterministic is $\ket{+}^{\otimes n}$. On this state $\Sz$ is generated by the $d^2$ links. A $Z$ error on either vertex of a block flips the same link, but on an anti-diagonal block only the error on the lower vertex flips $\Xb$ [\autoref{fig:frame}(a)]. Two preparation errors $Z_{u_{ij}}Z_{l_{ij}}$ on such a block commute with every link and anticommute with $\Xb$. They change only the random first outcomes of the hexagons, so the two faults form an undetectable logical error. The $\ket{+}^{\otimes n}$ start therefore has fault distance two at every $d$, whatever circuit and decoder follow it (\autoref{tab:fd}). The protocol of the next section chooses $\ket{\psi_0}$ so that $\Sz$ separates these errors.

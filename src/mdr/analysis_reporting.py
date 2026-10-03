@@ -567,6 +567,32 @@ class NotebookFinalRoundAnalysis:
             )
         return style_map
 
+    @staticmethod
+    def _legend_layout(num_entries: int) -> Dict[str, object]:
+        """
+        Return compact legend settings for notebook fidelity figures.
+        """
+        if num_entries <= 24:
+            return {
+                "fontsize": 14,
+                "ncol": 1,
+                "rect_right": 0.935,
+                "anchor_x": 0.93,
+            }
+        if num_entries <= 48:
+            return {
+                "fontsize": 8,
+                "ncol": 2,
+                "rect_right": 0.86,
+                "anchor_x": 0.86,
+            }
+        return {
+            "fontsize": 6,
+            "ncol": 3,
+            "rect_right": 0.78,
+            "anchor_x": 0.78,
+        }
+
     def plot_fidelity(
         self,
         category: str,
@@ -672,14 +698,18 @@ class NotebookFinalRoundAnalysis:
             ax.set_xlabel("MDR rounds", fontsize=16)
             ax.set_xticks(rounds)
 
+        legend_layout = self._legend_layout(len(legend_entries))
         fig.legend(
             list(legend_entries.values()),
             list(legend_entries.keys()),
             loc="center left",
-            bbox_to_anchor=(0.93, 0.5),
-            fontsize=14,
+            bbox_to_anchor=(legend_layout["anchor_x"], 0.5),
+            fontsize=legend_layout["fontsize"],
+            ncol=legend_layout["ncol"],
+            columnspacing=0.8,
+            handletextpad=0.5,
         )
-        fig.tight_layout(rect=[0, 0, 0.935, 1.0])
+        fig.tight_layout(rect=[0, 0, legend_layout["rect_right"], 1.0])
 
         out_path = Path(save_path)
         out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -773,14 +803,18 @@ class NotebookFinalRoundAnalysis:
                     ax.set_xlabel("MDR rounds", fontsize=16)
                     ax.set_xticks(rounds)
 
+        legend_layout = self._legend_layout(len(legend_entries))
         fig.legend(
             list(legend_entries.values()),
             list(legend_entries.keys()),
             loc="center left",
-            bbox_to_anchor=(0.93, 0.5),
-            fontsize=14,
+            bbox_to_anchor=(legend_layout["anchor_x"], 0.5),
+            fontsize=legend_layout["fontsize"],
+            ncol=legend_layout["ncol"],
+            columnspacing=0.8,
+            handletextpad=0.5,
         )
-        fig.tight_layout(rect=[0, 0, 0.935, 1.0])
+        fig.tight_layout(rect=[0, 0, legend_layout["rect_right"], 1.0])
 
         out_path = Path(save_path)
         out_path.parent.mkdir(parents=True, exist_ok=True)

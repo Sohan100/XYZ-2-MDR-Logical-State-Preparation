@@ -8,6 +8,7 @@ Pytest coverage for plotters behavior and regression checks.
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import matplotlib
 import pandas as pd
@@ -16,6 +17,12 @@ from mdr.mdr_circuit import MDRCircuit
 from mdr.mdr_noise_sweep import MdrNoiseSweep
 from mdr.mdr_simulation import MDRSimulation
 from mdr.plotters import MDRSimulationPlotter, MdrNoiseSweepPlotter
+
+_SCRIPTS_PATH = Path(__file__).resolve().parents[1] / "scripts"
+if str(_SCRIPTS_PATH) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_PATH))
+
+from plot_round_fidelity_panels_from_csv import plot_distance  # noqa: E402
 
 matplotlib.use("Agg")
 
@@ -155,3 +162,48 @@ def test_noise_sweep_plotter_writes_combined_panel_pdf(
         allow_legacy_approx=True,
     )
     assert out_pdf.exists()
+
+
+def test_round_fidelity_panel_plot_writes_files(tmp_path: Path) -> None:
+    """
+    Round-scan panel plotter should render stabilizer/logical rows.
+    """
+    rows = []
+    for noise_model in ("unbiased", "z_type", "pure_z"):
+        for p_value in (1e-4, 1e-3):
+            for round_idx in (2, 3):
+                rows.append(
+                    {
+                        "g1_z": p_value,
+                        "round": round_idx,
+                        "operator": "S0",
+                        "mean": 0.9,
+                        "std": 0.01,
+                    }
+                )
+                rows.append(
+                    {
+                        "g1_z": p_value,
+                        "round": round_idx,
+                        "operator": "Logical X",
+                        "mean": 0.8,
+                        "std": 0.02,
+                    }
+                )
+    df = pd.DataFrame(rows)
+    saved = plot_distance(
+        distance=3,
+        frames={"unbiased": df, "z_type": df, "pure_z": df},
+        rounds=[2, 3],
+        output_dir=tmp_path,
+        code_family="xyz2",
+        prep_mode="link_logical_plus",
+        recovery_mode="final_round",
+        correction_mode="pauli_frame",
+        decoder_mode="mps_mld",
+        decoder_max_bond_dimension=128,
+        formats=["png", "pdf"],
+    )
+
+    assert len(saved) == 2
+    assert all(path.exists() for path in saved)

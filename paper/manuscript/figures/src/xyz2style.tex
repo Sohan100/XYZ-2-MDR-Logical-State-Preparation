@@ -1,0 +1,46 @@
+% Shared colors and styles for the XYZ^2 figures.
+% Pauli types: bright tones for fills and bands, deep (800) shades of the same hues for labels.
+% The label shades keep the hue of each Pauli, are well separated from each other (CIEDE2000 > 20)
+% and have a contrast ratio of at least 2.9 on the coral cells and 4.5 on the sunflower cells.
+\definecolor{PauliX}{HTML}{F97316}
+\definecolor{PauliY}{HTML}{EC4899}
+\definecolor{PauliZ}{HTML}{9333EA}
+\definecolor{PauliXText}{HTML}{AC340B}
+\definecolor{PauliYText}{HTML}{9D174D}
+\definecolor{PauliZText}{HTML}{5B21B6}
+% Generator classes: S0 (class B, even links, coral) and gauge (class A, odd links, sunflower)
+\definecolor{Szero}{HTML}{F0435E}
+\definecolor{SzeroText}{HTML}{BE123C}
+\definecolor{Gauge}{HTML}{F59E0B}
+\definecolor{GaugeText}{HTML}{B45309}
+\colorlet{GaugeGray}{Gauge}
+\definecolor{ClassB}{HTML}{FF8A99}
+\definecolor{ClassA}{HTML}{FFD23F}
+% Logical operators (X-bar violet, Z-bar crimson), errors, ink
+\definecolor{LogicalZ}{HTML}{E11D48}
+\definecolor{LogicalGold}{HTML}{7C3AED}
+\definecolor{ErrRed}{HTML}{1C1917}
+\definecolor{InkDark}{HTML}{292524}
+\definecolor{InkSoft}{HTML}{57534E}
+% Labels drawn on top of colored cells
+\colorlet{CellText}{InkDark}
+% Noise channels
+\definecolor{ErrFlip}{HTML}{EF4444}
+\definecolor{Idle}{HTML}{EC4899}
+\definecolor{TwoQ}{HTML}{7C3AED}
+% Protocol steps
+\definecolor{StepPrep}{HTML}{F97316}
+\definecolor{StepMeas}{HTML}{D946EF}
+\definecolor{StepDec}{HTML}{7C3AED}
+\definecolor{StepRec}{HTML}{DB2777}
+\tikzset{
+  qb/.style={circle, draw=InkDark, line width=0.6pt, fill=white,
+             minimum size=4.2mm, inner sep=0pt, font=\scriptsize},
+  qbsmall/.style={circle, draw=InkDark, line width=0.5pt, fill=white,
+             minimum size=2.6mm, inner sep=0pt},
+  hexedge/.style={line width=0.65pt, draw=InkSoft},
+  linkedge/.style={line width=1.6pt, draw=InkDark},
+  bndedge/.style={line width=0.65pt, draw=InkSoft, densely dashed},
+  plabel/.style={font=\scriptsize\bfseries, inner sep=1pt},
+  panel/.style={font=\small\bfseries, anchor=north west},
+}

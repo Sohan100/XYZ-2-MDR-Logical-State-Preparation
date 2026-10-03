@@ -29,7 +29,24 @@ from .preparation import (
     build_preparation_plan,
 )
 
-SIM_SPEC_VERSION = 4
+SIM_SPEC_VERSION = 6
+
+
+def normalize_decoder_config(
+    decoder_config: Dict[str, Any] | None = None,
+    decoder_mode: str = "toggle_frame",
+) -> Dict[str, Any]:
+    """
+    Return a deterministic decoder configuration dictionary.
+    """
+    config = dict(decoder_config or {})
+    if "max_bond_dimension" in config and config["max_bond_dimension"] is not None:
+        config["max_bond_dimension"] = int(config["max_bond_dimension"])
+    if decoder_mode == "mps_mld" and config.get("max_bond_dimension") is None:
+        config["max_bond_dimension"] = 4096
+    if decoder_mode != "mps_mld":
+        config.pop("max_bond_dimension", None)
+    return config
 
 
 def code_family_subdir(
@@ -387,6 +404,8 @@ def run_noise_sweep(
     code_family: str = "xyz2",
     prep_mode: str = PREP_MODE_FULL_MDR,
     ancillas: int | None = None,
+    decoder_mode: str = "toggle_frame",
+    decoder_config: Dict[str, Any] | None = None,
 ) -> MdrNoiseSweep:
     """
     Create and execute a configured `MdrNoiseSweep`.
@@ -444,6 +463,11 @@ def run_noise_sweep(
         round_list=rounds,
         shots=shots,
         num_replicates=num_replicates,
+        decoder_mode=decoder_mode,
+        decoder_config=normalize_decoder_config(
+            decoder_config,
+            decoder_mode=decoder_mode,
+        ),
         save_data_filename=save_csv,
     )
 
@@ -461,6 +485,8 @@ def build_simulation_spec(
     code_family: str = "xyz2",
     prep_mode: str = PREP_MODE_FULL_MDR,
     ancillas: int = 1,
+    decoder_mode: str = "toggle_frame",
+    decoder_config: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     """
     Build a canonical simulation specification used for caching.
@@ -504,6 +530,11 @@ def build_simulation_spec(
         "correction_mode": str(correction_mode),
         "prep_mode": str(prep_mode),
         "ancillas": int(ancillas),
+        "decoder_mode": str(decoder_mode),
+        "decoder_config": normalize_decoder_config(
+            decoder_config,
+            decoder_mode=decoder_mode,
+        ),
     }
     return spec
 
@@ -558,10 +589,19 @@ def simulation_results_path(
     p_spam = float(spec["p_spam"])
     ancillas = int(spec.get("ancillas", 1))
     prep_mode = str(spec.get("prep_mode", PREP_MODE_FULL_MDR))
+    decoder_mode = str(spec.get("decoder_mode", "toggle_frame"))
+    decoder_config = normalize_decoder_config(
+        spec.get("decoder_config", {}),
+        decoder_mode=decoder_mode,
+    )
+    chi = decoder_config.get("max_bond_dimension")
+    decoder_tag = decoder_mode
+    if chi is not None:
+        decoder_tag += f"_chi{chi}"
     p_spam_tag = f"{p_spam:.3e}".replace("+", "")
     filename = (
         f"results_{code_family}_{noise_model}_d{distance}_"
-        f"{prep_mode}_anc{ancillas}_pspam{p_spam_tag}_"
+        f"{prep_mode}_{decoder_tag}_anc{ancillas}_pspam{p_spam_tag}_"
         f"shots{shots}_reps{reps}_spec-{spec_hash}.csv"
     )
     return code_family_subdir(results_dir, code_family) / filename
@@ -600,6 +640,8 @@ def run_noise_sweep_with_cache(
     code_family: str = "xyz2",
     prep_mode: str = PREP_MODE_FULL_MDR,
     ancillas: int | None = None,
+    decoder_mode: str = "toggle_frame",
+    decoder_config: Dict[str, Any] | None = None,
 ) -> Tuple[MdrNoiseSweep, Path, bool]:
     """
     Run or load a simulation based on an exact parameter specification.
@@ -649,6 +691,11 @@ def run_noise_sweep_with_cache(
         code_family=code_family,
         prep_mode=prep_mode,
         ancillas=resolved_ancillas,
+        decoder_mode=decoder_mode,
+        decoder_config=normalize_decoder_config(
+            decoder_config,
+            decoder_mode=decoder_mode,
+        ),
     )
     csv_path = simulation_results_path(results_dir=results_dir, spec=spec)
     spec_path = simulation_spec_path(csv_path)
@@ -680,6 +727,11 @@ def run_noise_sweep_with_cache(
         code_family=code_family,
         prep_mode=prep_mode,
         ancillas=resolved_ancillas,
+        decoder_mode=decoder_mode,
+        decoder_config=normalize_decoder_config(
+            decoder_config,
+            decoder_mode=decoder_mode,
+        ),
     )
     spec_path.parent.mkdir(parents=True, exist_ok=True)
     spec_path.write_text(json.dumps(spec, indent=2), encoding="utf-8")

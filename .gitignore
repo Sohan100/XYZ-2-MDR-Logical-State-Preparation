@@ -39,6 +39,7 @@ data/analysis/**
 data/plots/**
 data/simulation_results/**
 data/tables/**
+data/ft_mdr/**
 !data/.gitkeep
 !data/analysis/.gitkeep
 !data/tables/.gitkeep
@@ -51,3 +52,14 @@ stim_xyz2_export.py.py
 /legacy/*
 !/legacy/
 !/legacy/Stim XYZ2 code.ipynb
+
+# Paper build output
+paper/build/
+
+# Threshold campaign: raw per-chunk counts, task list, Slurm logs, environment
+data/campaign/
+logs/
+.venv/
+
+# Files delivered by Claude in the desktop app
+Claude outputs/

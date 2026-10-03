@@ -1,0 +1,16 @@
+protocol,noise,p,d,rounds,init,final,detectors,decoder,shots,errors,p_L,stderr,seconds
+ft_mdr,pure_z,0.012,3,1,frame,frame,s0,pymatching,20000,1340,0.067,0.0017679225096140386,0.0
+ft_mdr,pure_z,0.012,5,1,frame,frame,s0,pymatching,20000,953,0.04765,0.001506311347298426,0.1
+ft_mdr,pure_z,0.012,7,1,frame,frame,s0,pymatching,20000,768,0.0384,0.0013587759197159772,0.2
+ft_mdr,pure_z,0.008,3,1,frame,frame,s0,pymatching,20000,652,0.0326,0.0012557316592329748,0.0
+ft_mdr,pure_z,0.008,5,1,frame,frame,s0,pymatching,40000,623,0.015575,0.0006191207348934455,0.1
+ft_mdr,pure_z,0.008,7,1,frame,frame,s0,pymatching,80000,605,0.0075625,0.00030629455989598475,0.5
+ft_mdr,pure_z,0.006,3,1,frame,frame,s0,pymatching,40000,688,0.0172,0.000650079995077529,0.0
+ft_mdr,pure_z,0.006,5,1,frame,frame,s0,pymatching,100000,609,0.00609,0.0002460266631891755,0.2
+ft_mdr,pure_z,0.006,7,1,frame,frame,s0,pymatching,260000,532,0.002046153846153846,8.862121426419549e-05,1.3
+ft_mdr,pure_z,0.004,3,1,frame,frame,s0,pymatching,80000,633,0.0079125,0.0003132469541701483,0.0
+ft_mdr,pure_z,0.004,5,1,frame,frame,s0,pymatching,300000,502,0.0016733333333333333,7.462200946300157e-05,0.4
+ft_mdr,pure_z,0.004,7,1,frame,frame,s0,pymatching,1440000,501,0.0003479166666666667,1.554106613361038e-05,4.7
+ft_mdr,pure_z,0.002,3,1,frame,frame,s0,pymatching,300000,517,0.0017233333333333332,7.57267776407517e-05,0.1
+ft_mdr,pure_z,0.002,5,1,frame,frame,s0,pymatching,2000000,328,0.000164,9.054642566109388e-06,1.5
+ft_mdr,pure_z,0.002,7,1,frame,frame,s0,pymatching,2000000,32,1.6e-05,2.8284044972386816e-06,3.7

@@ -1,0 +1,163 @@
+\section{Implementation on Quantinuum hardware}
+\label{sec:hardware}
+
+\subsection{Circuits and resources}
+
+Quantinuum processors have all-to-all connectivity, mid-circuit measurement and reset, and conditional operations~\cite{moses2023,ransford2026}. The interleaved schedule of \autoref{sec:schedule} therefore needs no routing. Helios stores 98 $^{137}$Ba$^+$ ions and implements the native gates
+\begin{align}
+  R_{ZZ}(\theta)&=e^{-i\theta Z\otimes Z/2},\nonumber\\
+  U_{1q}(\theta,\phi)&=e^{-i\theta(\cos\phi\,X+\sin\phi\,Y)/2},
+  \label{eq:native}
+\end{align}
+together with $R_Z(\theta)=e^{-i\theta Z/2}$, which is applied in software and has no error~\cite{ransford2026}. Every controlled Pauli of the extraction circuit compiles to one native two-qubit gate,
+\begin{align}
+  \mathrm{C}Z&=e^{i\pi/4}\,\big[R_Z(\tfrac{\pi}{2})\otimes R_Z(\tfrac{\pi}{2})\big]\,R_{ZZ}(-\tfrac{\pi}{2}),\nonumber\\
+  \mathrm{C}P&=(I\otimes V_P)\,\mathrm{C}Z\,(I\otimes V_P^\dagger),
+  \label{eq:compile}
+\end{align}
+where the ancilla is the first qubit and $V_P$ is a single-qubit Clifford with $V_PZV_P^\dagger=P$, for example $V_X=H$. $V_P$ costs one $U_{1q}$ gate on the data qubit, up to software $R_Z$ rotations. \autoref{tab:resources} lists the resources per round.
+
+The $d=3$ protocol uses 18 data qubits and 17 ancillas, 35 qubits in total, and 54 two-qubit gates per round. It fits on H2 and on Helios. The $d=5$ protocol needs 50 data qubits and 49 ancillas, one more than the 98 qubits of Helios. The link ancillas finish after the second layer, while some boundary checks start in the third layer or later. We measure and reset four link ancillas after the second layer and reuse them for four boundary checks. This brings $d=5$ to 95 qubits with 170 two-qubit gates per round. The reuse adds one mid-circuit measurement step per round. In our simulations it changes neither the fault distance nor, within the statistical error, the logical error rate.
+
+The circuits are exported as OpenQASM~2.0 together with the annotated Stim circuit, which defines the detectors and the observable. The measurement record of each hardware shot is decoded with the same detector error model as in the simulations. Preparation and verification do not require real-time decoding, because the decoder only has to correct the final readout. When the state is used in a computation, the logical bit enters the Pauli frame. Matching takes about $7\,\mu$s and HCM about $30\,\mu$s per shot at $d=5$, which is short compared with the duration of an extraction round on trapped ions.
+
+\begin{table}[t]
+  \caption{Resources per extraction round. Two-qubit gates are native $ZZ$ gates. For $d=5$ on Helios, four ancillas are reused within each round.}
+  \label{tab:resources}
+  \begin{ruledtabular}
+  \begin{tabular}{lcccc}
+    & Data & Ancillas & Total & 2Q gates \\
+    \hline
+    $d=3$ & 18 & 17 & 35 & 54 \\
+    $d=5$ & 50 & 49 & 99 & 170 \\
+    $d=5$, reuse & 50 & 45 & 95 & 170 \\
+    $d=7$ & 98 & 97 & 195 & 350 \\
+  \end{tabular}
+  \end{ruledtabular}
+\end{table}
+
+\subsection{The Helios noise model}
+\label{sec:helios_model}
+
+The Helios data sheet quotes five typical error rates, averaged over all operation zones~\cite{helios_datasheet}, and Ref.~\cite{ransford2026} measures each of them independently. We convert them into Pauli channels as follows. Randomized benchmarking quotes an average infidelity $\epsilon$. A depolarizing channel on $n$ qubits with total Pauli error probability $p$ has
+\begin{equation}
+  \epsilon=\frac{2^n}{2^n+1}\,p,
+  \label{eq:infidelity}
+\end{equation}
+and a single Pauli flip with probability $p$ has $\epsilon=2p/3$. The Helios model consists of the following channels:
+\begin{enumerate}
+  \item \emph{Gates.} Every controlled Pauli is followed by $\mathcal{D}^{(2)}_{p_2}$ with $p_2=\tfrac{5}{4}\epsilon_2$ and by $\mathcal{D}_{p_1}$ on both qubits with $p_1=\tfrac{3}{2}\epsilon_1$, which accounts for the $U_{1q}$ gates of \autoref{eq:compile}.
+  \item \emph{Memory.} The data sheet quotes the memory error per qubit during an average depth-1 circuit, a layer in which every qubit takes part in at most one two-qubit gate. This error is dephasing from the transport and idle periods~\cite{ransford2026}. We apply $\mathcal{F}^{Z}_{p_{\rm mem}}$ with $p_{\rm mem}=\tfrac{3}{2}\epsilon_{\rm mem}$ to every qubit in every gate layer and to the data qubits in every measurement step.
+  \item \emph{Measurement crosstalk.} Scattered light from the measurement or reset of one ion can project or depolarize the other ions in the trap. The data sheet quotes this error as a global average over the trap~\cite{helios_datasheet}, with infidelity $\epsilon_{\rm xt}$ per spectator qubit and per measured qubit~\cite{ransford2026}. A step that measures and resets $k$ ancillas therefore applies $k$ such events to every data qubit, which compose to
+  \begin{equation}
+    \mathcal{D}_{p_{\rm xt}^{(k)}},\qquad p_{\rm xt}^{(k)}=\tfrac{3}{4}\Big[1-\big(1-\tfrac{4}{3}p_{\rm xt}\big)^{k}\Big],\qquad p_{\rm xt}=\tfrac{3}{2}\epsilon_{\rm xt}.
+    \label{eq:xtalk}
+  \end{equation}
+  \item \emph{Preparation and measurement.} The SPAM error $\epsilon_{\rm SPAM}$ is the probability of a wrong outcome and is split evenly into the flips $p_{\rm r}=p_{\rm m}=\epsilon_{\rm SPAM}/2$ of \autoref{eq:flips}.
+\end{enumerate}
+The H2 model uses the same channels with the rates of the H2 data sheet~\cite{h2_datasheet}. \autoref{tab:noise} summarizes the channels and \autoref{tab:qparams} the rates.
+
+We use the data sheets only to fix the ratios between the rates, in the same way as the SI1000 model fixes the ratios of a superconducting device~\cite{gidney2021honeycomb}. The single parameter is the two-qubit depolarizing probability $p=p_2$, and every other rate keeps its ratio to $p$ from \autoref{tab:qparams},
+\begin{align}
+  \text{Helios:}\quad &p_1=0.045\,p,\quad p_{\rm r}=p_{\rm m}=0.25\,p,\nonumber\\
+  &p_{\rm mem}=0.9\,p,\quad p_{\rm xt}=0.075\,p,\nonumber\\
+  \text{H2:}\quad &p_1=0.024\,p,\quad p_{\rm r}=p_{\rm m}=0.4\,p,\nonumber\\
+  &p_{\rm mem}=0.4\,p,\quad p_{\rm xt}=0.008\,p.
+  \label{eq:ionmodel}
+\end{align}
+The devices of the data sheets sit at $p_0=1.0\times10^{-3}$ for Helios and $p_0=1.9\times10^{-3}$ for H2. A value $p<p_0$ describes a device with the same error budget and smaller errors. The data sheet quotes maximum rates between $1.7$ and $14$ times the typical ones~\cite{helios_datasheet}, so the range $p\le3p_0$ of our scans covers the spread between operation zones and between days.
+
+We checked the model against two independent sources. First, every data-sheet rate agrees with its dedicated measurement on Helios~\cite{ransford2026} within the stated uncertainty or within $25\%$, and where they differ the data sheet is the more pessimistic value. Second, the noise model of Quantinuum's own Helios emulator~\cite{quantinuum_emulator} has the same structure. It applies faults after one- and two-qubit gates with probabilities $2.5\times10^{-5}$ and $8\times10^{-4}$, partly as spontaneous emission and partly as asymmetric depolarizing noise, dephasing that grows with the duration of transport and idling, and a crosstalk fault on every other qubit in the trap at each mid-circuit measurement and reset, with probability $5.5\times10^{-5}$ per measurement and $3.5\times10^{-6}$ per reset. The emulator therefore also scales the crosstalk on a data qubit with the number of measured ancillas. Our rates are between one and two times those of the emulator, because we convert infidelities into Pauli probabilities with \autoref{eq:infidelity}, whereas the emulator uses the infidelities as fault probabilities. The model omits the following effects. Leakage, $2.4(1)\times10^{-4}$ per two-qubit gate~\cite{ransford2026}, enters only through the gate infidelity. The readout error is asymmetric, with $p(1|0)=8.1\times10^{-4}$ and $p(0|1)=1.6\times10^{-4}$, and we use its average. The three ions next to a measured ion see a larger crosstalk of $2.1(1)\times10^{-4}$, which is part of the global average. Finally, we apply the full memory error of a depth-1 circuit on 98 qubits to every layer, although our layers contain fewer gates. These choices make the model slightly pessimistic.
+
+The rates translate into the following error per data qubit and round. At $d=5$ a data qubit takes part in $3.4$ controlled Pauli gates on average, which gives an error probability of about $2.9\times10^{-3}$. It sees seven memory steps, a $Z$ flip probability of $6.3\times10^{-3}$, and the crosstalk of $k=49$ measured ancillas, $p_{\rm xt}^{(49)}=3.7\times10^{-3}$ from \autoref{eq:xtalk}. The crosstalk grows linearly with the number of ancillas and hence with $d^2$, from $1.3\times10^{-3}$ at $d=3$ to $1.2\times10^{-2}$ at $d=9$, while the other contributions do not depend on $d$.
+
+\begin{table*}[t]
+  \caption{Error rates of the Quantinuum models and of the published data they are built from. The data-sheet values are typical average infidelities averaged over all operation zones, except the SPAM error, which is the probability of a wrong outcome. The measured Helios values come from randomized benchmarking and from dedicated SPAM, memory and crosstalk experiments~\cite{ransford2026}. The emulator values are fault probabilities of Quantinuum's emulators~\cite{quantinuum_emulator}. The model parameters follow from the conversions of \autoref{sec:helios_model} and are the values at the device point $p=p_0$ of \autoref{eq:ionmodel}.}
+  \label{tab:qparams}
+  \begin{ruledtabular}
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{lllll}
+    Error & Data sheet & Measured & Emulator & Model \\
+    \hline
+    \multicolumn{5}{l}{\emph{Helios}, data sheet version 1.2~\cite{helios_datasheet}} \\
+    Single-qubit gate & $\epsilon_1=3\times10^{-5}$ & $2.5(1)\times10^{-5}$ & $2.5\times10^{-5}$ & $p_1=4.5\times10^{-5}$ \\
+    Two-qubit gate & $\epsilon_2=8\times10^{-4}$ & $7.9(2)\times10^{-4}$ & $8\times10^{-4}$ & $p_2=1.0\times10^{-3}$ \\
+    SPAM & $\epsilon_{\rm SPAM}=5\times10^{-4}$ & $4.8(6)\times10^{-4}$ & $5\times10^{-4}$, reset & $p_{\rm r}=p_{\rm m}=2.5\times10^{-4}$ \\
+    Memory, depth-1 circuit & $\epsilon_{\rm mem}=6\times10^{-4}$ & $5(1)\times10^{-4}$ & dephasing & $p_{\rm mem}=9\times10^{-4}$ \\
+    Crosstalk per ancilla & $\epsilon_{\rm xt}=5\times10^{-5}$ & $4.8(1)\times10^{-5}$ & $5.9\times10^{-5}$ & $p_{\rm xt}=7.5\times10^{-5}$ \\
+    \hline
+    \multicolumn{5}{l}{\emph{H2}, data sheet version 2.00~\cite{h2_datasheet}} \\
+    Single-qubit gate & $\epsilon_1=3\times10^{-5}$ &  & $1.9\times10^{-5}$ & $p_1=4.5\times10^{-5}$ \\
+    Two-qubit gate & $\epsilon_2=1.5\times10^{-3}$ &  & $1.05\times10^{-3}$ & $p_2=1.9\times10^{-3}$ \\
+    SPAM & $\epsilon_{\rm SPAM}=1.5\times10^{-3}$ &  & $1.0\times10^{-3}$, readout & $p_{\rm r}=p_{\rm m}=7.5\times10^{-4}$ \\
+    Memory, depth-1 circuit & $\epsilon_{\rm mem}=5\times10^{-4}$ &  & dephasing & $p_{\rm mem}=7.5\times10^{-4}$ \\
+    Crosstalk per ancilla & $\epsilon_{\rm xt}=1\times10^{-5}$ &  & $6.6\times10^{-6}$ & $p_{\rm xt}=1.5\times10^{-5}$ \\
+  \end{tabular}
+  \end{ruledtabular}
+\end{table*}
+
+\subsection{Projected performance}
+
+\autoref{fig:quantinuum} and \autoref{tab:quantinuum} show the logical error rates. With one round and the data-sheet rates, HCM prepares $\plusL$ with $\pL=8.5\times10^{-4}$ at $d=3$ and $8.4\times10^{-5}$ at $d=5$, and the projection for $d=7$ is $1.4\times10^{-5}$. The $d=3$ value lies above the physical SPAM error of $5\times10^{-4}$, so a distance-3 preparation does not yet beat the preparation and measurement of a physical qubit. The $d=5$ value is six times below the SPAM error and ten times below the two-qubit infidelity, with 95 of the 98 qubits. With one round there are no gauge detectors, since a gauge outcome becomes a detector only in comparison with a previous round, so HCM reduces to correlated matching on $\Sz$ and agrees with MWPM within $50\%$.
+
+With $r=d$ rounds HCM gives $1.8\times10^{-3}$, $6.7\times10^{-4}$ and $4.2\times10^{-4}$ for $d=3$, $5$ and $7$, two to four times less than MWPM, but $d=9$ is no better than $d=7$ at $p=p_0$ [\autoref{fig:quantinuum}(b)]. At $p=p_0/2$ HCM still lowers the rate by a factor of five to seven per step in distance up to $d=7$. The curves of consecutive distances do not cross at one point. With MWPM the curves of $d=3$ and $5$ cross at $p=1.54(8)\times10^{-3}$, those of $d=5$ and $7$ at $1.10(2)\times10^{-3}$ and those of $d=7$ and $9$ at $0.81(2)\times10^{-3}$, below the operating point [\autoref{fig:quantinuum}(f)]. HCM moves the last two crossings to $1.38(2)\times10^{-3}$ and $0.95(5)\times10^{-3}$. The reason is the crosstalk of \autoref{eq:xtalk}, whose contribution per data qubit and round grows with $d^2$, so a threshold in $p$ does not exist for this model. Without the crosstalk the crossings stop moving, and the Helios model has a threshold of about $2.8\times10^{-3}$, almost three times its operating point. Larger codes on a device of this kind need less crosstalk per measured ion, or measurements that shield the spectators. The H2 model shows the effect. Its crosstalk per measured ancilla is five times smaller, its crossings drift only from $3.7\times10^{-3}$ to $3.3\times10^{-3}$, about twice its operating point, and its logical error rate keeps falling, to $1.7\times10^{-4}$ at $d=7$.
+
+The logical error rate grows linearly with the number of rounds [\autoref{fig:quantinuum}(c)]. A weighted linear fit from $r=1$ to $7$ gives an error per additional round of $4.8\times10^{-4}$, $1.4\times10^{-4}$ and $6.9\times10^{-5}$ for $d=3$, $5$ and $7$ with HCM, and $1.2\times10^{-3}$, $4.0\times10^{-4}$ and $2.1\times10^{-4}$ with MWPM. The intercepts agree with the one-round values, which are smaller than the error per additional round for the reason shown in \autoref{fig:slab}. For preparation alone a single round is the best choice.
+
+\autoref{tab:budget} shows which errors limit these numbers. At $d=3$ and $d=5$, removing the memory error lowers the logical error rate by a factor of six to ten, removing the gate errors by a factor of two to four, and removing the crosstalk by a factor of three to four at $d=5$ but only $1.2$ to $1.3$ at $d=3$. At $d=7$ with seven rounds the crosstalk becomes the largest contribution, and removing it lowers the logical error rate by a factor of 15. SPAM errors contribute $10\%$ to $15\%$. If the crosstalk acted once per reset step and once per measurement step instead of once per measured ancilla, as it would if all ancillas shared one pulse, the rate at $d=5$ would fall by a factor of three to four. For the circuits that fit on Helios, dephasing during transport and idling is thus the main target, and for larger codes the crosstalk. With the two-qubit error rates measured by cycle benchmarking~\cite{ransford2026}, which are dominated by $Z$-type errors, the logical error rates are up to $30\%$ lower than with depolarizing gate noise (\autoref{tab:quantinuum}).
+
+\begin{table*}[t]
+  \caption{Error budget of the Helios model at the device point $p=p_0$, decoded with HCM. Each row removes one component of the model. The last row applies the crosstalk once per reset step and once per measurement step instead of once per measured ancilla.}
+  \label{tab:budget}
+  \begin{ruledtabular}
+  \begin{tabular}{lccccc}
+    & \multicolumn{2}{c}{$r=1$} & \multicolumn{3}{c}{$r=d$} \\
+    \cmidrule(lr){2-3}\cmidrule(lr){4-6}
+    & $d=3$ & $d=5$ & $d=3$ & $d=5$ & $d=7$ \\
+    \hline
+    Full model & $8.3\times10^{-4}$ & $9.1\times10^{-5}$ & $1.6\times10^{-3}$ & $7.0\times10^{-4}$ & $4.6\times10^{-4}$ \\
+    No gate errors & $4.7\times10^{-4}$ & $3.4\times10^{-5}$ & $7.1\times10^{-4}$ & $1.6\times10^{-4}$ & $8.1\times10^{-5}$ \\
+    No memory errors & $9.5\times10^{-5}$ & $9.2\times10^{-6}$ & $2.8\times10^{-4}$ & $8.1\times10^{-5}$ & $4.8\times10^{-5}$ \\
+    No crosstalk & $6.3\times10^{-4}$ & $2.9\times10^{-5}$ & $1.3\times10^{-3}$ & $1.9\times10^{-4}$ & $3.1\times10^{-5}$ \\
+    No SPAM errors & $7.0\times10^{-4}$ & $7.9\times10^{-5}$ & $1.5\times10^{-3}$ & $6.5\times10^{-4}$ & $4.1\times10^{-4}$ \\
+    Crosstalk per step & $5.4\times10^{-4}$ & $3.3\times10^{-5}$ & $1.4\times10^{-3}$ & $1.9\times10^{-4}$ & $3.0\times10^{-5}$ \\
+  \end{tabular}
+  \end{ruledtabular}
+\end{table*}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{fig_quantinuum.pdf}
+  \caption{Logical error rate of $\plusL$ under the one-parameter Helios and H2 models of \autoref{eq:ionmodel} as a function of the two-qubit error rate $p$. The vertical dotted lines mark the operating points $p_0$ of the data sheets. (a,d)~One round, decoded with MWPM. The curves do not cross up to $p=3p_0$. (b,e)~$r=d$ rounds around the crossing points, decoded with MWPM (dashed, open markers) and HCM (solid). (c)~Logical error rate as a function of the number of rounds at $p=p_0$ for Helios. The horizontal dotted line is the physical SPAM error. (f)~Crossing points of consecutive distances for $r=d$ and MWPM, with and without the measurement crosstalk. The horizontal lines mark $p_0$. Helios holds the circuits up to $d=5$ and H2 up to $d=3$, and larger distances are projections for larger devices with the same rates.}
+  \label{fig:quantinuum}
+\end{figure*}
+
+\begin{table*}[t]
+  \caption{Logical error rate of $\plusL$ under the Quantinuum models at the device point $p=p_0$. Helios, CB uses the two-qubit Pauli error rates measured by cycle benchmarking~\cite{ransford2026} instead of depolarizing gate noise. The physical SPAM error is $5\times10^{-4}$ for Helios and $1.5\times10^{-3}$ for H2. Helios holds the protocol up to $d=5$ and H2 up to $d=3$.}
+  \label{tab:quantinuum}
+  \setlength{\tabcolsep}{4pt}
+  \begin{ruledtabular}
+  \begin{tabular}{llcccccc}
+    & & \multicolumn{3}{c}{$r=1$} & \multicolumn{3}{c}{$r=d$} \\
+    \cmidrule(lr){3-5}\cmidrule(lr){6-8}
+    Model & Decoder & $d=3$ & $d=5$ & $d=7$ & $d=3$ & $d=5$ & $d=7$ \\
+    \hline
+    Helios & HCM & $8.5\times10^{-4}$ & $8.4\times10^{-5}$ & $1.4\times10^{-5}$ & $1.8\times10^{-3}$ & $6.7\times10^{-4}$ & $4.2\times10^{-4}$ \\
+     & MWPM & $7.5\times10^{-4}$ & $9.0\times10^{-5}$ & $2.2\times10^{-5}$ & $3.1\times10^{-3}$ & $1.8\times10^{-3}$ & $1.6\times10^{-3}$ \\
+    Helios, CB & HCM & $6.5\times10^{-4}$ & $6.3\times10^{-5}$ & $1.3\times10^{-5}$ & $1.3\times10^{-3}$ & $4.6\times10^{-4}$ & $3.0\times10^{-4}$ \\
+     & MWPM & $6.3\times10^{-4}$ & $7.4\times10^{-5}$ & $1.6\times10^{-5}$ & $2.7\times10^{-3}$ & $1.4\times10^{-3}$ & $1.2\times10^{-3}$ \\
+    H2 & HCM & $8.9\times10^{-4}$ & $8.7\times10^{-5}$ & $8.0\times10^{-6}$ & $2.1\times10^{-3}$ & $5.5\times10^{-4}$ & $1.7\times10^{-4}$ \\
+     & MWPM & $8.9\times10^{-4}$ & $8.1\times10^{-5}$ & $7.2\times10^{-6}$ & $3.7\times10^{-3}$ & $1.5\times10^{-3}$ & $6.6\times10^{-4}$ \\
+  \end{tabular}
+  \end{ruledtabular}
+\end{table*}
+
+\subsection{Proposed experiment}
+
+We propose the following experiment on Helios:
+\begin{enumerate}
+  \item Prepare $\plusL$ with $d=3$ and with $d=5$ using $r=1,2,3$ rounds, and read out in the frame basis.
+  \item Decode every shot with the detector error model of the circuit and record the corrected value of $\Xb$.
+  \item Fit the logical error rate as a linear function of $r$. The slope is the logical error per round and the intercept is the error of preparation and readout.
+\end{enumerate}
+The model predicts $\pL=8.5\times10^{-4}$, $1.2\times10^{-3}$ and $1.8\times10^{-3}$ for $d=3$ and $r=1$, $2$ and $3$, and $8.4\times10^{-5}$, $2.2\times10^{-4}$ and $3.6\times10^{-4}$ for $d=5$. Measuring $8\times10^{-5}$ with a relative uncertainty of $20\%$ takes about $3\times10^{5}$ shots, and the $d=3$ values need ten times fewer. The slope tests the error per round, which in our model is dominated by memory and crosstalk, and the intercept tests the preparation itself. The $d=3$ experiment fits on H2 as well, where the model predicts $8.9\times10^{-4}$ for one round, below the H2 SPAM error of $1.5\times10^{-3}$.

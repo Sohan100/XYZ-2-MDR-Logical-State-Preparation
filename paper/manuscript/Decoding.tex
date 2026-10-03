@@ -1,0 +1,141 @@
+\section{Decoders}
+\label{sec:decoding}
+
+All decoders start from the detector error model of \autoref{sec:s0}. Fault $j$ has the prior probability $p_j$ and the log-likelihood ratio $\lambda_j=\ln[(1-p_j)/p_j]$, flips the detectors in the column $H_j$ and flips the observable if $L_j=1$. Given the detection events $\sigma$ of a shot, the most likely set of faults is
+\begin{equation}
+  \hat{x}=\arg\min_{x\,:\,Hx=\sigma}\ \sum_j\lambda_j x_j,\qquad \hat\ell=L\hat{x}\pmod 2 .
+  \label{eq:mle}
+\end{equation}
+The first six decoders approximate \autoref{eq:mle} in different ways, and the coset free-energy decoder of \autoref{sec:cfe} compares the probabilities of the two logical classes instead. In our protocol most faults flip $\Sz$ detectors and gauge detectors together. A $Z$ error on a qubit of an even block, for example, flips an even link and a class-B hexagon in $\Sz$ and also a class-A hexagon among the gauge generators. The baseline matching decoder discards the gauge half of this information, and the other decoders differ in how they use it. \autoref{fig:decoderzoo} illustrates each decoder and \autoref{tab:decoders} summarizes them.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{fig_decoder_zoo.pdf}
+  \caption{The decoders of this paper. In every panel the upper plane is the matching graph of the $\Sz$ detectors (coral circles) and the lower plane is the graph of the gauge detectors (sunflower squares), each drawn for a few detectors in space and time. Filled symbols are detection events. (a)~MWPM matches the $\Sz$ detection events with the weights of \autoref{eq:weights} and ignores the gauge level. (b)~Sequential BP runs belief propagation on the link detectors, and the fault posteriors $q_j$ set the probabilities of the $\Sz$ edges through \autoref{eq:posterior_edges}. (c)~Erasure passing matches the link detectors and erases the $\Sz$ edges of the faults with a matched link signature. (d)~Belief-matching runs belief propagation on the full detector error model. Each fault (diamond) connects detectors of both levels, and its posterior reweights the matching on $\Sz$. (e)~Hierarchical correlated matching matches both levels, raises the probability of every edge that shares a fault with a matched edge to the conditional probability of \autoref{eq:conditional} and matches again. (f)~Tesseract searches over sets of faults on the full detector error model and expands the cheapest partial solution first.}
+  \label{fig:decoderzoo}
+\end{figure*}
+
+\subsection{Matching on the frame-deterministic detectors}
+
+Stim decomposes every fault into graphlike components, each of which flips at most two $\Sz$ detectors~\cite{gidney2021stim}. These components are the edges $e$ of a matching graph, with a boundary vertex for components that flip a single detector. If the faults $j$ that contain edge $e$ act independently, the edge is flipped with probability
+\begin{equation}
+  p_e=\frac12\Big[1-\prod_{j\ni e}\left(1-2p_j\right)\Big],\qquad w_e=\ln\frac{1-p_e}{p_e},
+  \label{eq:weights}
+\end{equation}
+and \autoref{eq:mle} restricted to the $\Sz$ detectors becomes a minimum-weight perfect matching problem,
+\begin{equation}
+  E^\star=\arg\min_{E\,:\,\partial E=\sigma_0}\ \sum_{e\in E}w_e,\qquad \hat\ell=\bigoplus_{e\in E^\star}L_e .
+  \label{eq:mwpm}
+\end{equation}
+Here $\sigma_0$ is the set of $\Sz$ detection events, $\partial E$ is the set of vertices that meet an odd number of edges of $E$, and $L_e$ records whether edge $e$ flips the observable. We use the sparse blossom implementation in PyMatching~\cite{higgott2025sparse,higgott2022pymatching}. This decoder has the full fault distance of \autoref{sec:fd} and costs about $7\,\mu$s per shot at $d=5$ [\autoref{fig:decoderzoo}(a)].
+
+\subsection{Sequential decoding with soft information}
+\label{sec:seqbp}
+
+The sequential decoder of Srivastava \emph{et al.}~\cite{Sri2025} first decodes the $[[2,1,1]]$ link codes and then passes conditional error probabilities of the effective qubits to a decoder of the YZZY code. In a circuit the link syndromes are themselves noisy and are spread over many rounds, so we use a circuit-level analogue. We first run belief propagation (BP) on the part of the DEM that contains the link detectors, both the even links in $\Sz$ and the odd links among the gauge detectors~\cite{roffe2020}. BP passes messages between faults $j$ and detectors $i$ on the Tanner graph of $H$,
+\begin{align}
+  \mu_{j\to i}&=\lambda_j+\sum_{i'\in N(j)\setminus i}\nu_{i'\to j},\label{eq:bp_v}\\
+  \nu_{i\to j}&=(-1)^{\sigma_i}\,2\,\mathrm{artanh}\!\prod_{j'\in N(i)\setminus j}\tanh\frac{\mu_{j'\to i}}{2},\label{eq:bp_c}
+\end{align}
+where $N(\cdot)$ denotes the neighbors in the Tanner graph. After 30 iterations of the product-sum rule the posterior log-likelihood ratio of fault $j$ is $\Lambda_j=\lambda_j+\sum_{i\in N(j)}\nu_{i\to j}$, and its posterior probability is $q_j=1/(1+e^{\Lambda_j})$. We convert these posteriors into probabilities of the $\Sz$ edges,
+\begin{equation}
+  p_e=1-\prod_{j\,:\,e\in j}\left(1-q_j\right),
+  \label{eq:posterior_edges}
+\end{equation}
+where the product runs over the faults whose decomposition contains $e$, and we match on $\Sz$ with the weights $w_e$ of these per-shot probabilities [\autoref{fig:decoderzoo}(b)]. We call this decoder sequential BP.
+
+\subsection{Erasure passing}
+
+A hard-decision version of the same idea passes erasures from the lower level to the upper level [\autoref{fig:decoderzoo}(c)]. We match the link detection events on their own graph. Every fault whose link signature equals a matched link edge is marked, and all $\Sz$ edges of the marked faults receive
+\begin{equation}
+  p_e=\tfrac12,\qquad w_e=0 .
+  \label{eq:erasure}
+\end{equation}
+Matching on $\Sz$ then treats these edges as erased, since a path through them costs nothing~\cite{stace2009}. This decoder uses the same information as sequential BP but replaces probabilities by flags.
+
+\subsection{Belief-matching}
+
+Belief-matching runs BP with \autoref{eq:bp_v} and \autoref{eq:bp_c} on the full DEM, with every $\Sz$ and gauge detector, and reweights the matching graph with \autoref{eq:posterior_edges}~\cite{higgott2023}. A fault that flips detectors of both levels is a single variable node of the Tanner graph [\autoref{fig:decoderzoo}(d)], so BP propagates the gauge syndrome to the $\Sz$ edges directly. It is the soft-information decoder with the most complete input.
+
+\subsection{Hierarchical correlated matching}
+\label{sec:hcm}
+
+Our decoder keeps the two-level structure but uses matching at both levels (\autoref{fig:decoder}). The upper level is the $\Sz$ graph, which decides the logical outcome. The lower level is the graph of the gauge detectors, which contains the odd links, the class-A hexagons and the class-A boundary checks. We build a DEM in which each fault is split into an upper part and a lower part as follows:
+\begin{enumerate}
+  \item The upper part is the set of graphlike $\Sz$ components of the fault, with the observable, as in the matching decoder.
+  \item The lower part is the set of gauge detectors that the fault flips, decomposed into edges of the lower graph. Faults whose lower part cannot be decomposed keep only their upper part.
+  \item The two parts are joined into one correlated error mechanism with the probability of the fault.
+\end{enumerate}
+We decode this model with the two-pass correlated matching of PyMatching~\cite{fowler2013,higgott2025sparse}. The first pass solves \autoref{eq:mwpm} on both levels with the prior weights. For every edge $e$ in the first solution and every edge $e'$ that occurs together with $e$ in some fault, the second pass replaces the weight of $e'$ by that of the conditional probability
+\begin{equation}
+  p(e'\,|\,e)=\frac{\Pr[e\text{ and }e'\text{ flipped by one fault}]}{\Pr[e\text{ flipped}]},
+  \label{eq:conditional}
+\end{equation}
+and then matches again [\autoref{fig:decoderzoo}(e)]. A matched lower edge thus tells the upper level which of its edges are likely, which is the role of the link syndromes in sequential decoding. Unlike sequential decoding, the information flows in both directions and both levels are solved by matching.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.8\textwidth]{fig_decoder.pdf}
+  \caption{Hierarchical correlated matching. (a)~The upper level is the matching graph of the $\Sz$ detectors and the lower level the graph of the gauge detectors. A single fault (star) flips an edge $e_U$ of the upper graph and an edge $e_L$ of the lower graph, so the two levels are correlated. (b)~Two-pass correlated matching. The first pass matches both levels with prior weights. The second pass raises the probability of every edge that shares a fault with a matched edge to the conditional probability of \autoref{eq:conditional}, matches again and reads the prediction for $\Xb$ from the upper level.}
+  \label{fig:decoder}
+\end{figure*}
+
+We also consider a variant whose lower level contains only the odd-link detectors. It isolates the contribution of the $[[2,1,1]]$ link codes. We call the full decoder hierarchical correlated matching (HCM) and the variant HCM with links.
+
+\subsection{Tesseract}
+
+As a reference we use Tesseract, a search-based decoder that solves \autoref{eq:mle} on the full DEM, with all detectors, by an A$^\star$ search over sets of faults~\cite{beni2025}. The search expands the partial solution $F$ with the lowest cost $\sum_{j\in F}\lambda_j$ plus a lower bound for the detection events that $F$ leaves unexplained [\autoref{fig:decoderzoo}(f)]. We run it with a detector beam of 20 and beam climbing. It is a near-optimal reference at small distances but is four orders of magnitude slower than matching here.
+
+\subsection{Coset free-energy decoding}
+\label{sec:cfe}
+
+Every decoder above, Tesseract included, approximates the most likely error of \autoref{eq:mle}. The prediction, however, depends only on the logical class of the error. The optimal decoder compares the total probabilities of the two classes~\cite{dennis2002,bravyi2014},
+\begin{equation}
+  Z_\ell=\sum_{x\,:\,Hx=\sigma,\ Lx=\ell}\ \prod_j p_j^{x_j}(1-p_j)^{1-x_j},
+  \label{eq:coset}
+\end{equation}
+and returns $\hat\ell=\arg\max_{\ell}Z_\ell$. The most likely error can lie in the less likely class if the other class contains many more errors of similar weight. Near threshold logical failures are long chains, and the number of such chains matters as much as their weight. We introduce the coset free-energy (CFE) decoder, which estimates the free energies $F_\ell=-\ln Z_\ell$ in three steps (\autoref{fig:cfe}).
+
+\emph{Two-class search.} We append the observable row $L$ to $H$ and run BP followed by ordered-statistics decoding (BP-OSD)~\cite{panteleev2021,roffe2020} once with the target $(\sigma,0)$ and once with $(\sigma,1)$. Each run returns a low-weight error $x_\ell$ with $Hx_\ell=\sigma$ and $Lx_\ell=\ell$. We use 30 iterations of product-sum BP and the combination sweep of order 10. A second pair of runs starts from per-shot priors in which every fault on the HCM solution has probability $0.3$, which gives a second candidate in each class.
+
+\emph{Local descent.} A degeneracy move is a set $g$ of faults with $\sum_{j\in g}H_j=0$ and $\sum_{j\in g}L_j=0$ modulo 2, so that $x\oplus g$ has the same syndrome and the same class as $x$. We use all moves of three faults, in which one fault is the sum of two others, such as a $Y$ error and its $X$ and $Z$ parts, and all moves of four faults, in which two pairs of adjacent faults flip the same detectors, such as the two paths around a square of the decoding graph. At $d=5$ there are $1.9\times10^{5}$ such moves. A move changes the weight $w(x)=\sum_j\lambda_jx_j$ by
+\begin{equation}
+  \Delta w_g(x)=\sum_{j\in g\setminus x}\lambda_j-\sum_{j\in g\cap x}\lambda_j ,
+  \label{eq:dw}
+\end{equation}
+and we apply the move with the most negative $\Delta w_g$ until no move lowers the weight.
+
+\emph{Free energy.} If the moves that touch $x_\ell$ acted independently, the class would contain $x_\ell\oplus\bigoplus_{g\in G}g$ for every subset $G$ of them, and
+\begin{equation}
+  F_\ell\approx w(x_\ell)-\kappa\sum_{g\,:\,g\cap x_\ell\neq\emptyset}\ln\!\left(1+e^{-\Delta w_g(x_\ell)}\right)
+  \label{eq:cfe}
+\end{equation}
+with $\kappa=1$. Moves that share faults are not independent, and the sum then counts some errors more than once. A single factor $\kappa<1$ corrects for this on average. We use $\kappa=1/2$ for all noise models. For each class the decoder keeps the candidate with the smaller $F_\ell$ and returns the class with the smaller free energy. With $\kappa=0$ it returns the class of the lighter candidate, which is the most-likely-error rule of \autoref{eq:mle} with a two-class search.
+
+The idea of counting equivalent errors is not new. Multi-path summation adds the number of shortest paths to the matching weights~\cite{criger2018}, and Markov chain Monte Carlo samples the classes directly~\cite{hutter2014}. The CFE decoder works on the full circuit-level DEM, including hyperedges, and needs neither a planar graph nor sampling. Its cost is dominated by the four BP-OSD runs and by the local descent. At $d=5$ it takes $0.23$\,s per shot in our Python implementation, compared with $0.14$\,s for Tesseract (\autoref{tab:decoders}). The guided pair matters only when the two classes are close. If it runs only when the free energies of the first pair differ by less than 6, the number of failures changes by at most $2\%$ in our samples and the cost halves.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{fig_cfe.pdf}
+  \caption{The coset free-energy decoder. (a)~BP-OSD with the observable appended to the check matrix finds a low-weight error in each logical class, here $E_0$ (coral), which pairs the two detection events, and $E_1$ (violet, dashed), which connects them to opposite boundaries. (b)~Degeneracy moves keep the syndrome and the class. A three-fault move replaces a hyperedge $j$ by two edges $a$ and $b$ that flip the same detectors. A four-fault move exchanges the two paths around a square. Greedy moves lower the weight of each candidate. (c)~The free energy subtracts the entropy of the moves around each candidate, \autoref{eq:cfe}. The decoder can then choose the class with the heavier candidate if that class contains many more errors of similar weight.}
+  \label{fig:cfe}
+\end{figure*}
+
+\begin{table}[t]
+  \caption{Decoders and the detectors they use. The decoding time per shot is the CPU time at $d=5$, $r=5$ under SD6 noise with $p=4\times10^{-3}$ on one core. The BP-based decoders and erasure passing rebuild the matching graph for every shot in Python, so their times are upper bounds.}
+  \label{tab:decoders}
+  \begin{ruledtabular}
+  \begin{tabular}{lll}
+    Decoder & Detectors & Time per shot \\
+    \hline
+    MWPM & $\Sz$ & $7\,\mu$s \\
+    Sequential BP & links $\to$ $\Sz$ & $7.8$\,ms \\
+    Erasure passing & links $\to$ $\Sz$ & $1.0$\,ms \\
+    Belief-matching & all $\to$ $\Sz$ & $7.6$\,ms \\
+    HCM with links & $\Sz$ $\leftrightarrow$ odd links & $25\,\mu$s \\
+    HCM & $\Sz$ $\leftrightarrow$ gauge & $32\,\mu$s \\
+    Tesseract & all & $0.14$\,s \\
+    CFE & all & $0.23$\,s \\
+  \end{tabular}
+  \end{ruledtabular}
+\end{table}

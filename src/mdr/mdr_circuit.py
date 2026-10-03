@@ -53,6 +53,26 @@ class MDRCircuit:
     # ─────────────────────────────────────────────────────────────────────
     # construction
     # ─────────────────────────────────────────────────────────────────────
+    PAULI_CHANNEL_PROFILE = "pauli_channels"
+    SI1000_PROFILE = "si1000"
+    TWO_QUBIT_GATE_NAMES = {"CX", "CY", "CZ"}
+    ONE_QUBIT_GATE_NAMES = {
+        "C_XYZ",
+        "C_ZYX",
+        "H",
+        "H_XY",
+        "H_YZ",
+        "S",
+        "S_DAG",
+        "SQRT_X",
+        "SQRT_X_DAG",
+        "SQRT_Y",
+        "SQRT_Y_DAG",
+        "X",
+        "Y",
+        "Z",
+    }
+
     def __init__(
         self,
         stabilizers: List[str],
@@ -70,6 +90,8 @@ class MDRCircuit:
         recovery_mode: str = "each_round",
         correction_mode: str = "physical",
         num_qubits: int | None = None,
+        noise_profile: str = PAULI_CHANNEL_PROFILE,
+        si1000_p: float = 0.0,
     ) -> None:
         """
         Initialize the MDRCircuit object with user-specified or default
@@ -118,6 +140,18 @@ class MDRCircuit:
             raise ValueError(
                 "correction_mode must be 'physical' or 'pauli_frame'."
             )
+        if noise_profile not in {
+            self.PAULI_CHANNEL_PROFILE,
+            self.SI1000_PROFILE,
+        }:
+            raise ValueError(
+                "noise_profile must be 'pauli_channels' or 'si1000'."
+            )
+        if si1000_p < 0 or si1000_p > 0.2:
+            raise ValueError(
+                "si1000_p must be in [0, 0.2]; the SI1000 measurement "
+                "result channel has probability 5p."
+            )
         if num_qubits is not None and num_qubits < 1:
             raise ValueError("num_qubits must be positive when provided.")
         max_referenced = self._max_referenced_qubit(stabilizers, toggles)
@@ -144,6 +178,8 @@ class MDRCircuit:
         self.psi_circuit = psi_circuit
         self.recovery_mode = recovery_mode
         self.correction_mode = correction_mode
+        self.noise_profile = noise_profile
+        self.si1000_p = float(si1000_p)
 
     @staticmethod
     def _max_referenced_qubit(
@@ -159,6 +195,180 @@ class MDRCircuit:
                 if term and term != "I":
                     max_idx = max(max_idx, int(term[1:]))
         return max_idx
+
+    @property
+    def uses_si1000(self) -> bool:
+        """
+        Return whether this circuit uses the SI1000 rate assignment.
+        """
+        return self.noise_profile == self.SI1000_PROFILE
+
+    def _insert_qubit_depolarizing_1(
+        self,
+        circ: stim.Circuit,
+        tgts: List[int],
+        probability: float,
+    ) -> None:
+        """
+        Insert the q=2 specialization of D_1^(q)(probability).
+        """
+        if not tgts or probability == 0:
+            return
+        component = probability / 3.0
+        self._insert_pauli_channel(
+            circ,
+            tgts,
+            component,
+            component,
+            component,
+        )
+
+    def _insert_qubit_depolarizing_2(
+        self,
+        circ: stim.Circuit,
+        q_a: int,
+        q_d: int,
+        probability: float,
+    ) -> None:
+        """
+        Insert the q=2 specialization of D_2^(q)(probability).
+        """
+        if probability == 0:
+            return
+        self._insert_pauli_channel_2(
+            circ,
+            q_a,
+            q_d,
+            [probability / 15.0] * 15,
+        )
+
+    def _insert_basis_flip_error(
+        self,
+        circ: stim.Circuit,
+        tgts: List[int],
+        gate_name: str,
+        probability: float,
+    ) -> None:
+        """
+        Insert a Pauli that flips the reported measurement basis.
+        """
+        if not tgts or probability == 0:
+            return
+        gate = gate_name.upper()
+        if gate in {"M", "MZ", "MY"}:
+            self._insert_pauli_channel(circ, tgts, probability, 0.0, 0.0)
+            return
+        if gate == "MX":
+            self._insert_pauli_channel(circ, tgts, 0.0, 0.0, probability)
+            return
+        raise ValueError(f"Unsupported measurement gate for SI1000: {gate}")
+
+    def _insert_si1000_measurement_noise(
+        self,
+        circ: stim.Circuit,
+        gate_name: str,
+        tgts: List[int],
+    ) -> None:
+        """
+        Insert D1(p) followed by the basis-dependent MERR(5p) channel.
+        """
+        self._insert_qubit_depolarizing_1(circ, tgts, self.si1000_p)
+        self._insert_basis_flip_error(
+            circ,
+            tgts,
+            gate_name,
+            5.0 * self.si1000_p,
+        )
+
+    def insert_pre_measurement_noise(
+        self,
+        circ: stim.Circuit,
+        gate_name: str,
+        tgts: List[int],
+        *,
+        terminal: bool = False,
+    ) -> None:
+        """
+        Insert the configured measurement noise before an ideal measurement.
+        """
+        if terminal and self.uses_si1000:
+            return
+        if self.uses_si1000:
+            self._insert_si1000_measurement_noise(circ, gate_name, tgts)
+            return
+        if self.p_spam > 0:
+            self._insert_pauli_channel(circ, tgts, self.p_spam, 0.0, 0.0)
+
+    def add_reset_measure_idle_noise(
+        self,
+        circ: stim.Circuit,
+        idle_qs: List[int],
+    ) -> None:
+        """
+        Apply idle noise for qubits idle during a reset/measurement layer.
+        """
+        if self.uses_si1000:
+            self._insert_qubit_depolarizing_1(
+                circ,
+                idle_qs,
+                2.0 * self.si1000_p,
+            )
+            return
+        self.add_idle_noise(circ, idle_qs, self.p_x, self.p_y, self.p_z)
+
+    def _copy_with_si1000_gate_noise(
+        self,
+        source: stim.Circuit,
+    ) -> stim.Circuit:
+        """
+        Copy a preparation circuit and add SI1000 noise after supported gates.
+        """
+        noisy = stim.Circuit()
+        for instruction in source:
+            if not hasattr(instruction, "name"):
+                noisy.append(instruction)
+                continue
+            name = instruction.name
+            targets = instruction.targets_copy()
+            args = instruction.gate_args_copy()
+            qubits = [
+                target.qubit_value
+                for target in targets
+                if target.is_qubit_target
+            ]
+            if name in {"M", "MX", "MY", "MZ"}:
+                self._insert_si1000_measurement_noise(noisy, name, qubits)
+                noisy.append_operation(name, targets, args)
+                continue
+
+            noisy.append_operation(name, targets, args)
+            if name in {"R", "RX", "RY", "RZ"}:
+                self._insert_pauli_channel(
+                    noisy,
+                    qubits,
+                    2.0 * self.si1000_p,
+                    0.0,
+                    0.0,
+                )
+                continue
+            if name in self.TWO_QUBIT_GATE_NAMES:
+                for offset in range(0, len(qubits), 2):
+                    pair = qubits[offset : offset + 2]
+                    if len(pair) == 2:
+                        self._insert_qubit_depolarizing_2(
+                            noisy,
+                            pair[0],
+                            pair[1],
+                            self.si1000_p,
+                        )
+                continue
+            if name in self.ONE_QUBIT_GATE_NAMES:
+                self._insert_qubit_depolarizing_1(
+                    noisy,
+                    qubits,
+                    self.si1000_p / 10.0,
+                )
+        return noisy
 
     # ─────────────────────────────────────────────────────────────────────
     # noise primitives
@@ -235,6 +445,13 @@ class MDRCircuit:
         error for each idle qubit. p_y: Probability of Y error for each idle
         qubit. p_z: Probability of Z error for each idle qubit.
         """
+        if self.uses_si1000:
+            self._insert_qubit_depolarizing_1(
+                circ,
+                idle_qs,
+                self.si1000_p / 10.0,
+            )
+            return
         self._insert_pauli_channel(circ, idle_qs, p_x, p_y, p_z)
 
     # ─────────────────────────────────────────────────────────────────────
@@ -250,9 +467,23 @@ class MDRCircuit:
         stim.Circuit: Circuit that prepares the initial state for the protocol,
         as specified by psi_circuit.
         """
-        if self.psi_circuit is None:
-            return stim.Circuit()
-        return self.psi_circuit.copy()
+        if not self.uses_si1000:
+            if self.psi_circuit is None:
+                return stim.Circuit()
+            return self.psi_circuit.copy()
+
+        circ = stim.Circuit()
+        data_qubits = list(range(self.num_qubits))
+        self._insert_pauli_channel(
+            circ,
+            data_qubits,
+            2.0 * self.si1000_p,
+            0.0,
+            0.0,
+        )
+        if self.psi_circuit is not None:
+            circ += self._copy_with_si1000_gate_noise(self.psi_circuit)
+        return circ
 
     def _gate(self, circ: stim.Circuit, name: str, tgts: List[int]) -> None:
         """
@@ -268,15 +499,38 @@ class MDRCircuit:
         qubit indices the gate acts on.
         """
         circ.append_operation(name, tgts)
+        real_tgts = [q for q in tgts if isinstance(q, int)]
+        if not real_tgts:
+            return
+        gate_name = name.upper()
+        is_2q_gate = (
+            gate_name in self.TWO_QUBIT_GATE_NAMES and len(real_tgts) == 2
+        )
+
+        if self.uses_si1000:
+            if is_2q_gate:
+                q1, q2 = real_tgts
+                self._insert_qubit_depolarizing_2(
+                    circ,
+                    q1,
+                    q2,
+                    self.si1000_p,
+                )
+                return
+            for q in real_tgts:
+                self._insert_qubit_depolarizing_1(
+                    circ,
+                    [q],
+                    self.si1000_p / 10.0,
+                )
+            return
+
         no_1q_noise = self.g1_x == self.g1_y == self.g1_z == 0
         no_2q_noise = not any(self.gate_noise_2q)
         if no_1q_noise and no_2q_noise:
             return
 
-        real_tgts = [q for q in tgts if isinstance(q, int)]
-        if not real_tgts:
-            return
-        if len(real_tgts) > 2:
+        if not is_2q_gate:
             for q in real_tgts:
                 self._insert_pauli_channel(
                     circ,
@@ -285,15 +539,6 @@ class MDRCircuit:
                     self.g1_y,
                     self.g1_z,
                 )
-            return
-        if len(real_tgts) == 1:
-            self._insert_pauli_channel(
-                circ,
-                real_tgts,
-                self.g1_x,
-                self.g1_y,
-                self.g1_z,
-            )
             return
         q1, q2 = real_tgts
         self._insert_pauli_channel_2(circ, q1, q2, self.gate_noise_2q)
@@ -315,6 +560,23 @@ class MDRCircuit:
         Name of the gate ('R' for reset, 'M' for measurement). tgts: List of
         qubit indices the gate acts on.
         """
+        if self.uses_si1000:
+            if name == "R":
+                circ.append_operation(name, tgts)
+                self._insert_pauli_channel(
+                    circ,
+                    tgts,
+                    2.0 * self.si1000_p,
+                    0.0,
+                    0.0,
+                )
+                return
+            if name in {"M", "MX", "MY", "MZ"}:
+                self.insert_pre_measurement_noise(circ, name, tgts)
+                circ.append_operation(name, tgts)
+                return
+            circ.append_operation(name, tgts)
+            return
         if self.p_spam == 0:
             circ.append_operation(name, tgts)
             return
@@ -323,7 +585,7 @@ class MDRCircuit:
             self._insert_pauli_channel(circ, tgts, self.p_spam, 0.0, 0.0)
             return
         if name == "M":
-            self._insert_pauli_channel(circ, tgts, self.p_spam, 0.0, 0.0)
+            self.insert_pre_measurement_noise(circ, name, tgts)
             circ.append_operation(name, tgts)
             return
         circ.append_operation(name, tgts)
@@ -343,6 +605,48 @@ class MDRCircuit:
         for start in range(0, len(self.stabilizers), self.ancillas):
             stabs = self.stabilizers[start : start + self.ancillas]
             ancs = anc_ids[: len(stabs)]
+
+            if self.uses_si1000:
+                reset_idle = [q for q in all_qs if q not in set(ancs)]
+                self._spam_gate(circ, "R", ancs)
+                self.add_reset_measure_idle_noise(circ, reset_idle)
+                circ.append_operation("TICK")
+
+                self._gate(circ, "H", ancs)
+                self.add_idle_noise(
+                    circ,
+                    reset_idle,
+                    self.p_x,
+                    self.p_y,
+                    self.p_z,
+                )
+                circ.append_operation("TICK")
+
+                active = set(ancs)
+                for anc, stab in zip(ancs, stabs):
+                    for term in stab.split():
+                        pauli, data_q = term[0], int(term[1:])
+                        active.add(data_q)
+                        gate_name = {"X": "CX", "Y": "CY", "Z": "CZ"}[pauli]
+                        self._gate(circ, gate_name, [anc, data_q])
+                idle = [q for q in all_qs if q not in active]
+                self.add_idle_noise(circ, idle, self.p_x, self.p_y, self.p_z)
+                circ.append_operation("TICK")
+
+                self._gate(circ, "H", ancs)
+                self.add_idle_noise(
+                    circ,
+                    reset_idle,
+                    self.p_x,
+                    self.p_y,
+                    self.p_z,
+                )
+                circ.append_operation("TICK")
+
+                self._spam_gate(circ, "M", ancs)
+                self.add_reset_measure_idle_noise(circ, reset_idle)
+                circ.append_operation("TICK")
+                continue
 
             self._spam_gate(circ, "R", ancs)
             self._gate(circ, "H", ancs)
@@ -425,4 +729,86 @@ class MDRCircuit:
         total_qubits = self.num_qubits + self.ancillas
         all_qs = set(range(total_qubits))
         self._append_recovery_toggles(circ, all_qs=all_qs)
+        return circ
+
+    @staticmethod
+    def _measurement_ops_for_pauli(
+        pauli_specification: str,
+    ) -> List[tuple[str, int]]:
+        """
+        Convert a sparse Pauli string into Stim measurement operations.
+        """
+        gate_map = {"X": "MX", "Y": "MY", "Z": "MZ"}
+        ops: List[tuple[str, int]] = []
+        for term in pauli_specification.split():
+            if not term or term == "I":
+                continue
+            pauli = term[0].upper()
+            if pauli not in gate_map:
+                raise ValueError(f"Invalid Pauli letter: {pauli}")
+            ops.append((gate_map[pauli], int(term[1:])))
+        return ops
+
+    def build_detector_annotated_state_prep(
+        self,
+        *,
+        rounds: int,
+        final_observable_label: str,
+        final_observable_pauli: str,
+        include_psi: bool = True,
+    ) -> stim.Circuit:
+        """
+        Build a detector-annotated no-physical-recovery state-prep circuit.
+
+        The first active-check round is intentionally not compared against a
+        deterministic boundary. Active non-link checks in the link-logical-plus
+        protocol have random projection outcomes, so only temporal differences
+        between consecutive rounds are valid detector events.
+        """
+        if rounds < 0:
+            raise ValueError("rounds must be nonnegative.")
+        if final_observable_label != "Logical X":
+            raise ValueError(
+                "Only final_observable_label='Logical X' is currently "
+                "supported by the state-prep detector path."
+            )
+
+        circ = self.psi() if include_psi else stim.Circuit()
+        anc_ids = list(range(self.num_qubits, self.num_qubits + self.ancillas))
+        total_qubits = self.num_qubits + self.ancillas
+        all_qs = set(range(total_qubits))
+        checks_per_round = len(self.stabilizers)
+
+        for round_index in range(rounds):
+            self._append_syndrome_extraction(
+                circ,
+                all_qs=all_qs,
+                anc_ids=anc_ids,
+            )
+            if round_index == 0 or checks_per_round == 0:
+                continue
+            for check_index in range(checks_per_round):
+                current = stim.target_rec(-(checks_per_round - check_index))
+                previous = stim.target_rec(
+                    -(2 * checks_per_round - check_index)
+                )
+                circ.append_operation("DETECTOR", [current, previous])
+
+        measurement_ops = self._measurement_ops_for_pauli(
+            final_observable_pauli
+        )
+        for gate, qubit in measurement_ops:
+            self.insert_pre_measurement_noise(
+                circ,
+                gate,
+                [qubit],
+                terminal=True,
+            )
+            circ.append_operation(gate, [qubit])
+
+        obs_targets = [
+            stim.target_rec(-(len(measurement_ops) - index))
+            for index in range(len(measurement_ops))
+        ]
+        circ.append_operation("OBSERVABLE_INCLUDE", obs_targets, 0)
         return circ

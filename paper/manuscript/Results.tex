@@ -1,0 +1,263 @@
+\section{Circuit-level simulations}
+\label{sec:results}
+
+\subsection{Noise models}
+\label{sec:noise}
+
+We simulate all circuits with Stim~\cite{gidney2021stim} and estimate each logical error rate from up to $10^{5}$ shots, or until $10^{3}$ logical errors occur, unless stated otherwise. Every noise model attaches Pauli channels to the locations of the circuit (\autoref{fig:noise}). We use the single-qubit and two-qubit depolarizing channels
+\begin{align}
+  \mathcal{D}_p(\rho)&=(1-p)\,\rho+\frac{p}{3}\sum_{P\in\{X,Y,Z\}}P\rho P,\label{eq:dep1}\\
+  \mathcal{D}^{(2)}_p(\rho)&=(1-p)\,\rho+\frac{p}{15}\sum_{P\in\mathcal{P}_2\setminus\{II\}}P\rho P,\label{eq:dep2}
+\end{align}
+where $\mathcal{P}_2$ is the set of the 16 two-qubit Pauli operators, the general Pauli channel
+\begin{equation}
+  \mathcal{N}_{\mathbf{p}}(\rho)=\Big(1-\sum_{P\neq I}p_P\Big)\rho+\sum_{P\neq I}p_P\,P\rho P,
+  \label{eq:pauli}
+\end{equation}
+and the flip channel
+\begin{equation}
+  \mathcal{F}^{Q}_p(\rho)=(1-p)\,\rho+p\,Q\rho Q
+  \label{eq:flip}
+\end{equation}
+of a single Pauli operator $Q$.
+
+Preparation and measurement errors are flips in the basis of the operation. A preparation in the basis $b\in\{X,Y,Z\}$ is followed by $\mathcal{F}^{Q_b}_{p_{\rm r}}$ and a measurement in the basis $b$ is preceded by $\mathcal{F}^{Q_b}_{p_{\rm m}}$, where
+\begin{equation}
+  Q_X=Z,\qquad Q_Y=X,\qquad Q_Z=X
+  \label{eq:flips}
+\end{equation}
+anticommute with the prepared or measured Pauli [\autoref{fig:noise}(b)]. A flip turns a prepared eigenstate of $b$ into the orthogonal eigenstate and inverts the outcome of a measurement of $b$. A depolarizing channel before a measurement would instead put a third of its probability on the Pauli that commutes with the measured operator, which leaves the outcome unchanged. The ancillas are prepared in $\ket{+}$ and measured in the $X$ basis, so both of their flips are $Z$ errors. The data qubits are prepared and read out in their frame bases, so an even block receives $Z$ flips and an odd block $X$ flips. All simulations in this paper use these basis-dependent flips.
+
+Each round of extraction has six layers of controlled Pauli gates and two steps in which the ancillas are reset or measured. A noise model specifies the channel after every gate, on every qubit that idles in a gate layer, on the data qubits during the reset and measurement steps, and the flip probabilities $p_{\rm r}$ and $p_{\rm m}$ (\autoref{tab:noise}). The extraction circuit has no single-qubit gates, because every preparation and measurement is done directly in the $X$, $Y$ or $Z$ basis. We use the following models:
+\begin{enumerate}
+  \item \emph{SD6.} Standard depolarizing noise of strength $p$. Every controlled Pauli gate is followed by $\mathcal{D}^{(2)}_p$, every idle qubit suffers $\mathcal{D}_p$ in each layer and in each reset and measurement step, and $p_{\rm r}=p_{\rm m}=p$.
+  \item \emph{SI1000.} The superconducting-inspired model of Ref.~\cite{gidney2021honeycomb}. Gates are followed by $\mathcal{D}^{(2)}_p$, idle qubits in a gate layer suffer $\mathcal{D}_{p/10}$, data qubits suffer $\mathcal{D}_{2p}$ while the ancillas are reset or measured, and $p_{\rm r}=2p$, $p_{\rm m}=5p$.
+  \item \emph{Biased noise with bias $\eta$.} Every location has total error probability $p$. The single-qubit channel $\mathcal{N}_{\eta,p}$ and the two-qubit channel $\mathcal{N}^{(2)}_{\eta,p}$ are the Pauli channels of \autoref{eq:pauli} with
+  \begin{align}
+    p_X=p_Y&=\frac{p}{2(\eta+1)},\qquad p_Z=\frac{p\,\eta}{\eta+1},\label{eq:bias1}\\
+    p_{IZ}=p_{ZI}=p_{ZZ}&=\frac{p\,\eta}{3(\eta+1)},\label{eq:bias2}
+  \end{align}
+  and probability $p/[12(\eta+1)]$ for each of the other twelve two-qubit Pauli operators, so that $\eta=p_Z/(p_X+p_Y)$~\cite{tuckett2018}. Gates are followed by $\mathcal{N}^{(2)}_{\eta,p}$, idle qubits suffer $\mathcal{N}_{\eta,p}$, and $p_{\rm r}=p_{\rm m}=p$. We use $\eta=10$, $\eta=100$ and the limit $\eta\to\infty$ of pure $Z$ noise.
+  \item \emph{EM3.} The entangling-measurement model of Ref.~\cite{gidney2021honeycomb} for hardware whose native entangling operation is the measurement of a two-qubit Pauli product, as proposed for Majorana-based qubits~\cite{chao2020majorana}. The circuit contains no gates. Every pair measurement is followed, with probability $p$, by an element of $\{I,X,Y,Z\}^{\otimes2}\times\{\text{flip},\text{no flip}\}$ chosen uniformly, every qubit that is not used in a step suffers $\mathcal{D}_p$, and $p_{\rm r}=p_{\rm m}=p$. \autoref{sec:em3} gives the extraction circuit.
+  \item \emph{Quantinuum Helios and H2.} One-parameter models of the two trapped-ion processors, in which the two-qubit error rate $p$ sets the scale and the other rates keep the ratios of the data sheets. They are defined in \autoref{sec:helios_model} and used in \autoref{sec:hardware}.
+\end{enumerate}
+The biased models probe the regime in which the $XYZ^2$ code was expected to perform well~\cite{Sri2022}. Holding the total error fixed is important here. A model that removes Pauli components from a channel while keeping the probability of the remaining ones also lowers the total error, and the comparison then mixes the effect of the bias with that of a smaller error rate.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{fig_noise.pdf}
+  \caption{Noise channels in one round of extraction, shown for a link check $X_uX_l$. (a)~The data qubits are prepared in their frame bases $b_u$ and $b_l$ and the ancilla in $\ket{+}$, each followed by a preparation flip (red). Every layer of controlled Pauli gates is followed by a two-qubit channel on each gate pair (violet) and a single-qubit channel on every idle qubit (pink), here the depolarizing channels of SD6. The ancilla is measured in the $X$ basis after a $Z$ flip. At the end of the protocol the data qubits are read out in their frame bases after a flip. \autoref{tab:noise} lists the channels of every model. (b)~Preparation and measurement flips in the three bases, \autoref{eq:flips}. An error in an $X$-basis operation is a $Z$ error, and errors in $Y$- and $Z$-basis operations are $X$ errors.}
+  \label{fig:noise}
+\end{figure*}
+
+\begin{table*}[t]
+  \caption{Channels of the noise models. Each column is a location of the circuit, and each entry is the channel applied there, with the channels of \autoref{eq:dep1} to \autoref{eq:flips}. Preparation and measurement flips act in the basis $b$ of the operation. For Helios and H2 the rates are the multiples of $p$ in \autoref{eq:ionmodel}, the memory channel $\mathcal{F}^{Z}_{p_{\rm mem}}$ also acts on the qubits of every gate, and $k$ is the number of ancillas measured in the step. Under EM3 every operation is a pair measurement (MPP) or a single-qubit preparation or measurement, and $\mathcal{E}^{\rm MPP}_p$ is the error of a pair measurement defined in the text.}
+  \label{tab:noise}
+  \begin{ruledtabular}
+  \begin{tabular}{llllll}
+    Model & After each gate & Idle in gate layer & Data during reset and measurement & Preparation & Measurement \\
+    \hline
+    SD6 & $\mathcal{D}^{(2)}_{p}$ & $\mathcal{D}_{p}$ & $\mathcal{D}_{p}$ & $\mathcal{F}^{Q_b}_{p}$ & $\mathcal{F}^{Q_b}_{p}$ \\
+    SI1000 & $\mathcal{D}^{(2)}_{p}$ & $\mathcal{D}_{p/10}$ & $\mathcal{D}_{2p}$ & $\mathcal{F}^{Q_b}_{2p}$ & $\mathcal{F}^{Q_b}_{5p}$ \\
+    Biased $\eta$ & $\mathcal{N}^{(2)}_{\eta,p}$ & $\mathcal{N}_{\eta,p}$ & $\mathcal{N}_{\eta,p}$ & $\mathcal{F}^{Q_b}_{p}$ & $\mathcal{F}^{Q_b}_{p}$ \\
+    Helios, H2 & $\mathcal{D}^{(2)}_{p_2}$, $\mathcal{D}_{p_1}\otimes\mathcal{D}_{p_1}$ & $\mathcal{F}^{Z}_{p_{\rm mem}}$ & $\mathcal{D}_{p^{(k)}_{\rm xt}}$, $\mathcal{F}^{Z}_{p_{\rm mem}}$ & $\mathcal{F}^{Q_b}_{p_{\rm r}}$ & $\mathcal{F}^{Q_b}_{p_{\rm m}}$ \\
+    EM3 & $\mathcal{E}^{\rm MPP}_{p}$ & $\mathcal{D}_{p}$ & $\mathcal{D}_{p}$ & $\mathcal{F}^{Q_b}_{p}$ & $\mathcal{F}^{Q_b}_{p}$ \\
+  \end{tabular}
+  \end{ruledtabular}
+\end{table*}
+
+\subsection{Extraction with pair measurements}
+\label{sec:em3}
+
+On hardware with native pair measurements the links are single operations. Each link is measured by one pair measurement $X_uX_l$. A plaquette $P=\prod_q P_q$ of weight $w$ uses $w$ ancillas, which are prepared in $\ket{+}$ and joined into a cat state by $w-1$ pair measurements $Z_aZ_{a'}$ along a tree [\autoref{fig:em3}(a)]. Each ancilla $a_q$ is then measured jointly with its data qubit, $X_{a_q}P_q$, and read out in the $Z$ basis in the next step. Because $\prod_qX_{a_q}=+1$ on the cat state, the product of the $w$ coupling outcomes is the eigenvalue of $P$, while no smaller product of the $P_q$ is revealed, as in the cat-state extraction of Shor~\cite{shor1996}. A coupling $X_{a_q}P_q$ anticommutes with every other check $C$ that acts on $q$ with a different Pauli. After the readout, $C$ has changed sign by the $Z$ outcomes of the ancillas of $P$ on the qubits where $C$ and $P$ differ and by the parity of the cat between these ancillas, which is a product of tree outcomes. We include these signs in the detectors and in the observable. They are well defined only if two overlapping plaquettes couple to all their shared qubits in the same order. We therefore color the plaquettes with three colors, so that plaquettes of one color are disjoint, and couple them color by color. A round has four steps, one for the links and one for each color [\autoref{fig:em3}(b)]. Two banks of ancillas alternate between rounds, and the cat states of the next round are prepared while the current round couples to the data.
+
+A wrong outcome on a tree edge has the same effect on the signs as the plaquette operator applied to the qubits below that edge. Every block of the plaquette hangs from the center of the tree, so such a fault is equivalent to an error on one qubit or on the two qubits of one block, and the same holds for an error on an ancilla. A pair measurement on a link can also apply a two-qubit error to its block. The operator $\Yb$ contains both qubits of one block, so these faults lower the circuit-level fault distance from $d+1$ to $d$. We verified $d_f=d$ exactly with CP-SAT for $d=3$ and $5$. Under EM3 the error $\mathcal{E}^{\rm MPP}_p$ of a link or cat measurement keeps the flip of the outcome correlated with the Pauli error. We simulate it with an auxiliary qubit in $\ket{0}$ that is included in the measured product as $Z$ and carries the flip. For a coupling the same distribution is a uniform two-qubit Pauli error before the measurement, because the ancilla is read out right after it.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.92\textwidth]{fig_em3.pdf}
+  \caption{Extraction with pair measurements under the EM3 model. (a)~One hexagon. The two vertical links are measured directly by $X_uX_l$. Six ancillas, one per data qubit, form a cat state through pair measurements $Z_aZ_{a'}$ along a tree (violet) whose center is the ancilla of the top qubit. Each block hangs from the center as one edge or as a path of two edges. Each ancilla is then measured jointly with its data qubit, $X_aP_q$ (dashed), where $P_q$ is the Pauli of the hexagon on that qubit (colored labels). (b)~The steps of one round. The data qubits are coupled to the plaquettes of the three colors in turn. Bank $b$ couples in this round, and bank $b'$, read out at the start of the round, prepares the cat states of the next round.}
+  \label{fig:em3}
+\end{figure*}
+
+\subsection{Logical error rates below threshold}
+\label{sec:scaling}
+
+\autoref{fig:scaling} shows the logical error rate of the fault-tolerant protocol under SD6 noise. With a single round the logical error rate falls with distance over the whole range shown. At $p=10^{-3}$ we find $\pL=4.1\times10^{-4}$ and $1.9\times10^{-5}$ for $d=3$ and $5$, and about $10^{-6}$ for $d=7$. Between $p=10^{-3}$ and $2\times10^{-3}$ the rates scale as $p^{2.1}$ for $d=3$ and $p^{3.4}$ for $d=5$, close to the powers $2$ and $3$ that \autoref{eq:scaling} predicts for $d_f=d+1$. With $r=d$ rounds and MWPM the logical error rates at $p=10^{-3}$ are $1.3\times10^{-3}$, $2.5\times10^{-4}$, $4.9\times10^{-5}$ and $8\times10^{-6}$ for $d=3$ to $9$. HCM lowers them to $1.0\times10^{-3}$, $1.3\times10^{-4}$ and $1.8\times10^{-5}$ for $d=3$ to $7$.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{fig_scaling.pdf}
+  \caption{Logical error rate of $\plusL$ under SD6 noise. (a)~One round, decoded with MWPM. (b)~$r=d$ rounds, decoded with MWPM (dashed, open markers) and with hierarchical correlated matching (solid). The dotted line is $\pL=p$.}
+  \label{fig:scaling}
+\end{figure}
+
+\subsection{Threshold and the number of rounds}
+\label{sec:rounds_threshold}
+
+The protocol can stop after any number of rounds $r$. We determined the threshold of MWPM under SD6 noise for $r=1$ to $6$, $8$ and $10$ and for $r=d$, with every odd distance from $d=3$ to $19$. The code is defined for odd $d$, so $d=19$ is the largest distance below 20. We first sampled 16 values of $p$ between $2\times10^{-3}$ and $10^{-1}$ with up to $2\times10^{4}$ shots or $200$ logical errors per point, and then eight values of $p$ around the crossing points with up to $6\times10^{4}$ shots or $1500$ logical errors. \autoref{fig:rounds_curves} shows the data around each threshold. For every $r$ the curves of the nine distances cross in a narrow window of $p$, below which the logical error rate falls with $d$. Above the window every curve rises to $\pL=1/2$, the value at which the decoder output is uncorrelated with $\Xb$, and the curves do not cross again up to $p=10^{-1}$ (Appendix~\ref{app:fits}, \autoref{fig:rounds_full}).
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{fig_rounds_curves.pdf}
+  \caption{Logical error rate of $\plusL$ under SD6 noise with MWPM, for $r=1$ to $6$, $8$ and $10$ rounds and for $r=d$, with $d=3$ to $19$. Each panel shows the window $0.6\,\pth\le p\le1.4\,\pth$ around its threshold. The vertical line and band mark the threshold of \autoref{tab:rounds} and its uncertainty. \autoref{fig:rounds_full} shows the full sweep up to $p=10^{-1}$.}
+  \label{fig:rounds_curves}
+\end{figure*}
+
+Near the crossing we fit the data to the finite-size scaling form
+\begin{equation}
+  \pL = A + Bx + Cx^2,\qquad x=(p-\pth)\,d^{1/\nu},
+  \label{eq:fss}
+\end{equation}
+as in Ref.~\cite{wang2003}, using the distances $d=11$ to $19$. The uncertainty combines a parametric bootstrap with half the spread of fits that use other windows of $p$ and other sets of distances. \autoref{tab:rounds} and \autoref{fig:rounds_pth}(a) give the results. The threshold is $1.80(3)\%$ for one round and falls to $1.22(4)\%$ for two rounds, $0.83(1)\%$ for four and $0.61(1)\%$ for ten. For $r=d$ the crossing of the logical error rate per shot gives $0.435(3)\%$. In this family a larger code also runs more rounds, which moves the crossing down. We therefore also fit the logical error rate per round,
+\begin{equation}
+  \epsilon_L=\tfrac{1}{2}\Big[1-\left(1-2\pL\right)^{1/(r+1)}\Big],
+  \label{eq:per_round}
+\end{equation}
+which treats the $r+1$ layers of $\Sz$ detectors as independent chances for a logical error. Its crossing lies at $0.501(8)\%$. A preparation that is read out or consumed after a single round therefore tolerates about four times the physical error rate at which a preparation with $r=d$ rounds fails.
+
+\begin{table}[t]
+  \caption{Threshold of MWPM as a function of the number of rounds $r$ under SD6 noise, from the fit of \autoref{eq:fss} to $d=11$ to $19$. The uncertainty combines the bootstrap error with half the spread of fits with other windows and sets of distances. For $r=d$ the fit uses either the logical error rate per shot, $\pL$, or the logical error rate per round, $\epsilon_L$ of \autoref{eq:per_round}. The last column gives the exponent $\nu$ with its bootstrap error.}
+  \label{tab:rounds}
+  \begin{ruledtabular}
+  \begin{tabular}{lcc}
+    $r$ & $p_{\mathrm{th}}$ (\%) & $\nu$ \\
+    \hline
+    1 & $1.800(27)$ & $1.6(3)$ \\
+    2 & $1.217(42)$ & $2.2(5)$ \\
+    3 & $0.971(13)$ & $1.3(1)$ \\
+    4 & $0.830(12)$ & $1.3(2)$ \\
+    5 & $0.755(10)$ & $1.7(2)$ \\
+    6 & $0.710(9)$ & $1.7(2)$ \\
+    8 & $0.645(10)$ & $1.8(2)$ \\
+    10 & $0.615(11)$ & $1.9(4)$ \\
+    $d$, per shot & $0.435(3)$ & $1.1(1)$ \\
+    $d$, per round & $0.501(8)$ & $1.2(1)$ \\
+  \end{tabular}
+  \end{ruledtabular}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{fig_rounds_pth.pdf}
+  \caption{(a)~Threshold of MWPM under SD6 noise as a function of the number of rounds. The band for $r=d$ spans the crossings of the logical error rate per shot (dotted) and per round (dashed). (b)~Crossing points $p_c$ from fits to three consecutive distances, plotted against the middle distance, with bootstrap uncertainties. For $r=d$ the open symbols use the error rate per round of \autoref{eq:per_round}.}
+  \label{fig:rounds_pth}
+\end{figure}
+
+\autoref{fig:slab} explains this dependence. The $\Sz$ detectors fill a space-time box with $r+1$ layers in time. Both time boundaries are closed, because the initial state and the frame readout fix every element of $\Sz$, so an error chain can only end on the two space boundaries of the patch. A logical failure is a chain that connects these two boundaries. For fixed $r$ and growing $d$ the box becomes a thin slab, and every failing chain has to cross the full width of the patch inside it. A box of height $d+1$ contains many more chains of a given length, because they can also run diagonally in space-time. A thin slab therefore behaves like a two-dimensional matching problem whose effective error rate grows with $r$, and its threshold decreases toward that of the full space-time problem as $r$ grows.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{fig_slab.pdf}
+  \caption{Space-time picture of decoding on $\Sz$. The initial state and the frame readout fix every element of $\Sz$ (coral), so error chains can end only on the space boundaries of the patch (violet). A logical failure is a chain that connects the two space boundaries. (a)~With one round the chain has to cross the patch within a slab of two detector layers. (b)~With $r=d$ rounds it can also run diagonally in space-time, and there are many more such chains.}
+  \label{fig:slab}
+\end{figure}
+
+The same picture explains how the crossing points move with the distance. \autoref{fig:rounds_pth}(b) shows fits of \autoref{eq:fss} to three consecutive distances. For one round the crossing rises from $1.60\%$ for $d=3$, $5$ and $7$ to $1.83\%$ for $d=15$, $17$ and $19$, as the patch becomes wide compared with the slab. For $r=d$ the crossing of the per-shot error rate rises from $0.39\%$ to $0.43\%$, and that of the per-round error rate falls from $0.57\%$ to $0.50\%$. The two estimates approach each other from opposite sides, so the threshold of the full space-time problem lies between $0.435\%$ and $0.50\%$.
+
+For preparation, the threshold that matters is the one for the number of rounds that is actually used. Each round lowers it, because failing chains can run through more of space-time. The decrease is fast for the first few rounds and slow afterwards. With ten rounds the threshold is $0.61\%$, still about $20\%$ above the per-round threshold for $r=d$.
+
+
+\subsection{Thresholds of the noise models}
+\label{sec:thresholds}
+
+We determine the thresholds of the six generic noise models and of the decoders from runs with $r=d$ rounds and $d=3$ to $9$, with points spaced by $5\%$ of the threshold around each crossing. Near the crossing point we fit the logical error rates of $d=5$, $7$ and $9$ to the finite-size scaling form of \autoref{eq:fss}. For SD6 noise and MWPM this gives $0.41\%$, slightly below the per-shot value $0.435\%$ from $d=11$ to $19$ in \autoref{sec:rounds_threshold}, so the thresholds in this section are slightly conservative. The quoted uncertainty is the larger of the statistical error of the fit and half the spread between this fit, a fit that includes $d=3$, and the crossing points of neighboring distances. \autoref{tab:thresholds} lists the results and \autoref{fig:thresholds} shows the data.
+
+\begin{table}[t]
+  \caption{Thresholds for $r=d$ rounds in percent of the physical error rate $p$. The number in parentheses is the uncertainty in the last digit. MWPM and HCM come from finite-size scaling fits with $d=5$, $7$ and $9$. BM is belief-matching, for which we quote the crossing point of $d=5$ and $d=7$ (\autoref{fig:bm}). Under EM3 the plaquettes are measured with pair measurements (\autoref{sec:em3}).}
+  \label{tab:thresholds}
+  \setlength{\tabcolsep}{3pt}
+  \begin{ruledtabular}
+  \begin{tabular}{lcccc}
+    Noise model & MWPM & HCM, links & HCM & BM \\
+    \hline
+    SD6 & $0.41(1)$ & $0.50(1)$ & $0.50(2)$ & $0.55(2)$ \\
+    SI1000 & $0.36(1)$ & $0.43(1)$ & $0.44(2)$ & $0.46(2)$ \\
+    Biased, $\eta=10$ & $0.44(1)$ & $0.57(1)$ & $0.64(1)$ & $0.79(3)$ \\
+    Biased, $\eta=100$ & $0.44(1)$ & $0.59(1)$ & $0.68(1)$ & $0.86(1)$ \\
+    Pure $Z$ & $0.44(1)$ &  & $0.69(1)$ & $0.83(4)$ \\
+    EM3 & $0.22(1)$ &  & $0.28(1)$ &  \\
+  \end{tabular}
+  \end{ruledtabular}
+\end{table}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{fig_thresholds.pdf}
+  \caption{Threshold crossings for $r=d$ rounds and $d=3$ to $9$. Top row, matching on the $\Sz$ detectors. Bottom row, hierarchical correlated matching. Vertical lines and bands mark the fitted threshold and its uncertainty.}
+  \label{fig:thresholds}
+\end{figure*}
+
+Matching on $\Sz$ reaches thresholds between $0.36\%$ for SI1000 and $0.44\%$ for biased noise, and $0.22\%$ under EM3. Hierarchical correlated matching raises every threshold. The gain is $22\%$ for SD6, $21\%$ for SI1000 and $30\%$ for EM3, and it grows with the bias, to $46\%$ for $\eta=10$, $53\%$ for $\eta=100$ and $55\%$ for pure $Z$ noise.
+
+The lower level is responsible for the gain. Under $Z$-biased noise most faults are $Z$ errors on data qubits. Apart from $Z$ errors on the upper vertex of an odd block, which leave every element of $\Sz$ unchanged, such an error flips $\Sz$ detectors and at the same time an odd link or a class-A hexagon. The lower level therefore marks most of the upper edges that the faults have flipped, and the second matching pass follows these marks. Matching on $\Sz$ alone cannot use this structure, and its threshold hardly changes with the bias, from $0.41\%$ for SD6 to $0.44\%$ for $\eta=10$, $\eta=100$ and pure $Z$ noise. The tolerance of the code to biased noise is available only to a decoder that reads the gauge level. The odd links alone account for the full gain under SD6 and SI1000 noise. Under biased noise the class-A hexagons add a further $12\%$ to $15\%$ to the threshold. Among the decoders of \autoref{tab:thresholds}, belief-matching, which we ran up to $d=7$, gives the highest thresholds. Its threshold is $0.55\%$ for SD6, $0.79\%$ for $\eta=10$, $0.86\%$ for $\eta=100$ and $0.83\%$ for pure $Z$ noise, close to twice the threshold of matching under strong bias (\autoref{tab:thresholds} and Appendix~\ref{app:fits}). Under SI1000 noise, in which measurement errors dominate, belief-matching and HCM reach nearly the same threshold.
+
+Under EM3 the thresholds are about half of those for SD6, $0.22\%$ for matching and $0.28\%$ for HCM. A weight-six plaquette takes eleven noisy pair measurements and six readouts, and its ancillas idle until the step of their color, so every plaquette outcome carries several times the error of a single operation. The honeycomb code, whose checks are the pair measurements themselves, reaches $1.5\%$ to $2\%$ under the same model~\cite{gidney2021honeycomb}. A schedule in which the plaquettes of the $XYZ^2$ code are inferred from link measurements in the same way is a natural alternative for such hardware, which we leave for future work.
+
+\subsection{Decoder comparison}
+\label{sec:decoder_comparison}
+
+\autoref{fig:decoders} compares the decoders at $d=3$ and $d=5$ with $r=d$ rounds. Under SD6 noise at $d=5$ and $p=4\times10^{-3}$, erasure passing raises the logical error rate of matching by $62\%$. Sequential BP lowers it by $21\%$, both versions of HCM by $32\%$ and belief-matching by about $40\%$. Tesseract, our near-optimal reference, reaches $1.3(2)\times10^{-2}$, about $20\%$ below belief-matching. At $d=3$ belief-matching is within about $15\%$ of Tesseract.
+
+Erasure passing fails because a matched link edge marks every fault with that link signature, and the $\Sz$ edges of all of these faults are erased. Most of the marked faults did not occur, and the erased edges open short paths for the upper matching. Sequential BP passes the same information as probabilities and avoids this problem. Its gain is limited because the link detectors see only part of each fault.
+
+Under biased noise the differences grow. At $d=5$, $p=5\times10^{-3}$ and $\eta=100$, sequential BP lowers the logical error rate of matching by a factor of $1.8$, HCM with links by $2.0$, HCM by $2.9$ and belief-matching by $5.3$. Tesseract reaches $4.5(10)\times10^{-3}$ at this point, about half the rate of belief-matching, so a decoder closer to the optimum still has room to gain under bias. \autoref{sec:cfe_results} shows that the coset free-energy decoder closes this gap. In this regime the class-A hexagons carry as much information as the links, and BP on the full detector error model uses it most completely. Belief-matching is, however, about 240 times slower than HCM in our implementation, because BP runs over the full DEM for every shot (\autoref{tab:decoders}). HCM obtains a large part of the gain at about four times the cost of matching.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{fig_decoders.pdf}
+  \caption{Comparison of decoders with $r=d$ rounds. (a,b)~$d=3$ under SD6 noise and under biased noise with $\eta=100$. (d,e)~The same for $d=5$. Dashed lines are matching on $\Sz$ and Tesseract, and points with fewer than eight logical errors are not shown. (c)~Decoding time per shot at $d=5$ and $p=4\times10^{-3}$ under SD6 noise on one core.}
+  \label{fig:decoders}
+\end{figure*}
+
+
+\subsection{Coset free-energy decoding}
+\label{sec:cfe_results}
+
+\autoref{tab:cfe} separates the steps of the CFE decoder at $d=5$ with five rounds, on the same 3000 shots for every decoder. Under biased noise with $\eta=100$ and $p=5\times10^{-3}$, BP-OSD fails on 25 shots and the two-class search on 23. The local descent lowers this to 14, the free energy to 13 and the guided candidates to 12. Tesseract fails on 15 of the same shots and belief-matching on 30. Under SD6 noise at the same $p$, the two-class search alone fails on 146 shots, more than BP-OSD with a single class (117) and belief-matching (102), because BP-OSD often returns a heavy error in one of the two classes. The descent removes most of this excess, and the free energy and the guided candidates bring the CFE decoder to 84 failures, the same as Tesseract (85) and $18\%$ below belief-matching. The free energy changes the decision mostly in shots where the two candidates have similar weight, and its effect is largest under SD6 noise, where $Y$ errors and their $X$ and $Z$ parts give many equivalent errors. The results depend little on $\kappa$. Any value between $0.2$ and $0.8$ gives between 82 and 91 failures under SD6 noise and 12 under biased noise.
+
+\begin{table}[t]
+  \caption{Logical failures of the decoders on the same 3000 shots at $d=5$, $r=5$ and $p=5\times10^{-3}$. The middle rows add the steps of the CFE decoder one at a time.}
+  \label{tab:cfe}
+  \begin{ruledtabular}
+  \begin{tabular}{lcc}
+    Decoder & SD6 & Biased, $\eta=100$ \\
+    \hline
+    MWPM & 187 & 162 \\
+    HCM & 109 & 58 \\
+    Belief-matching & 102 & 30 \\
+    BP-OSD & 117 & 25 \\
+    Two-class BP-OSD & 146 & 23 \\
+    \quad + local descent & 108 & 14 \\
+    \quad + free energy, $\kappa=1/2$ & 103 & 13 \\
+    \quad + guided candidates (CFE) & 84 & 12 \\
+    Tesseract & 85 & 15 \\
+  \end{tabular}
+  \end{ruledtabular}
+\end{table}
+
+\autoref{fig:cfe_thr} and \autoref{tab:cfe_thr} follow the comparison with belief-matching to larger distances, again on the same shots, for $r=d$ rounds and $d=3$, $5$ and $7$. Under biased noise with $\eta=100$ the CFE decoder fails on $11\%$, $21\%$ and $28\%$ fewer shots than belief-matching at $d=3$, $5$ and $7$. Its advantage grows with the distance, which points to a higher threshold under strong bias, although the $d=7$ points, with 600 shots each, do not resolve the crossing well enough to quote one. Under SD6 noise the CFE decoder is $4\%$ and $6\%$ better at $d=3$ and $5$, but at $d=7$ it fails on $18(12)\%$ more shots than belief-matching. The two-class search is the weak point at larger distances. BP-OSD returns heavier errors as the detector error model grows, and moves of three or four faults cannot repair a candidate that differs from the best error along a long chain. A third pair of candidates, guided by the solution of belief-matching in the same way as the HCM guide, lowers the failures at $d=7$ from 120 to 111, against 102 for belief-matching. Under depolarizing noise the decoder therefore needs a candidate search that scales with the code. The cost is about $2$~s per shot at $d=7$ in our Python implementation, against $0.3$~s at $d=5$.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{fig_cfe_thr.pdf}
+  \caption{CFE decoding against belief-matching on the same shots with $r=d$ rounds. (a)~SD6 and (b)~biased noise with $\eta=100$, decoded with CFE (solid, filled markers) and belief-matching (BM, dashed, open markers). The points for $d=7$ use 600 shots each, those for $d=5$ and $d=3$ use 2000 and 4000. (c)~Failures of CFE divided by failures of belief-matching, summed over $p$, as a function of the distance.}
+  \label{fig:cfe_thr}
+\end{figure*}
+
+\begin{table}[t]
+  \caption{Failures of the CFE decoder and of belief-matching on the same shots with $r=d$, summed over the values of $p$ in \autoref{fig:cfe_thr}. The last column is their ratio with its bootstrap error.}
+  \label{tab:cfe_thr}
+  \begin{ruledtabular}
+  \begin{tabular}{llrrrc}
+    Noise & $d$ & Shots & CFE & BM & CFE/BM \\
+    \hline
+    SD6 & 3 & 20000 & 911 & 951 & $0.96(2)$ \\
+     & 5 & 10000 & 582 & 621 & $0.94(3)$ \\
+     & 7 & 1800 & 120 & 102 & $1.18(12)$ \\
+    $\eta=100$ & 3 & 20000 & 1691 & 1897 & $0.89(2)$ \\
+     & 5 & 10000 & 802 & 1011 & $0.79(3)$ \\
+     & 7 & 1800 & 144 & 199 & $0.72(6)$ \\
+  \end{tabular}
+  \end{ruledtabular}
+\end{table}

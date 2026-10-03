@@ -9,12 +9,16 @@ from __future__ import annotations
 
 from itertools import product
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
-from .constants import DEFAULT_RESULTS_DIR
+from .constants import (
+    DEFAULT_RESULTS_DIR,
+    SI1000_MAX_PROBABILITY,
+    SI1000_SWEEP_PARAMETER,
+)
 from .mdr_circuit import MDRCircuit
 from .mdr_simulation import MDRSimulation
 
@@ -114,6 +118,8 @@ class MdrNoiseSweep:
         shots: int = 1000,
         num_replicates: int = 30,
         split_2q: bool = True,
+        decoder_mode: str = "toggle_frame",
+        decoder_config: Mapping[str, Any] | None = None,
         save_data_filename: Optional[str | Path] = None,
         load_data_filename: Optional[str | Path] = None,
     ) -> None:
@@ -183,6 +189,15 @@ class MdrNoiseSweep:
         self.shots = shots
         self.num_replicates = num_replicates
         self.split_2q = split_2q
+        self.decoder_mode = decoder_mode
+        self.decoder_config = dict(decoder_config or {})
+        if (
+            self.decoder_mode == "mps_mld"
+            and self.decoder_config.get("max_bond_dimension") is None
+        ):
+            self.decoder_config["max_bond_dimension"] = 4096
+        if self.decoder_mode != "mps_mld":
+            self.decoder_config.pop("max_bond_dimension", None)
 
         self.param_names = (
             [param_names]
@@ -221,6 +236,7 @@ class MdrNoiseSweep:
             self.results_std,
             self.results_signed,
             self.results_std_signed,
+            self.decoder_diagnostics,
         ) = self._perform_sweep()
         self.has_exact_signed_results = True
         if save_data_filename is not None:
@@ -233,6 +249,10 @@ class MdrNoiseSweep:
         Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
         Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
         Dict[Tuple[float, ...], Dict[int, Dict[str, float]]],
+        Dict[
+            Tuple[float, ...],
+            Dict[int, Dict[str, Dict[str, float]]],
+        ],
     ]:
         """
         Execute the configured sweep over all parameter combinations.
@@ -262,6 +282,11 @@ class MdrNoiseSweep:
         all_signed_stds: Dict[
             Tuple[float, ...], Dict[int, Dict[str, float]]
         ] = {}
+        all_decoder_diagnostics: Dict[
+            Tuple[float, ...],
+            Dict[int, Dict[str, Dict[str, float]]],
+        ] = {}
+        uses_si1000 = self.param_names == [SI1000_SWEEP_PARAMETER]
 
         one_q_params = [n for n in self.param_names if n in self.single_params]
         two_q_params = [
@@ -289,32 +314,45 @@ class MdrNoiseSweep:
                 "psi_circuit": self.psi_circuit,
             }
 
-            for name, val in zip(self.param_names, combo):
-                if name in self.single_params:
-                    if self.split_2q and num_1q > 0:
-                        kwargs[name] = val / num_1q
+            if uses_si1000:
+                si1000_p = float(combo[0])
+                if si1000_p > SI1000_MAX_PROBABILITY:
+                    raise ValueError(
+                        "SI1000 requires p <= "
+                        f"{SI1000_MAX_PROBABILITY:g} because MERR has "
+                        "probability 5p."
+                    )
+                kwargs["noise_profile"] = MDRCircuit.SI1000_PROFILE
+                kwargs["si1000_p"] = si1000_p
+            else:
+                for name, val in zip(self.param_names, combo):
+                    if name in self.single_params:
+                        if self.split_2q and num_1q > 0:
+                            kwargs[name] = val / num_1q
+                        else:
+                            kwargs[name] = val
                     else:
-                        kwargs[name] = val
-                else:
-                    idx = self.two_qubit_index[name]
-                    if self.split_2q and num_2q > 0:
-                        kwargs["gate_noise_2q"][idx] = val / num_2q
-                    else:
-                        kwargs["gate_noise_2q"][idx] = val
+                        idx = self.two_qubit_index[name]
+                        if self.split_2q and num_2q > 0:
+                            kwargs["gate_noise_2q"][idx] = val / num_2q
+                        else:
+                            kwargs["gate_noise_2q"][idx] = val
 
-            sum_2q = float(sum(kwargs["gate_noise_2q"]))
-            if sum_2q > 1.0 - 1e-9:
-                scale = (1.0 / sum_2q) * 0.999
-                kwargs["gate_noise_2q"] = [
-                    p * scale for p in kwargs["gate_noise_2q"]
-                ]
+                sum_2q = float(sum(kwargs["gate_noise_2q"]))
+                if sum_2q > 1.0 - 1e-9:
+                    scale = (1.0 / sum_2q) * 0.999
+                    kwargs["gate_noise_2q"] = [
+                        p * scale for p in kwargs["gate_noise_2q"]
+                    ]
 
-            sum_1q = float(kwargs["g1_x"] + kwargs["g1_y"] + kwargs["g1_z"])
-            if sum_1q > 1.0 - 1e-9:
-                scale = (1.0 / sum_1q) * 0.999
-                kwargs["g1_x"] *= scale
-                kwargs["g1_y"] *= scale
-                kwargs["g1_z"] *= scale
+                sum_1q = float(
+                    kwargs["g1_x"] + kwargs["g1_y"] + kwargs["g1_z"]
+                )
+                if sum_1q > 1.0 - 1e-9:
+                    scale = (1.0 / sum_1q) * 0.999
+                    kwargs["g1_x"] *= scale
+                    kwargs["g1_y"] *= scale
+                    kwargs["g1_z"] *= scale
 
             sim = MDRSimulation(
                 mdr=MDRCircuit(**kwargs),
@@ -323,12 +361,17 @@ class MdrNoiseSweep:
                 shots_per_measurement=self.shots,
                 total_mdr_rounds=max(self.round_list),
                 num_replicates=self.num_replicates,
+                decoder_mode=self.decoder_mode,
+                decoder_config=self.decoder_config,
             )
 
             mean_dict = {round_idx: {} for round_idx in self.round_list}
             std_dict = {round_idx: {} for round_idx in self.round_list}
             signed_mean_dict = {round_idx: {} for round_idx in self.round_list}
             signed_std_dict = {round_idx: {} for round_idx in self.round_list}
+            diagnostic_dict: Dict[int, Dict[str, Dict[str, float]]] = {
+                round_idx: {} for round_idx in self.round_list
+            }
 
             for label in self.measure_stabilizers:
                 stats = sim._stats_stabilizers[label]
@@ -362,13 +405,26 @@ class MdrNoiseSweep:
                     if r in signed_mean_dict:
                         signed_mean_dict[r][label] = ctr
                         signed_std_dict[r][label] = sd
+                        diagnostic_dict[r][label] = (
+                            sim.decoder_diagnostic_summary(
+                                label=label,
+                                round_count=r,
+                            )
+                        )
 
             all_means[combo] = mean_dict
             all_stds[combo] = std_dict
             all_signed_means[combo] = signed_mean_dict
             all_signed_stds[combo] = signed_std_dict
+            all_decoder_diagnostics[combo] = diagnostic_dict
 
-        return all_means, all_stds, all_signed_means, all_signed_stds
+        return (
+            all_means,
+            all_stds,
+            all_signed_means,
+            all_signed_stds,
+            all_decoder_diagnostics,
+        )
 
     def save_results(self, filename: str | Path) -> None:
         """
@@ -399,6 +455,23 @@ class MdrNoiseSweep:
                     row["std_signed"] = self.results_std_signed[combo][
                         round_idx
                     ][label]
+                    diagnostics = self.decoder_diagnostics.get(
+                        combo,
+                        {},
+                    ).get(round_idx, {}).get(label, {})
+                    row["decoder_mode"] = self.decoder_mode
+                    row["decoder_unknown_fraction"] = diagnostics.get(
+                        "decoder_unknown_fraction",
+                        0.0,
+                    )
+                    row["decoder_mean_gap"] = diagnostics.get(
+                        "decoder_mean_gap",
+                        0.0,
+                    )
+                    row["decoder_truncation_mass"] = diagnostics.get(
+                        "decoder_truncation_mass",
+                        0.0,
+                    )
                     rows.append(row)
 
         df = pd.DataFrame(rows)
@@ -409,6 +482,10 @@ class MdrNoiseSweep:
             "std",
             "mean_signed",
             "std_signed",
+            "decoder_mode",
+            "decoder_unknown_fraction",
+            "decoder_mean_gap",
+            "decoder_truncation_mass",
         ]
         df = df[cols]
 
@@ -463,16 +540,30 @@ class MdrNoiseSweep:
             "std",
             "mean_signed",
             "std_signed",
+            "decoder_mode",
+            "decoder_unknown_fraction",
+            "decoder_mean_gap",
+            "decoder_truncation_mass",
         }
         self.param_names = [col for col in df.columns if col not in reserved]
         self.results = {}
         self.results_std = {}
         self.results_signed = {}
         self.results_std_signed = {}
+        self.decoder_diagnostics = {}
         self.has_exact_signed_results = {
             "mean_signed",
             "std_signed",
         }.issubset(df.columns)
+        decoder_modes = (
+            sorted(str(value) for value in df["decoder_mode"].dropna().unique())
+            if "decoder_mode" in df.columns
+            else ["toggle_frame"]
+        )
+        self.decoder_mode = (
+            decoder_modes[0] if len(decoder_modes) == 1 else "mixed"
+        )
+        self.decoder_config = {}
 
         combo_df = df[self.param_names].drop_duplicates()
         self.param_combos = [
@@ -505,6 +596,7 @@ class MdrNoiseSweep:
             self.results_std[combo] = {}
             self.results_signed[combo] = {}
             self.results_std_signed[combo] = {}
+            self.decoder_diagnostics[combo] = {}
             mask = np.ones(len(df), dtype=bool)
             for name, val in zip(self.param_names, combo):
                 mask &= df[name] == val
@@ -532,6 +624,19 @@ class MdrNoiseSweep:
                 self.results_std_signed[combo].setdefault(round_idx, {})[
                     op
                 ] = sd_signed
+                diagnostics: Dict[str, float] = {}
+                for col in (
+                    "decoder_unknown_fraction",
+                    "decoder_mean_gap",
+                    "decoder_truncation_mass",
+                ):
+                    if col in row and not pd.isna(row[col]):
+                        diagnostics[col] = float(row[col])
+                if diagnostics:
+                    self.decoder_diagnostics[combo].setdefault(
+                        round_idx,
+                        {},
+                    )[op] = diagnostics
 
         unique_ops = sorted(df["operator"].unique().tolist())
         logical_labels = [op for op in unique_ops if op.startswith("Logical")]

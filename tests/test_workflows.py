@@ -254,13 +254,57 @@ def test_simulation_spec_hash_changes_with_prep_mode() -> None:
     )
 
     assert simulation_spec_hash(full_spec) != simulation_spec_hash(link_spec)
-    assert "_full_mdr_anc17_" in simulation_results_path(
+    assert "_full_mdr_toggle_frame_anc17_" in simulation_results_path(
         Path("results"),
         full_spec,
     ).name
-    assert "_link_logical_plus_anc8_" in simulation_results_path(
+    assert "_link_logical_plus_toggle_frame_anc8_" in simulation_results_path(
         Path("results"),
         link_spec,
+    ).name
+
+
+def test_simulation_spec_hash_changes_with_decoder_settings() -> None:
+    """
+    Decoder mode and chi should participate in cache identity.
+    """
+    base_kwargs = dict(
+        distance=3,
+        noise_model="pure_z",
+        probabilities=[1e-5],
+        rounds=[2],
+        shots=100,
+        num_replicates=3,
+        p_spam=0.0,
+        prep_mode=PREP_MODE_LINK_LOGICAL_PLUS,
+        recovery_mode="final_round",
+        correction_mode="pauli_frame",
+        ancillas=8,
+    )
+    toggle_spec = build_simulation_spec(
+        **base_kwargs,
+        decoder_mode="toggle_frame",
+    )
+    mps_512_spec = build_simulation_spec(
+        **base_kwargs,
+        decoder_mode="mps_mld",
+        decoder_config={"max_bond_dimension": 512},
+    )
+    mps_1024_spec = build_simulation_spec(
+        **base_kwargs,
+        decoder_mode="mps_mld",
+        decoder_config={"max_bond_dimension": 1024},
+    )
+
+    assert simulation_spec_hash(toggle_spec) != simulation_spec_hash(
+        mps_512_spec
+    )
+    assert simulation_spec_hash(mps_512_spec) != simulation_spec_hash(
+        mps_1024_spec
+    )
+    assert "_mps_mld_chi512_" in simulation_results_path(
+        Path("results"),
+        mps_512_spec,
     ).name
 
 

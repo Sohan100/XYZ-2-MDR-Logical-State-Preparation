@@ -1,0 +1,13 @@
+d,rounds,init,final,mechanisms,lower_bound,upper_bound,fault_distance,source,solver_seconds
+3,1,frame,frame,51,4,4,4,cp-sat,0
+3,1,frame,ideal,51,4,4,4,cp-sat,0
+3,3,frame,frame,125,4,4,4,cp-sat,0
+3,3,frame,ideal,125,4,4,4,cp-sat,0
+5,1,frame,frame,153,6,6,6,cp-sat,5
+5,1,frame,ideal,153,6,6,6,cp-sat,5
+5,5,frame,frame,613,6,6,6,cp-sat,394
+5,5,frame,ideal,613,6,6,6,cp-sat,3584
+7,1,frame,frame,311,8,8,8,cp-sat,905
+7,7,frame,frame,1733,7,8,,"lp lower, stim upper",6601
+3,3,plus,frame,465,2,2,2,cp-sat,0
+5,5,plus,frame,3309,2,2,2,cp-sat,1

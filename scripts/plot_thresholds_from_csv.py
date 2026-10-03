@@ -40,6 +40,7 @@ from mdr.constants import (  # noqa: E402
     NOISE_MODEL_DISPLAY_NAMES,
     NOISE_MODEL_PARAM_NAMES,
 )
+from mdr.decoders.factory import SUPPORTED_DECODER_MODES  # noqa: E402
 from mdr.mdr_noise_sweep import MdrNoiseSweep  # noqa: E402
 from mdr.plotters import MdrNoiseSweepPlotter  # noqa: E402
 from mdr.preparation import (  # noqa: E402
@@ -102,6 +103,18 @@ def parse_args() -> argparse.Namespace:
         help="Optional correction implementation filter.",
     )
     parser.add_argument(
+        "--decoder-mode",
+        choices=SUPPORTED_DECODER_MODES,
+        default=None,
+        help="Optional decoder-mode filter for spec-matched files.",
+    )
+    parser.add_argument(
+        "--decoder-max-bond-dimension",
+        type=int,
+        default=None,
+        help="Optional MPS/MLD chi filter for spec-matched files.",
+    )
+    parser.add_argument(
         "--metric",
         choices=["observable_loss", "state_prep_error"],
         default="observable_loss",
@@ -158,6 +171,8 @@ def _resolve_result_csv(
     prep_mode: str = PREP_MODE_FULL_MDR,
     recovery_mode: str | None = None,
     correction_mode: str | None = None,
+    decoder_mode: str | None = None,
+    decoder_max_bond_dimension: int | None = None,
 ) -> Path | None:
     """
     Resolve a saved result CSV using legacy and spec-based naming.
@@ -207,6 +222,18 @@ def _resolve_result_csv(
                     != correction_mode
                 ):
                     continue
+                if decoder_mode is not None and (
+                    str(spec.get("decoder_mode", "toggle_frame"))
+                    != decoder_mode
+                ):
+                    continue
+                if decoder_max_bond_dimension is not None:
+                    config = dict(spec.get("decoder_config", {}))
+                    if (
+                        int(config.get("max_bond_dimension", -1))
+                        != decoder_max_bond_dimension
+                    ):
+                        continue
                 if p_spam is not None:
                     val = float(spec.get("p_spam", -1.0))
                     if not _close(val, p_spam):
@@ -230,6 +257,8 @@ def _load_sweeps(
     prep_mode: str = PREP_MODE_FULL_MDR,
     recovery_mode: str | None = None,
     correction_mode: str | None = None,
+    decoder_mode: str | None = None,
+    decoder_max_bond_dimension: int | None = None,
     include_noise_model_in_label: bool = True,
 ) -> dict[str, MdrNoiseSweep]:
     """
@@ -256,6 +285,8 @@ def _load_sweeps(
             prep_mode=prep_mode,
             recovery_mode=recovery_mode,
             correction_mode=correction_mode,
+            decoder_mode=decoder_mode,
+            decoder_max_bond_dimension=decoder_max_bond_dimension,
         )
         if csv_path is not None:
             label = (
@@ -274,6 +305,10 @@ def _load_sweeps(
                 msg += f", recovery_mode={recovery_mode}"
             if correction_mode is not None:
                 msg += f", correction_mode={correction_mode}"
+            if decoder_mode is not None:
+                msg += f", decoder_mode={decoder_mode}"
+            if decoder_max_bond_dimension is not None:
+                msg += f", chi={decoder_max_bond_dimension}"
             print(msg)
     return sweeps
 
@@ -331,6 +366,10 @@ def main() -> None:
         suffix_parts.append(args.recovery_mode)
     if args.correction_mode is not None:
         suffix_parts.append(args.correction_mode)
+    if args.decoder_mode is not None:
+        suffix_parts.append(args.decoder_mode)
+    if args.decoder_max_bond_dimension is not None:
+        suffix_parts.append(f"chi{args.decoder_max_bond_dimension}")
     suffix_parts.append(suffix_core)
     suffix = "_".join(suffix_parts)
     combined_panels: dict[str, dict[str, MdrNoiseSweep]] = {}
@@ -345,6 +384,8 @@ def main() -> None:
             prep_mode=args.prep_mode,
             recovery_mode=args.recovery_mode,
             correction_mode=args.correction_mode,
+            decoder_mode=args.decoder_mode,
+            decoder_max_bond_dimension=args.decoder_max_bond_dimension,
         )
         if not sweeps:
             print(f"Skipping {noise_model}: no CSV files found.")

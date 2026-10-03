@@ -26,6 +26,9 @@ CODE_FAMILY_DISPLAY_NAMES: Dict[str, str] = {
     "xyz2": "XYZ2 Hex Code",
     "surface": "Surface Code",
 }
+SI1000_NOISE_MODEL = "si1000"
+SI1000_SWEEP_PARAMETER = "p"
+SI1000_MAX_PROBABILITY = 0.2
 
 NOISE_MODEL_PARAM_NAMES: Dict[str, List[str]] = {
     "unbiased": [
@@ -50,12 +53,15 @@ NOISE_MODEL_PARAM_NAMES: Dict[str, List[str]] = {
     ],
     "z_type": ["g1_z", "IZ", "ZI", "ZZ", "ZX", "ZY", "XZ", "YZ"],
     "pure_z": ["g1_z", "IZ", "ZI", "ZZ"],
+    SI1000_NOISE_MODEL: [SI1000_SWEEP_PARAMETER],
 }
+DEFAULT_NOISE_MODELS: List[str] = ["pure_z", "unbiased", "z_type"]
 
 NOISE_MODEL_DISPLAY_NAMES: Dict[str, str] = {
     "unbiased": "Unbiased Depolarizing Noise",
     "z_type": "Z Type Noise",
     "pure_z": "Pure Z Noise",
+    SI1000_NOISE_MODEL: "SI1000 Circuit-Level Noise",
 }
 
 

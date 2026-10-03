@@ -151,6 +151,8 @@ def main() -> None:
             code_family=code_family,
             prep_mode=prep_mode,
             ancillas=int(config.get("ancillas", 1)),
+            decoder_mode=str(config.get("decoder_mode", "toggle_frame")),
+            decoder_config=dict(config.get("decoder_config", {})),
         )
         copy_target = simulation_results_path(family_results_dir, spec)
         copy_target.parent.mkdir(parents=True, exist_ok=True)

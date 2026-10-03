@@ -41,6 +41,7 @@ from mdr.constants import (  # noqa: E402
     NOISE_MODEL_PARAM_NAMES,
     default_probabilities,
 )
+from mdr.decoders.factory import SUPPORTED_DECODER_MODES  # noqa: E402
 from mdr.preparation import (  # noqa: E402
     PREP_MODE_FULL_MDR,
     PREP_MODES,
@@ -101,6 +102,16 @@ def parse_args() -> argparse.Namespace:
         default="physical",
     )
     parser.add_argument(
+        "--decoder-mode",
+        choices=SUPPORTED_DECODER_MODES,
+        default="toggle_frame",
+    )
+    parser.add_argument(
+        "--decoder-max-bond-dimension",
+        type=int,
+        default=None,
+    )
+    parser.add_argument(
         "--prep-mode",
         choices=PREP_MODES,
         default=PREP_MODE_FULL_MDR,
@@ -134,6 +145,9 @@ def main() -> None:
         probabilities = args.probabilities
     else:
         probabilities = default_probabilities()
+    decoder_config = {}
+    if args.decoder_max_bond_dimension is not None:
+        decoder_config["max_bond_dimension"] = args.decoder_max_bond_dimension
     code_name = args.code_name
     if code_name == "xyz2":
         if args.code_family != "xyz2":
@@ -146,7 +160,7 @@ def main() -> None:
         args.run_name
         or (
             f"Run-{timestamp}-d{args.distance}-{args.noise_model}-"
-            f"{args.prep_mode}"
+            f"{args.prep_mode}-{args.decoder_mode}"
         )
     )
     family_root = code_family_subdir(args.root_dir, args.code_family)
@@ -196,6 +210,8 @@ def main() -> None:
         "correction_mode": args.correction_mode,
         "prep_mode": args.prep_mode,
         "ancillas": resolved_ancillas,
+        "decoder_mode": args.decoder_mode,
+        "decoder_config": decoder_config,
         "table_csv": table_csv.name,
         "created_at_utc": timestamp,
     }
@@ -219,6 +235,7 @@ def main() -> None:
     print(f"Config: {config_path.resolve()}")
     print(f"Probabilities: {len(probabilities)} values")
     print(f"Prep mode: {args.prep_mode}")
+    print(f"Decoder mode: {args.decoder_mode}")
     print(f"Ancillas: {resolved_ancillas}")
 
 

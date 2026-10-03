@@ -131,6 +131,7 @@ def main() -> None:
     ancillas = int(
         config.get("ancillas", len(code_inputs["active_stabilizers"]))
     )
+    decoder_config = dict(config.get("decoder_config", {}))
 
     out_csv = run_dir / "partials" / f"result_idx{idx:03d}.csv"
     if out_csv.exists() and not args.force:
@@ -156,6 +157,8 @@ def main() -> None:
         round_list=[int(x) for x in config["rounds"]],
         shots=shots,
         num_replicates=int(config["num_replicates"]),
+        decoder_mode=str(config.get("decoder_mode", "toggle_frame")),
+        decoder_config=decoder_config,
         save_data_filename=out_csv,
     )
 

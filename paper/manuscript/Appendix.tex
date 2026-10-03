@@ -1,0 +1,98 @@
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{fig_bm.pdf}
+  \caption{Threshold crossings of belief-matching for $r=d$ rounds and $d=3$, $5$ and $7$. Top row, logical error rates with straight-line fits of $\ln\pL$ over $\pm15\%$ around the crossing. Bottom row, ratios of consecutive distances with the ratios of the fitted lines. The vertical line marks the crossing of $d=5$ and $d=7$, where their ratio equals one, and the band its bootstrap uncertainty. Each point near the crossing has between 300 and 650 logical errors.}
+  \label{fig:bm}
+\end{figure*}
+
+\section{Exact circuit-level fault distance}
+\label{app:distance}
+
+We compute the fault distance on the detector error model of the circuit with $\Sz$ detectors. Stim lists every elementary fault together with the detectors and the observable it flips~\cite{gidney2021stim}. Faults with the same detectors and the same observable are merged, which does not change the minimum. Let $H$ be the binary matrix whose columns are the detector sets of the remaining faults and $L$ the row vector of their observable flips. A set of faults, encoded by a binary vector $x$, is an undetectable logical error if
+\begin{equation}
+  Hx=0 \pmod 2,\qquad Lx=1 \pmod 2 .
+\end{equation}
+The fault distance is the minimum Hamming weight of such an $x$. We decide whether a solution with weight at most $k$ exists with the CP-SAT solver of OR-Tools~\cite{cpsat}, which supports parity constraints directly. An infeasible instance for $k=d$ together with an explicit solution of weight $d+1$, found either by the solver or by the undetectable-error search of Stim, proves that the fault distance is $d+1$. \autoref{tab:fdapp} lists the instances.
+
+For $d=7$ with seven rounds the solver does not decide the case $k=6$ within one hour, and we use a weaker bound from linear programming. Stim decomposes every fault into at most two edges of the matching graph of the $\Sz$ detectors. Let $w_e\geq0$ be weights on these edges such that the edges of every fault have total weight at most one. The edges of the faults of an undetectable logical error $F$, counted modulo two, form an even subgraph that flips $\Xb$. This subgraph contains a cycle that flips $\Xb$, and the weight of that cycle is at most $|F|$. The minimum weight of a cycle that flips $\Xb$ is therefore a lower bound on the fault distance for every admissible choice of weights. We compute this minimum with shortest paths on the graph that carries the parity of $\Xb$ as an extra label on every vertex, and we maximize it over the weights with a linear program and cutting planes. The bound equals $d$ for $d=3$, $5$ and $7$. For $d=7$ with seven rounds it shows that the fault distance is at least seven, and the search of Stim finds an undetectable logical error with eight faults.
+
+\begin{table}[t]
+  \caption{Circuit-level fault distance. For each instance CP-SAT proved that no undetectable logical error with fewer faults exists and found one with the listed number of faults. For $d=7$ with seven rounds the lower bound comes from the linear program of the text and the upper bound from the search of Stim. Mechanisms counts the distinct fault mechanisms of the detector error model. The $\ket{+}^{\otimes n}$ start uses all generator detectors.}
+  \label{tab:fdapp}
+  \begin{ruledtabular}
+  \begin{tabular}{cccccc}
+    $d$ & $r$ & Start & Readout & Mechanisms & Fault distance \\
+    \hline
+    3 & 1 & frame & frame & 51 & 4 \\
+    3 & 1 & frame & ideal & 51 & 4 \\
+    3 & 3 & frame & frame & 125 & 4 \\
+    3 & 3 & frame & ideal & 125 & 4 \\
+    5 & 1 & frame & frame & 153 & 6 \\
+    5 & 1 & frame & ideal & 153 & 6 \\
+    5 & 5 & frame & frame & 613 & 6 \\
+    5 & 5 & frame & ideal & 613 & 6 \\
+    7 & 1 & frame & frame & 311 & 8 \\
+    7 & 7 & frame & frame & 1733 & 7 or 8 \\
+    3 & 3 & $\ket{+}^{\otimes n}$ & frame & 465 & 2 \\
+    5 & 5 & $\ket{+}^{\otimes n}$ & frame & 3309 & 2 \\
+  \end{tabular}
+  \end{ruledtabular}
+\end{table}
+
+\section{Enumeration of extraction schedules}
+\label{app:schedule}
+
+A translation-invariant schedule assigns a layer in $\{1,\dots,6\}$ to each of the six positions of a class-A hexagon and of a class-B hexagon, and two layers to the gates of each link, one value for even blocks and one for odd blocks. Boundary checks use the layers of their cells. A schedule is valid when it satisfies the following conditions:
+\begin{enumerate}
+  \item No data qubit takes part in two gates in the same layer, and no ancilla is used twice in a layer.
+  \item For every pair of overlapping checks, the number of shared qubits on which the two checks apply anticommuting Paulis and the first check acts earlier is even.
+\end{enumerate}
+The second condition guarantees that the interleaved circuit measures the intended commuting operators. Both conditions are local, so it suffices to check them on a patch that contains every type of overlap. We found 8928 valid schedules. For each we built the $d=3$ protocol with three rounds and computed its fault distance with the undetectable-error search of Stim, exploring all detection-event sets of size at most five. \autoref{fig:schedule}(d) shows the distribution. The schedule used in this paper is one of the 1126 schedules with fault distance four. Its layers are listed in \autoref{tab:schedule}.
+
+\begin{table}[t]
+  \caption{Layer of each hexagon position in the selected schedule. The positions are top (T), upper right (UR), lower right (LR), bottom (B), lower left (LL) and upper left (UL). Link gates act on the upper vertex in layer 1 and on the lower vertex in layer 2 for every block.}
+  \label{tab:schedule}
+  \begin{ruledtabular}
+  \begin{tabular}{lcccccc}
+    Position & T & UR & LR & B & LL & UL \\
+    Pauli & $X$ & $Y$ & $Z$ & $X$ & $Y$ & $Z$ \\
+    \hline
+    Class A & 1 & 3 & 5 & 6 & 4 & 2 \\
+    Class B & 1 & 2 & 3 & 4 & 6 & 5 \\
+  \end{tabular}
+  \end{ruledtabular}
+\end{table}
+
+\section{Threshold fits}
+\label{app:fits}
+
+\autoref{tab:fits} lists the parameters of the finite-size scaling fits of \autoref{eq:fss}. For belief-matching we have data for $d=3$, $5$ and $7$ only, with points spaced by $2\%$ to $3\%$ of the threshold around each crossing. We fit $\ln\pL$ of each distance by a straight line in $p$ over $\pm15\%$ of the crossing and quote the point where the lines of $d=5$ and $d=7$ meet, with a bootstrap uncertainty. \autoref{fig:bm} shows these data together with the fitted lines. The crossing of $d=3$ and $d=5$ lies $12\%$ lower under SD6 noise, within the uncertainty for SI1000 and $\eta=10$, and $3\%$ to $5\%$ higher for $\eta=100$ and pure $Z$ noise. The belief-matching thresholds therefore carry a finite-size uncertainty of a few percent beyond the statistical one.
+
+\begin{table}[t]
+  \caption{Finite-size scaling fits of \autoref{eq:fss} with $d=5$, $7$ and $9$. $\nu$ is the fitted exponent and $\chi^2_r$ the reduced chi-square. Each fit uses between 18 and 36 data points.}
+  \label{tab:fits}
+  \setlength{\tabcolsep}{4pt}
+  \begin{ruledtabular}
+  \begin{tabular}{lcccccc}
+    & \multicolumn{2}{c}{MWPM} & \multicolumn{2}{c}{HCM, links} & \multicolumn{2}{c}{HCM} \\
+    \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+    Noise model & $\nu$ & $\chi^2_r$ & $\nu$ & $\chi^2_r$ & $\nu$ & $\chi^2_r$ \\
+    \hline
+    SD6 & $1.19$ & $0.8$ & $1.23$ & $2.0$ & $1.06$ & $2.3$ \\
+    SI1000 & $1.24$ & $1.4$ & $1.09$ & $1.1$ & $1.17$ & $1.2$ \\
+    Biased, $\eta=10$ & $1.17$ & $1.7$ & $1.11$ & $1.6$ & $1.07$ & $0.6$ \\
+    Biased, $\eta=100$ & $1.12$ & $2.5$ & $1.12$ & $3.3$ & $1.10$ & $0.9$ \\
+    Pure $Z$ & $1.25$ & $1.7$ &  &  & $1.03$ & $1.5$ \\
+    EM3 & $1.20$ & $2.3$ &  &  & $1.08$ & $1.6$ \\
+  \end{tabular}
+  \end{ruledtabular}
+\end{table}
+
+\autoref{fig:rounds_full} shows the full sweep behind \autoref{fig:rounds_curves}, from $p=2\times10^{-3}$ to $10^{-1}$. Above the threshold window every curve rises to $\pL=1/2$, the value at which the decoder output is uncorrelated with $\Xb$, and no two distances cross again up to $p=10^{-1}$.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{fig_rounds_full.pdf}
+  \caption{Full range of the sweep of \autoref{fig:rounds_curves}, with $d=3$ to $19$ and $p=2\times10^{-3}$ to $10^{-1}$ on logarithmic axes. The dashed line is $\pL=1/2$, and the vertical line and band mark the threshold of \autoref{tab:rounds}.}
+  \label{fig:rounds_full}
+\end{figure*}

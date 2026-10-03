@@ -1,0 +1,108 @@
+"""Tests of the threshold campaign driver (scripts/campaign.py)."""
+import csv
+import importlib.util
+import json
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+spec = importlib.util.spec_from_file_location("campaign", ROOT / "scripts" / "campaign.py")
+campaign = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(campaign)
+
+
+def test_grid_brackets_expected_threshold():
+    for noise in ("sd6", "biased100", "em3", "helios_p_noxt"):
+        for dec in ("mwpm", "corr_gauge", "bm", "cfe0"):
+            for r in ("1", "d"):
+                g = campaign.grid(noise, dec, r)
+                c = campaign.center(noise, dec, r)
+                assert min(g) < 0.7 * c and max(g) > 1.4 * c
+                assert g == sorted(g)
+    xt = campaign.grid("helios_p", "mwpm", "d")
+    assert len(xt) == 14 and xt[0] < 1e-4 < xt[-1]
+
+
+def test_tasks_respect_decoder_limits():
+    tasks = campaign.make_tasks(["sd6"], ["tesseract", "cfe", "cfe0"], ["1", "5", "d"], campaign.DISTANCES)
+    tess = {t["d"] for t in tasks if t["decoder"] == "tesseract"}
+    assert max(tess) == 9
+    cfe_rd = {t["d"] for t in tasks if t["decoder"] == "cfe" and t["rounds"] == "d"}
+    assert max(cfe_rd) == 13
+    cfe_r1 = {t["d"] for t in tasks if t["decoder"] == "cfe" and t["rounds"] == "1"}
+    assert max(cfe_r1) == 21
+    cfe0 = {t["d"] for t in tasks if t["decoder"] == "cfe0" and t["rounds"] == "d"}
+    assert max(cfe0) == 21
+    assert all(t["mem"] <= campaign.CFE_MAX_GB for t in tasks if t["decoder"] == "cfe")
+    # replicas share the time budget and the error target of their point
+    big = [t for t in tasks if t["decoder"] == "cfe0" and t["rounds"] == "d" and t["d"] == 21]
+    assert max(t["budget"] for t in tasks) <= 4 * 3600 + 1
+    reps = {}
+    for t in big:
+        reps.setdefault(t["id"].rsplit("|", 1)[0], []).append(t)
+    assert any(len(v) > 1 for v in reps.values())
+    assert len({t["id"] for t in tasks}) == len(tasks)
+
+
+def test_progress_and_finished(tmp_path):
+    t = dict(id="a", target=10, max_shots=100, budget=50.0)
+    f = tmp_path / "points_0.csv"
+    with open(f, "w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(campaign.RAW)
+        w.writerow(["sd6", 0.004, 3, 3, "frame", "mwpm", 40, 4, 0.1, 0.05, 20.0, "a", ""])
+        w.writerow(["sd6", 0.004, 3, 3, "frame", "mwpm", 30, 3, 0.1, 0.05, 20.0, "a", ""])
+        fh.write("sd6,0.004,3,3,frame,mwpm,1")  # a line still being written by another job
+    prog = campaign.progress([str(f)])
+    assert prog["a"][:3] == [70, 7, 40.0]
+    assert not campaign.finished(t, prog["a"])
+    prog["a"][2] = 50.0
+    assert campaign.finished(t, prog["a"])
+
+
+def test_run_and_merge(tmp_path):
+    tasks = [t for t in campaign.make_tasks(["sd6"], ["mwpm"], ["1"], [3]) if t["value"] > 0.02][:2]
+    for t in tasks:
+        t["budget"] = 3.0
+        t["target"] = 20
+    out = tmp_path / "points_0.csv"
+    campaign.run(tasks, str(out), workers=2, mem_gb=4.0, log=lambda m: None)
+    rows = list(csv.DictReader(open(out)))
+    assert {r["task"] for r in rows} == {t["id"] for t in tasks}
+    assert all(not r["note"].startswith("failed") for r in rows)
+    # a second run finds the tasks finished
+    campaign.run(tasks, str(out), workers=2, mem_gb=4.0, log=lambda m: None)
+    assert len(list(csv.DictReader(open(out)))) == len(rows)
+    merged = tmp_path / "points.csv"
+    n = campaign.merge([str(out)], str(merged))
+    assert n == 2
+    m = list(csv.DictReader(open(merged)))
+    assert set(m[0]) == set(campaign.COLS)
+    assert sum(int(r["shots"]) for r in m) == sum(int(r["shots"]) for r in rows)
+
+
+def test_task_file_roundtrip(tmp_path):
+    tasks = campaign.make_tasks(["em3"], ["mwpm"], ["d"], [3, 5])
+    p = tmp_path / "t.jsonl"
+    p.write_text("".join(json.dumps(t) + "\n" for t in tasks))
+    back = [json.loads(line) for line in p.read_text().splitlines()]
+    assert back == tasks
+
+
+@pytest.mark.parametrize("decoder", ["cfe", "cfe0"])
+def test_cfe_variants_decode(decoder):
+    import numpy as np
+    import sys
+    sys.path.insert(0, str(ROOT / "src"))
+    sys.path.insert(0, str(ROOT / "scripts"))
+    pytest.importorskip("ldpc")
+    from mdr.ft import FTMDRCircuit
+    from mdr.ft.two_level_decoder import TwoLevelDecoder
+    from run_decoder_threshold_sweep import DECODERS, NOISE
+
+    ft = FTMDRCircuit(3, 3, NOISE["sd6"](3e-3), final="frame", detectors="combined")
+    dec = TwoLevelDecoder(ft, **DECODERS[decoder])
+    dets, obs = dec.circuit.compile_detector_sampler(seed=1).sample(200, separate_observables=True)
+    fails = int(np.sum(np.any(dec.decode_batch(dets) != obs, axis=1)))
+    assert fails < 20

@@ -1,0 +1,86 @@
+\documentclass[aps,prx,twocolumn,superscriptaddress,nofootinbib,floatfix,longbibliography]{revtex4-2}
+
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{bm}
+\usepackage{graphicx}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage[colorlinks=true,linkcolor=LinkRose,citecolor=LinkRose,urlcolor=LinkRose]{hyperref}
+\definecolor{LinkRose}{HTML}{9F1239}
+
+\graphicspath{{figures/}}
+
+% ---------------------------------------------------------------- notation
+\newcommand{\ket}[1]{\left|#1\right\rangle}
+\newcommand{\bra}[1]{\left\langle#1\right|}
+\newcommand{\XYZ}{\ensuremath{XYZ^2}}
+\newcommand{\Xb}{\bar{X}}
+\newcommand{\Yb}{\bar{Y}}
+\newcommand{\Zb}{\bar{Z}}
+\newcommand{\plusL}{\ket{\bar{+}}}
+\newcommand{\Sz}{S_0}
+\newcommand{\pth}{p_{\mathrm{th}}}
+\newcommand{\pL}{p_L}
+\newcommand{\eff}[1]{\tilde{#1}}
+
+\def\sectionautorefname{Sec.}
+\def\subsectionautorefname{Sec.}
+\def\figureautorefname{Fig.}
+\def\tableautorefname{Table}
+\def\equationautorefname{Eq.}
+\def\appendixautorefname{Appendix}
+
+% Start the reference list in the running column. The default APS
+% \bibsection switches to one-column mode and rebalances the page above it.
+\makeatletter
+\def\bibsection{\par\vspace{1.5\baselineskip}\noindent\hfil\rule{0.5\columnwidth}{0.4pt}\hfil\par\vspace{\baselineskip}}
+\makeatother
+
+% Let columns end short instead of stretching the space between paragraphs.
+\raggedbottom
+
+\begin{document}
+
+\title{Fault-tolerant state preparation and hierarchical decoding\\ for the $XYZ^2$ hexagonal stabilizer code}
+
+\author{Sohan Ghosh}
+\email{sohghosh@ucdavis.edu}
+\affiliation{Department of Physics and Astronomy, University of California Davis, Davis, CA, USA}
+\affiliation{Quantum Computational Science, Oak Ridge National Laboratory, Oak Ridge, TN, USA}
+\affiliation{Quantum Science Center, Oak Ridge National Laboratory, Oak Ridge, TN, USA}
+
+\author{Isaac Kim}
+\affiliation{Department of Physics and Astronomy, University of California Davis, Davis, CA, USA}
+\affiliation{Quantum Science Center, Oak Ridge National Laboratory, Oak Ridge, TN, USA}
+
+\author{Paul Kairys}
+\email{kairyspm@ornl.gov}
+\affiliation{Quantum Computational Science, Oak Ridge National Laboratory, Oak Ridge, TN, USA}
+\affiliation{Quantum Science Center, Oak Ridge National Laboratory, Oak Ridge, TN, USA}
+
+\date{\today}
+
+\input{Abstract}
+
+\maketitle
+
+\input{Intro}
+\input{Code}
+\input{StatePreparationMDR}
+\input{Protocol}
+\input{Decoding}
+\input{Results}
+\input{Hardware}
+\input{Conclusion}
+
+% \begin{acknowledgments}
+% Funding and computing acknowledgments go here.
+% \end{acknowledgments}
+
+\appendix
+\input{Appendix}
+
+\bibliography{references}
+
+\end{document}

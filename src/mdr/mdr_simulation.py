@@ -7,11 +7,13 @@ mdr_simulation.py.
 
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Mapping, Tuple
 
 import numpy as np
 import stim
 
+from .decoders.factory import build_decoder
+from .decoders.base import DecodeResult, StatePrepDecoder
 from .mdr_circuit import MDRCircuit
 
 
@@ -94,6 +96,8 @@ class MDRSimulation:
         shots_per_measurement: int = 1000,
         total_mdr_rounds: int = 10,
         num_replicates: int = 30,
+        decoder_mode: str = "toggle_frame",
+        decoder_config: Mapping[str, Any] | None = None,
     ) -> None:
         """
         Initialize the simulation and precompute all cached round statistics.
@@ -133,6 +137,16 @@ class MDRSimulation:
             and self.recovery_mode == "final_round"
         ):
             self.recovery_circuit = mdr.build_recovery_only()
+        if decoder_mode != "toggle_frame" and mdr.correction_mode != "pauli_frame":
+            raise ValueError(
+                "MPS/MLD decoders require correction_mode='pauli_frame'."
+            )
+        self.decoder_mode = decoder_mode
+        self.decoder_config = dict(decoder_config or {})
+        self._decoder_cache: Dict[Tuple[int, str], StatePrepDecoder] = {}
+        self._decoder_diagnostic_records: Dict[
+            str, Dict[int, List[Dict[str, float]]]
+        ] = {}
         self.p_spam = mdr.p_spam
         self.num_syndrome_bits_per_round = len(mdr.stabilizers)
         self._toggle_x_masks, self._toggle_z_masks = self._build_mask_table(
@@ -150,6 +164,9 @@ class MDRSimulation:
         )
         self.stabilizer_pauli_strings = stabilizer_pauli_strings
         self.logical_pauli_strings = logical_pauli_strings
+        self._logical_label_by_spec = {
+            spec: label for label, spec in logical_pauli_strings.items()
+        }
         self.shots_per_measurement = shots_per_measurement
         self.total_mdr_rounds = total_mdr_rounds
         self.num_replicates = num_replicates
@@ -319,6 +336,85 @@ class MDRSimulation:
         parity = (frame_x @ operator_z) + (frame_z @ operator_x)
         return np.mod(parity, 2).astype(np.uint8)
 
+    def _decoder_for_logical(
+        self,
+        *,
+        round_count: int,
+        label: str,
+        pauli_specification: str,
+    ) -> StatePrepDecoder:
+        """
+        Return a cached state-preparation decoder for one logical observable.
+        """
+        key = (round_count, label)
+        cached = self._decoder_cache.get(key)
+        if cached is not None:
+            return cached
+        decoder = build_decoder(
+            decoder_mode=self.decoder_mode,
+            mdr=self.mdr,
+            rounds=round_count,
+            observable_label=label,
+            observable_pauli=pauli_specification,
+            decoder_config=self.decoder_config,
+        )
+        self._decoder_cache[key] = decoder
+        return decoder
+
+    def _record_decoder_diagnostics(
+        self,
+        *,
+        label: str,
+        round_count: int,
+        result: DecodeResult,
+    ) -> None:
+        """
+        Store aggregate decoder diagnostics for later CSV persistence.
+        """
+        finite_gaps = result.log_likelihood_gap[
+            np.isfinite(result.log_likelihood_gap)
+        ]
+        mean_gap = (
+            float(np.mean(finite_gaps)) if finite_gaps.size else float("inf")
+        )
+        record = {
+            "decoder_unknown_fraction": float(
+                np.mean(~result.decoder_known)
+            ),
+            "decoder_mean_gap": mean_gap,
+            "decoder_truncation_mass": float(
+                np.mean(result.truncation_mass_lost)
+            ),
+        }
+        self._decoder_diagnostic_records.setdefault(label, {}).setdefault(
+            round_count,
+            [],
+        ).append(record)
+
+    def decoder_diagnostic_summary(
+        self,
+        *,
+        label: str,
+        round_count: int,
+    ) -> Dict[str, float]:
+        """
+        Return mean decoder diagnostics for a logical label and round.
+        """
+        records = self._decoder_diagnostic_records.get(label, {}).get(
+            round_count,
+            [],
+        )
+        if not records:
+            return {
+                "decoder_unknown_fraction": 0.0,
+                "decoder_mean_gap": 0.0,
+                "decoder_truncation_mass": 0.0,
+            }
+        return {
+            key: float(np.mean([record[key] for record in records]))
+            for key in records[0]
+        }
+
     def _accumulate_pauli_frame(
         self,
         syndrome_bits: np.ndarray,
@@ -416,12 +512,28 @@ class MDRSimulation:
         Returns:
         float: Mean parity eigenvalue for the requested observable.
         """
+        logical_label = self._logical_label_by_spec.get(pauli_specification)
+        if (
+            self.decoder_mode != "toggle_frame"
+            and logical_label is not None
+            and logical_label == "Logical X"
+        ):
+            return self._compute_decoder_corrected_logical_expectation(
+                logical_label=logical_label,
+                pauli_specification=pauli_specification,
+                measurement_ops=measurement_ops,
+                round_count=round_count,
+                absolute_value=absolute_value,
+            )
+
         pre_measurement_count = circuit.num_measurements
         for gate, qubit in measurement_ops:
-            if self.p_spam > 0:
-                circuit += stim.Circuit(
-                    f"PAULI_CHANNEL_1({self.p_spam},0,0) {qubit}"
-                )
+            self.mdr.insert_pre_measurement_noise(
+                circuit,
+                gate,
+                [qubit],
+                terminal=True,
+            )
             circuit.append_operation(gate, qubit)
 
         sampler = circuit.compile_sampler()
@@ -452,6 +564,61 @@ class MDRSimulation:
             )
             frame_sign = 1 - 2 * anti.astype(np.int8)
             eigen = eigen * frame_sign
+        mean_val = float(np.mean(eigen))
+        return float(abs(mean_val)) if absolute_value else mean_val
+
+    def _compute_decoder_corrected_logical_expectation(
+        self,
+        *,
+        logical_label: str,
+        pauli_specification: str,
+        measurement_ops: List[Tuple[str, int]],
+        round_count: int,
+        absolute_value: bool,
+    ) -> float:
+        """
+        Sample and decode a logical observable using the state-prep decoder.
+        """
+        circuit = self.mdr.build_detector_annotated_state_prep(
+            rounds=round_count,
+            final_observable_label=logical_label,
+            final_observable_pauli=pauli_specification,
+        )
+        sampler = circuit.compile_sampler()
+        samples = sampler.sample(
+            shots=self.shots_per_measurement,
+            bit_packed=False,
+        )
+        syndrome_count = round_count * self.num_syndrome_bits_per_round
+        final_count = len(measurement_ops)
+        syndrome_bits = samples[:, :syndrome_count]
+        syndrome_rounds = syndrome_bits.reshape(
+            self.shots_per_measurement,
+            round_count,
+            self.num_syndrome_bits_per_round,
+        ).astype(np.uint8)
+
+        final_bits = samples[:, -final_count:]
+        parity = np.sum(final_bits, axis=1) % 2
+        eigen = 1 - 2 * parity
+        decoder = self._decoder_for_logical(
+            round_count=round_count,
+            label=logical_label,
+            pauli_specification=pauli_specification,
+        )
+        result = decoder.decode_batch(
+            syndrome_rounds=syndrome_rounds,
+            observable_labels=[logical_label],
+        )
+        flips = result.observable_flips[logical_label].astype(np.uint8)
+        frame_sign = 1 - 2 * flips.astype(np.int8)
+        eigen = eigen * frame_sign
+        if absolute_value:
+            self._record_decoder_diagnostics(
+                label=logical_label,
+                round_count=round_count,
+                result=result,
+            )
         mean_val = float(np.mean(eigen))
         return float(abs(mean_val)) if absolute_value else mean_val
 

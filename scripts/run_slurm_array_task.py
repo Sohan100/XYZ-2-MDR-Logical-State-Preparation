@@ -29,6 +29,7 @@ _ensure_src_on_path()
 
 from mdr.constants import (  # noqa: E402
     DEFAULT_DISTANCES,
+    DEFAULT_NOISE_MODELS,
     DEFAULT_NUM_REPLICATES,
     DEFAULT_P_SPAM,
     DEFAULT_ROUNDS,
@@ -37,6 +38,7 @@ from mdr.constants import (  # noqa: E402
     SUPPORTED_CODE_FAMILIES,
     default_probabilities,
 )
+from mdr.decoders.factory import SUPPORTED_DECODER_MODES  # noqa: E402
 from mdr.preparation import (  # noqa: E402
     PREP_MODE_FULL_MDR,
     PREP_MODES,
@@ -110,7 +112,7 @@ def parse_args() -> argparse.Namespace:
         "--noise-models",
         nargs="+",
         choices=sorted(NOISE_MODEL_PARAM_NAMES),
-        default=list(NOISE_MODEL_PARAM_NAMES),
+        default=DEFAULT_NOISE_MODELS,
     )
     parser.add_argument(
         "--probabilities",
@@ -133,6 +135,16 @@ def parse_args() -> argparse.Namespace:
         "--correction-mode",
         choices=["physical", "pauli_frame"],
         default="physical",
+    )
+    parser.add_argument(
+        "--decoder-mode",
+        choices=SUPPORTED_DECODER_MODES,
+        default="toggle_frame",
+    )
+    parser.add_argument(
+        "--decoder-max-bond-dimension",
+        type=int,
+        default=None,
     )
     parser.add_argument(
         "--prep-mode",
@@ -286,12 +298,21 @@ def setup_run_if_needed(
             args.correction_mode,
             "--prep-mode",
             args.prep_mode,
+            "--decoder-mode",
+            args.decoder_mode,
             "--rounds",
             *[str(round_value) for round_value in args.rounds],
             "--probabilities",
             *[str(probability) for probability in args.probabilities],
             "--overwrite",
         ]
+        if args.decoder_max_bond_dimension is not None:
+            command.extend(
+                [
+                    "--decoder-max-bond-dimension",
+                    str(args.decoder_max_bond_dimension),
+                ]
+            )
         _run(command)
     finally:
         release_lock(setup_lock)
@@ -438,60 +459,76 @@ def plots_if_complete(args: argparse.Namespace) -> None:
             print("Plots already completed for this array sweep.", flush=True)
             return
         if args.plot_logical_x:
-            _run(
-                [
-                    sys.executable,
-                    str(args.scripts_dir / "plot_thresholds_from_csv.py"),
-                    "--code-family",
-                    args.code_family,
-                    "--prep-mode",
-                    args.prep_mode,
-                    "--p-spam",
-                    str(args.p_spam),
-                    "--metric",
-                    "observable_loss",
-                    "--combine-noise-models",
-                    "--recovery-mode",
-                    args.recovery_mode,
-                    "--correction-mode",
-                    args.correction_mode,
-                    "--distances",
-                    *[str(distance) for distance in args.distances],
-                    "--rounds",
-                    *[str(round_value) for round_value in args.rounds],
-                    "--input-dir",
-                    str(args.results_copy_dir),
-                    "--output-dir",
-                    str(args.plots_output_dir),
-                ]
-            )
+            command = [
+                sys.executable,
+                str(args.scripts_dir / "plot_thresholds_from_csv.py"),
+                "--code-family",
+                args.code_family,
+                "--prep-mode",
+                args.prep_mode,
+                "--p-spam",
+                str(args.p_spam),
+                "--metric",
+                "observable_loss",
+                "--combine-noise-models",
+                "--recovery-mode",
+                args.recovery_mode,
+                "--correction-mode",
+                args.correction_mode,
+                "--decoder-mode",
+                args.decoder_mode,
+                "--distances",
+                *[str(distance) for distance in args.distances],
+                "--rounds",
+                *[str(round_value) for round_value in args.rounds],
+                "--input-dir",
+                str(args.results_copy_dir),
+                "--output-dir",
+                str(args.plots_output_dir),
+            ]
+            if args.decoder_max_bond_dimension is not None:
+                command.extend(
+                    [
+                        "--decoder-max-bond-dimension",
+                        str(args.decoder_max_bond_dimension),
+                    ]
+                )
+            _run(command)
         if args.plot_all_fidelities:
-            _run(
-                [
-                    sys.executable,
-                    str(args.scripts_dir / "plot_all_fidelities_from_csv.py"),
-                    "--code-family",
-                    args.code_family,
-                    "--prep-mode",
-                    args.prep_mode,
-                    "--p-spam",
-                    str(args.p_spam),
-                    "--recovery-mode",
-                    args.recovery_mode,
-                    "--correction-mode",
-                    args.correction_mode,
-                    "--distances",
-                    *[str(distance) for distance in args.distances],
-                    "--noise-models",
-                    *args.noise_models,
-                    "--rounds",
-                    *[str(round_value) for round_value in args.rounds],
-                    "--input-dir",
-                    str(args.results_copy_dir),
-                    "--output-dir",
-                    str(args.plots_output_dir),
-                ]
-            )
+            command = [
+                sys.executable,
+                str(args.scripts_dir / "plot_all_fidelities_from_csv.py"),
+                "--code-family",
+                args.code_family,
+                "--prep-mode",
+                args.prep_mode,
+                "--p-spam",
+                str(args.p_spam),
+                "--recovery-mode",
+                args.recovery_mode,
+                "--correction-mode",
+                args.correction_mode,
+                "--decoder-mode",
+                args.decoder_mode,
+                "--distances",
+                *[str(distance) for distance in args.distances],
+                "--noise-models",
+                *args.noise_models,
+                "--rounds",
+                *[str(round_value) for round_value in args.rounds],
+                "--input-dir",
+                str(args.results_copy_dir),
+                "--output-dir",
+                str(args.plots_output_dir),
+            ]
+            if args.decoder_max_bond_dimension is not None:
+                command.extend(
+                    [
+                        "--decoder-max-bond-dimension",
+                        str(args.decoder_max_bond_dimension),
+                    ]
+                )
+            _run(command)
         plots_marker.write_text(
             time.strftime("%Y-%m-%dT%H:%M:%SZ\n", time.gmtime()),
             encoding="utf-8",
