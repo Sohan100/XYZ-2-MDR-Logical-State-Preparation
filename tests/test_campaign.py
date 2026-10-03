@@ -85,6 +85,12 @@ def test_progress_and_finished(tmp_path):
     assert not campaign.finished(t, prog["a"])
     prog["a"][2] = 50.0
     assert campaign.finished(t, prog["a"])
+    # a worker that stopped at its budget wrote "done", even if the rounded seconds fall short
+    with open(f, "a", newline="") as fh:
+        fh.write("\n")
+        csv.writer(fh).writerow(["sd6", 0.004, 3, 3, "frame", "mwpm", 5, 0, 0.0, 0.0, 9.9, "a", "done"])
+    prog = campaign.progress([str(f)])
+    assert prog["a"][2] < 50.0 and prog["a"][3] == "done" and campaign.finished(t, prog["a"])
 
 
 def test_run_and_merge(tmp_path):

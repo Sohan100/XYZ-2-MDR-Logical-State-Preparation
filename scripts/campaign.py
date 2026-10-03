@@ -225,7 +225,7 @@ def read_raw(paths) -> list:
 
 
 def progress(paths) -> dict:
-    """Counts so far per task: {task id: [shots, errors, seconds, note]}."""
+    """Counts so far per task: {task id: [shots, errors, seconds, note]}, note = the failure or "done"."""
     prog = {}
     for r in read_raw(paths):
         tid = r.get("task")
@@ -239,8 +239,13 @@ def progress(paths) -> dict:
         s[0] += shots
         s[1] += errors
         s[2] += secs
-        if (r.get("note") or "").startswith("failed"):
-            s[3] = r["note"]
+        note = r.get("note") or ""
+        if note.startswith("failed"):
+            s[3] = note
+        elif note == "done" and not s[3]:
+            # the worker reached its error target, shot cap or budget (the seconds of its rows are
+            # rounded, so their sum can fall a fraction of a second short of the budget)
+            s[3] = "done"
     return prog
 
 
@@ -483,14 +488,15 @@ def main() -> None:
                 a_[1] += 1
             elif s:
                 a_[2] += 1
-            if s and s[3]:
+            if s and s[3].startswith("failed"):
                 a_[3] += 1
             a_[4] += (s[2] if s else 0.0) / 3600
             a_[5] += t["budget"] / 3600
         print(f"{'decoder':12s} {'tasks':>7s} {'done':>7s} {'partial':>7s} {'failed':>6s} {'core-h used':>12s} {'of at most':>11s}")
         for k, v in tot.items():
             print(f"{k:12s} {v[0]:7d} {v[1]:7d} {v[2]:7d} {v[3]:6d} {v[4]:12.1f} {v[5]:11.1f}")
-        fails = sorted({s[3] for s in prog.values() if s[3]})
+        fails = sorted({prog[t["id"]][3] for t in tasks
+                        if t["id"] in prog and prog[t["id"]][3].startswith("failed")})
         for f in fails[:10]:
             print("  ", f)
 
