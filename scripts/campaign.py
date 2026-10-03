@@ -111,8 +111,9 @@ MEMORY = {"mwpm": (0.4, 1.0), "corr_links": (0.4, 1.2), "corr_gauge": (0.4, 1.2)
 # Peak memory measured on Perlmutter CPU nodes (docs/data/campaign/memory_probe.csv: the largest task of every
 # decoder and noise model at the lowest and highest p of its grid, and CFE-0 from S = 810 to 9702). A batch
 # holds at most BATCH_BITS detector bits, and the fast decoders keep up to 6.2 bytes per sampled bit while
-# they decode it (BATCH_GB adds 8 bytes per bit to their estimate). The decoder construction of CFE-0 takes
-# up to 2.9e-5 GB per fault mechanism (CFE0_GB_PER_MECH = 3.8e-5 with a margin of 1.3).
+# they decode it (BATCH_GB adds 8 bytes per bit to their estimate). The peak of every CFE variant is the
+# decoder construction (degeneracy moves, BP and ldpc's OSD-0, or the fast OSD-CS): up to 2.9e-5 GB per
+# fault mechanism, 9.5 GB at d = 21, r = 21 (CFE0_GB_PER_MECH = 3.8e-5 with a margin of 1.3).
 BATCH_BITS = 25_000_000
 BATCH_GB = 8 * BATCH_BITS / 1e9
 FAST = {"mwpm", "corr_links", "corr_gauge", "seq_match"}
@@ -159,10 +160,8 @@ def memory(decoder: str, d: int, r: str) -> float:
     s = (n_rounds(r, d) + 1) * d * d
     if decoder in ("cfe", "cfe0", "cfe_tn"):
         n = 33.0 * s                       # fault mechanisms of the detector error model
-        if decoder == "cfe0":              # ldpc's OSD-0 decoder: measured, see CFE0_GB_PER_MECH
-            return round(0.6 + CFE0_GB_PER_MECH * n, 2)
-        # degeneracy moves and BP (1.2e-5 n) and the bit-packed OSD-CS matrix (m n / 8, m ~ 1.8 S)
-        return round(0.8 + 1.2e-5 * n + 2.0 * 1.8 * s * n / 8 / 1e9, 2)
+        # decoder construction, measured (see CFE0_GB_PER_MECH); cfe_tn adds the tensor network
+        return round(0.6 + CFE0_GB_PER_MECH * n + (0.2 if decoder == "cfe_tn" else 0.0), 2)
     base, slope = MEMORY[decoder]
     ref = S9 if decoder == "tesseract" else S21
     return round(base + slope * s / ref + (BATCH_GB if decoder in FAST else 0.0), 2)

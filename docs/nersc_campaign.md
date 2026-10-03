@@ -22,7 +22,8 @@ Limits that come from the decoders, not from the campaign:
 - `cfe` is the CFE decoder of the paper. Its OSD-CS step runs through `src/mdr/ft/fast_osd.py`, which gives
   the same decoding as ldpc's `BpOsdDecoder(osd_method="osd_cs", osd_order=10)` (identical outputs in
   `tests/test_tn_decoder.py`) with memory and time that grow slowly, so CFE reaches d = 21 for every r
-  (about a minute per shot and 5 GB at d = 21 with r = 21).
+  (at d = 21 with r = 21 about 10 GB, most of it to build the decoder, and from 15 s per shot at
+  the lowest p to 5 min at the highest; memory measured in `docs/data/campaign/memory_probe.csv`).
 - `cfe_tn` is CFE whose decision is replaced, shot by shot, by the maximum-likelihood decision of a
   tensor-network contraction (`src/mdr/ft/tn_decoder.py`) whenever the bond dimension converges
   (chi doubled from 32 up to 256). The bond dimension needed grows quickly with the number of rounds:

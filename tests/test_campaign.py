@@ -32,7 +32,8 @@ def test_tasks_respect_decoder_limits():
         assert max(t["d"] for t in tasks if t["decoder"] == "cfe" and t["rounds"] == r) == 21
     tn = {r: {t["d"] for t in tasks if t["decoder"] == "cfe_tn" and t["rounds"] == r} for r in ("1", "2", "5", "d")}
     assert max(tn["1"]) == 21 and max(tn["2"]) == 9 and tn["5"] == {3} and tn["d"] == {3}
-    assert all(t["mem"] < 8 for t in tasks if t["decoder"] == "cfe")
+    # the fast CFE needs up to 9.5 GB at d = 21, r = 21 (docs/data/campaign/memory_probe.csv)
+    assert all(t["mem"] < 16 for t in tasks if t["decoder"] == "cfe")
     # replicas share the time budget and the error target of their point
     big = [t for t in tasks if t["decoder"] == "cfe" and t["rounds"] == "d" and t["d"] == 21]
     assert max(t["budget"] for t in tasks) <= 4 * 3600 + 1
