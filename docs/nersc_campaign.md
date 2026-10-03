@@ -92,6 +92,19 @@ All commands run from the repository root on a Perlmutter login node.
    This submits an array of N single-node jobs (`slurm/ft_mdr/run_campaign.sh`) and a job
    (`slurm/ft_mdr/analyze_campaign.sh`) that starts after all of them end. Logs go to `logs/`.
 
+   Fastest turnaround: the wall time cannot drop below the longest task (`--rep-hours`, 4 h by default),
+   so split long points into one-hour replicas before the first submission and use more nodes with a
+   short time limit, which also backfills sooner (about one hour of run time at 384 nodes):
+
+   ```bash
+   python scripts/campaign.py tasks --out data/campaign/tasks.jsonl --rep-hours 1
+   MEM_GB=396 bash slurm/ft_mdr/submit_campaign.sh -A <project> -n 384 -t 02:00:00
+   ```
+
+   `MEM_GB` caps the summed memory estimates of the running tasks of a node (default 85% of it; Slurm allows
+   a job 476 of the 503 GiB). The estimates cover 1.3 times the peaks measured on Perlmutter for the largest
+   task of every decoder and noise model (`docs/data/campaign/memory_probe.csv`).
+
 5. Watch progress:
 
    ```bash

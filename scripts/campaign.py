@@ -108,6 +108,15 @@ BUDGET = {"mwpm": (600, 1.15, 30), "corr_links": (1200, 1.15, 60), "corr_gauge":
 # memory in GB: base + slope * S / S21 (measured on d = 9 to 21 circuits, with margin); CFE: see memory()
 MEMORY = {"mwpm": (0.4, 1.0), "corr_links": (0.4, 1.2), "corr_gauge": (0.4, 1.2), "seq_match": (0.4, 1.2),
           "seq_soft": (0.4, 1.8), "bm": (0.4, 2.0), "tesseract": (0.5, 6.0)}
+# Peak memory measured on Perlmutter CPU nodes (docs/data/campaign/memory_probe.csv: the largest task of every
+# decoder and noise model at the lowest and highest p of its grid, and CFE-0 from S = 810 to 9702). A batch
+# holds at most BATCH_BITS detector bits, and the fast decoders keep up to 6.2 bytes per sampled bit while
+# they decode it (BATCH_GB adds 8 bytes per bit to their estimate). The decoder construction of CFE-0 takes
+# up to 2.9e-5 GB per fault mechanism (CFE0_GB_PER_MECH = 3.8e-5 with a margin of 1.3).
+BATCH_BITS = 25_000_000
+BATCH_GB = 8 * BATCH_BITS / 1e9
+FAST = {"mwpm", "corr_links", "corr_gauge", "seq_match"}
+CFE0_GB_PER_MECH = 3.8e-5
 
 COLS = ["noise", "value", "d", "rounds", "final", "decoder", "shots", "errors", "p_L", "stderr", "seconds"]
 RAW = COLS + ["task", "note"]
@@ -150,11 +159,13 @@ def memory(decoder: str, d: int, r: str) -> float:
     s = (n_rounds(r, d) + 1) * d * d
     if decoder in ("cfe", "cfe0", "cfe_tn"):
         n = 33.0 * s                       # fault mechanisms of the detector error model
+        if decoder == "cfe0":              # ldpc's OSD-0 decoder: measured, see CFE0_GB_PER_MECH
+            return round(0.6 + CFE0_GB_PER_MECH * n, 2)
         # degeneracy moves and BP (1.2e-5 n) and the bit-packed OSD-CS matrix (m n / 8, m ~ 1.8 S)
-        return round(0.8 + 1.2e-5 * n + (2.0 * 1.8 * s * n / 8 / 1e9 if decoder != "cfe0" else 0.0), 2)
+        return round(0.8 + 1.2e-5 * n + 2.0 * 1.8 * s * n / 8 / 1e9, 2)
     base, slope = MEMORY[decoder]
     ref = S9 if decoder == "tesseract" else S21
-    return round(base + slope * s / ref, 2)
+    return round(base + slope * s / ref + (BATCH_GB if decoder in FAST else 0.0), 2)
 
 
 def weight(noise: str, decoder: str, r: str, p: float) -> float:
@@ -262,6 +273,8 @@ def _work(t: dict, prev, q) -> None:
                           final="frame", detectors="combined")
         dec = TwoLevelDecoder(ft, **DEC[t["decoder"]])
         sampler = dec.circuit.compile_detector_sampler()
+        # the memory of a batch must not grow with the decoding speed (see BATCH_BITS)
+        max_size = int(np.clip(BATCH_BITS // max(dec.circuit.num_detectors, 1), 1, 200_000))
     except Exception as exc:  # noqa: BLE001  (e.g. a decoder package missing on this machine)
         q.put(_row(t, 0, 0, time.time() - t0, f"failed: {type(exc).__name__}: {exc}"[:300]))
         return
@@ -279,7 +292,7 @@ def _work(t: dict, prev, q) -> None:
             errors += k
             s_tot += n
             e_tot += k
-            size = int(np.clip(min(4 * n, n * BATCH / dt), 1, 200_000))
+            size = int(np.clip(min(4 * n, n * BATCH / dt), 1, max_size))
             if time.time() - last >= FLUSH:
                 q.put(_row(t, shots, errors, time.time() - last))
                 shots = errors = 0

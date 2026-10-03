@@ -48,6 +48,20 @@ def test_tasks_respect_decoder_limits():
     assert len(again) == len(tasks) - 100
 
 
+def test_memory_covers_measured_peaks():
+    # every peak measured on Perlmutter, with the batch memory of the fast decoders scaled to the
+    # BATCH_BITS cap of the worker, is below the estimate that the runner reserves, with a margin of 1.3
+    with open(ROOT / "docs" / "data" / "campaign" / "memory_probe.csv", newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    assert len(rows) > 100
+    for r in rows:
+        d, peak, setup = int(r["d"]), float(r["peak_gb"]), float(r["setup_gb"])
+        bits = int(r["batch_shots"]) * int(r["detectors"])
+        if r["decoder"] in campaign.FAST and bits > campaign.BATCH_BITS:
+            peak = setup + (peak - setup) * campaign.BATCH_BITS / bits
+        assert campaign.memory(r["decoder"], d, r["rounds"]) >= 1.3 * peak, r
+
+
 def test_progress_and_finished(tmp_path):
     t = dict(id="a", target=10, max_shots=100, budget=50.0)
     f = tmp_path / "points_0.csv"
