@@ -177,7 +177,8 @@ def weight(noise: str, decoder: str, r: str, p: float) -> float:
 
 
 def make_tasks(noises, decoders, rounds, distances, scale=1.0, cfe_scale=1.0, rep_hours=4.0,
-               tn_max_open=TN_MAX_OPEN, exclude=()) -> list:
+               tn_max_open=TN_MAX_OPEN, exclude=(), tn_dmax=None) -> list:
+    """`tn_dmax` ({rounds: largest d}, e.g. {"1": 21, "2": 5}) limits the cfe_tn tasks further."""
     out = []
     for noise in noises:
         for dec in decoders:
@@ -187,6 +188,8 @@ def make_tasks(noises, decoders, rounds, distances, scale=1.0, cfe_scale=1.0, re
                     if d > DMAX.get(dec, 99):
                         continue
                     if dec == "cfe_tn" and (3.5 * n_rounds(r, d) - 1) * d > tn_max_open:
+                        continue
+                    if dec == "cfe_tn" and tn_dmax is not None and d > tn_dmax.get(r, 0):
                         continue
                     b = budget(dec, d, r) * scale * (cfe_scale if dec.startswith("cfe") else 1.0)
                     for p in values:
@@ -415,6 +418,9 @@ def main() -> None:
                    help="make cfe_tn tasks where the tensor-network frontier is at most this wide")
     a.add_argument("--exclude", nargs="*", default=[],
                    help="task files whose task ids are left out (e.g. the first stage)")
+    a.add_argument("--tn-dmax", nargs="+", default=None, metavar="R=D",
+                   help="largest d of the cfe_tn tasks for each number of rounds, e.g. 1=21 2=5 "
+                        "(rounds not listed get none); default: every case within --tn-max-open")
     b = sub.add_parser("run", help="run one chunk of the task list")
     b.add_argument("tasks")
     b.add_argument("out")
@@ -437,7 +443,8 @@ def main() -> None:
         for f in args.exclude:
             excl |= {json.loads(line)["id"] for line in open(f) if line.strip()}
         tasks = make_tasks(args.noises, args.decoders, args.rounds, args.distances,
-                           args.scale, args.cfe_scale, args.rep_hours, args.tn_max_open, excl)
+                           args.scale, args.cfe_scale, args.rep_hours, args.tn_max_open, excl,
+                           None if args.tn_dmax is None else {k: int(v) for k, v in (x.split("=") for x in args.tn_dmax)})
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         with open(args.out, "w") as fh:
             for t in tasks:

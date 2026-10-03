@@ -48,6 +48,14 @@ def test_tasks_respect_decoder_limits():
     assert len(again) == len(tasks) - 100
 
 
+def test_tn_dmax_limits_cfe_tn():
+    tasks = campaign.make_tasks(["sd6"], ["cfe", "cfe_tn"], ["1", "2", "3", "d"], campaign.DISTANCES,
+                                tn_dmax={"1": 21, "2": 5})
+    tn = {r: {t["d"] for t in tasks if t["decoder"] == "cfe_tn" and t["rounds"] == r} for r in ("1", "2", "3", "d")}
+    assert max(tn["1"]) == 21 and max(tn["2"]) == 5 and not tn["3"] and not tn["d"]
+    assert max(t["d"] for t in tasks if t["decoder"] == "cfe" and t["rounds"] == "d") == 21
+
+
 def test_memory_covers_measured_peaks():
     # every peak measured on Perlmutter, with the batch memory of the fast decoders scaled to the
     # BATCH_BITS cap of the worker, is below the estimate that the runner reserves, with a margin of 1.3
