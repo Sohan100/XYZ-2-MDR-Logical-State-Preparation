@@ -22,5 +22,9 @@ cd "${REPO_ROOT}"
 source slurm/ft_mdr/env.sh
 : "${NCHUNKS:?NCHUNKS is not set; submit with slurm/ft_mdr/submit_campaign.sh}"
 TASKS="${TASKS:-data/campaign/tasks.jsonl}"
+# MEM_GB: cap on the summed memory estimates of the running tasks (default 0 = 85% of the node).
+# Slurm gives a job at most MaxMemPerNode = 476 GiB of the node's 503 GiB, so a lower cap (e.g.
+# MEM_GB=396, 75%) leaves room for copy-on-write pages of the forked workers and the runner.
 python scripts/campaign.py run "${TASKS}" "data/campaign/${PREFIX:-points}_${SLURM_ARRAY_TASK_ID}.csv" \
-    --chunk "${SLURM_ARRAY_TASK_ID}" --nchunks "${NCHUNKS}" --workers "${WORKERS:-128}"
+    --chunk "${SLURM_ARRAY_TASK_ID}" --nchunks "${NCHUNKS}" --workers "${WORKERS:-128}" \
+    --mem-gb "${MEM_GB:-0}"
