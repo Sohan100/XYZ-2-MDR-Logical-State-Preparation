@@ -25,24 +25,27 @@ def test_grid_brackets_expected_threshold():
 
 
 def test_tasks_respect_decoder_limits():
-    tasks = campaign.make_tasks(["sd6"], ["tesseract", "cfe", "cfe0"], ["1", "5", "d"], campaign.DISTANCES)
+    tasks = campaign.make_tasks(["sd6"], ["tesseract", "cfe", "cfe_tn"], ["1", "2", "5", "d"], campaign.DISTANCES)
     tess = {t["d"] for t in tasks if t["decoder"] == "tesseract"}
     assert max(tess) == 9
-    cfe_rd = {t["d"] for t in tasks if t["decoder"] == "cfe" and t["rounds"] == "d"}
-    assert max(cfe_rd) == 13
-    cfe_r1 = {t["d"] for t in tasks if t["decoder"] == "cfe" and t["rounds"] == "1"}
-    assert max(cfe_r1) == 21
-    cfe0 = {t["d"] for t in tasks if t["decoder"] == "cfe0" and t["rounds"] == "d"}
-    assert max(cfe0) == 21
-    assert all(t["mem"] <= campaign.CFE_MAX_GB for t in tasks if t["decoder"] == "cfe")
+    for r in ("1", "5", "d"):
+        assert max(t["d"] for t in tasks if t["decoder"] == "cfe" and t["rounds"] == r) == 21
+    tn = {r: {t["d"] for t in tasks if t["decoder"] == "cfe_tn" and t["rounds"] == r} for r in ("1", "2", "5", "d")}
+    assert max(tn["1"]) == 21 and max(tn["2"]) == 9 and tn["5"] == {3} and tn["d"] == {3}
+    assert all(t["mem"] < 8 for t in tasks if t["decoder"] == "cfe")
     # replicas share the time budget and the error target of their point
-    big = [t for t in tasks if t["decoder"] == "cfe0" and t["rounds"] == "d" and t["d"] == 21]
+    big = [t for t in tasks if t["decoder"] == "cfe" and t["rounds"] == "d" and t["d"] == 21]
     assert max(t["budget"] for t in tasks) <= 4 * 3600 + 1
     reps = {}
     for t in big:
         reps.setdefault(t["id"].rsplit("|", 1)[0], []).append(t)
     assert any(len(v) > 1 for v in reps.values())
     assert len({t["id"] for t in tasks}) == len(tasks)
+    # a second stage leaves out the tasks of the first
+    first = {t["id"] for t in tasks[:100]}
+    again = campaign.make_tasks(["sd6"], ["tesseract", "cfe", "cfe_tn"], ["1", "2", "5", "d"], campaign.DISTANCES,
+                                exclude=first)
+    assert len(again) == len(tasks) - 100
 
 
 def test_progress_and_finished(tmp_path):
@@ -90,7 +93,7 @@ def test_task_file_roundtrip(tmp_path):
     assert back == tasks
 
 
-@pytest.mark.parametrize("decoder", ["cfe", "cfe0"])
+@pytest.mark.parametrize("decoder", ["cfe", "cfe0", "cfe_tn"])
 def test_cfe_variants_decode(decoder):
     import numpy as np
     import sys
@@ -101,7 +104,8 @@ def test_cfe_variants_decode(decoder):
     from mdr.ft.two_level_decoder import TwoLevelDecoder
     from run_decoder_threshold_sweep import DECODERS, NOISE
 
-    ft = FTMDRCircuit(3, 3, NOISE["sd6"](3e-3), final="frame", detectors="combined")
+    rounds = 1 if decoder == "cfe_tn" else 3
+    ft = FTMDRCircuit(3, rounds, NOISE["sd6"](3e-3), final="frame", detectors="combined")
     dec = TwoLevelDecoder(ft, **DECODERS[decoder])
     dets, obs = dec.circuit.compile_detector_sampler(seed=1).sample(200, separate_observables=True)
     fails = int(np.sum(np.any(dec.decode_batch(dets) != obs, axis=1)))

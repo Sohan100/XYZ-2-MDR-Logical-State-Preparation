@@ -54,8 +54,14 @@ DECODERS = {
     "bp_corr": dict(mode="bp_corr", bp_method="product_sum", bp_iters=10),
     "tesseract": dict(mode="tesseract"),
     "cfe": dict(mode="cfe", kappa=0.5, osd_order=10, bp_iters=30),
-    # CFE without the combination sweep: scales to d = 21 (see coset_decoder.py)
+    # CFE without the combination sweep (weaker than CFE under bias; kept for comparison)
     "cfe0": dict(mode="cfe", kappa=0.5, osd_order=0, bp_iters=30, osd_method="osd0"),
+    # maximum likelihood by a tensor-network sweep (exact once the bond dimension converges)
+    "tnml": dict(mode="tnml", chi=32, chi_max=256),
+    # CFE whose decision is replaced by the converged tensor network where the network is
+    # narrow enough (r = 1 up to d = 21, r = 2 up to d ~ 9, r = d at d = 3)
+    "cfe_tn": dict(mode="cfe_tn", kappa=0.5, osd_order=10, bp_iters=30, chi=32, chi_max=256,
+                   tn_max_open=60),
 }
 
 
@@ -99,7 +105,7 @@ def main() -> None:
                         continue
                     t0 = time.time()
                     dec = TwoLevelDecoder(ft, **DECODERS[name])
-                    slow = name in ("seq_soft", "seq_match", "bp_full", "bm",
+                    slow = name in ("seq_soft", "seq_match", "bp_full", "bm", "tnml", "cfe_tn",
                                     "tesseract", "cfe")
                     batch = args.batch or (500 if slow else 20000)
                     est = dec.estimate(max_shots=args.max_shots,

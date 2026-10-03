@@ -60,16 +60,18 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 NOISES = ["sd6", "si1000", "biased10", "biased100", "purez", "em3",
           "helios_p", "h2_p", "helios_p_noxt", "h2_p_noxt"]
-DECODERS = ["mwpm", "corr_links", "corr_gauge", "seq_soft", "seq_match", "bm", "tesseract", "cfe", "cfe0"]
+DECODERS = ["mwpm", "corr_links", "corr_gauge", "seq_soft", "seq_match", "bm", "tesseract", "cfe", "cfe_tn"]
 ROUNDS = ["1", "2", "3", "4", "5", "6", "8", "10", "d"]
 DISTANCES = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21]
 # Tesseract's beam search grows too fast with the circuit beyond d = 9.
 DMAX = {"tesseract": 9}
-# CFE with the combination sweep of ldpc (OSD-CS) stores one candidate string per information bit,
-# so its memory grows as the square of the number of fault mechanisms (two BP-OSD decoders of about
-# (33 S)^2 bytes each, S = (r + 1) d^2). Its points are kept up to CFE_MAX_GB per process: d <= 13 for
-# r = d and d = 21 for r <= 5. CFE-0 (OSD-0 candidates, same descent and free energy) runs everywhere.
-CFE_MAX_GB = 16.0
+# CFE runs ldpc's OSD-CS decoding through src/mdr/ft/fast_osd.py (same decoding, memory and time
+# that grow slowly), so it reaches d = 21 for every r. cfe_tn replaces the CFE decision by the
+# converged tensor-network maximum-likelihood decision where the sweep frontier has at most
+# TN_MAX_OPEN detectors; the frontier holds about (3.5 r - 1) d detectors, so cfe_tn tasks are made
+# only where that estimate is below the limit (r = 1 up to d = 21, r = 2 up to d = 9, r = 3 at d = 5,
+# r <= 6 and r = d at d = 3). The decoder checks the real width and falls back to CFE above it.
+TN_MAX_OPEN = 60
 
 # Threshold of matching for r = d at large d, and the ratio of the threshold for r rounds to that for
 # r = d (SD6, matching). Used only to centre the grids.
@@ -84,24 +86,25 @@ _G = {
     "bm": dict(sd6=1.28, si1000=1.25, biased10=1.76, biased100=1.89, purez=1.85, em3=1.3),
 }
 _G_DEFAULT = {"mwpm": 1.0, "corr_links": 1.18, "corr_gauge": 1.2, "seq_soft": 1.05, "seq_match": 0.9, "bm": 1.3}
-_G["tesseract"] = _G["cfe"] = _G["cfe0"] = _G["bm"]
-_G_DEFAULT["tesseract"] = _G_DEFAULT["cfe"] = _G_DEFAULT["cfe0"] = 1.3
+_G["tesseract"] = _G["cfe"] = _G["cfe0"] = _G["cfe_tn"] = _G["bm"]
+_G_DEFAULT["tesseract"] = _G_DEFAULT["cfe"] = _G_DEFAULT["cfe0"] = _G_DEFAULT["cfe_tn"] = 1.3
 # The crosstalk models have no threshold: the crossings of consecutive distances drift to small p.
 XT_RANGE = {"helios_p": (6e-5, 3e-3), "h2_p": (5e-4, 6e-3)}
 
 STEP = 4.0 ** (1 / 13)
 KRANGE = {"wide": range(-7, 7), "narrow": range(-5, 5)}
-SLOW = {"seq_soft", "bm", "tesseract", "cfe", "cfe0"}
+SLOW = {"seq_soft", "bm", "tesseract", "cfe", "cfe0", "cfe_tn"}
 
 TARGET = {"mwpm": 500, "corr_links": 400, "corr_gauge": 400, "seq_soft": 250, "seq_match": 300,
-          "bm": 250, "tesseract": 150, "cfe": 120, "cfe0": 150}
+          "bm": 250, "tesseract": 150, "cfe": 200, "cfe0": 150, "cfe_tn": 200}
 MAX_SHOTS = 2_000_000
 S21 = 22 * 21 * 21
 S9 = 10 * 9 * 9
 # budget in seconds at S21 (S9 for Tesseract), exponent, smallest budget
 BUDGET = {"mwpm": (600, 1.15, 30), "corr_links": (1200, 1.15, 60), "corr_gauge": (1800, 1.15, 60),
           "seq_match": (1800, 1.1, 60), "seq_soft": (5400, 1.1, 120), "bm": (5400, 1.1, 120),
-          "tesseract": (7200, 2.0, 120), "cfe": (100_000, 1.5, 300), "cfe0": (60_000, 1.4, 300)}
+          "tesseract": (7200, 2.0, 120), "cfe": (60_000, 1.3, 300), "cfe0": (60_000, 1.4, 300),
+          "cfe_tn": (150_000, 1.0, 600)}
 # memory in GB: base + slope * S / S21 (measured on d = 9 to 21 circuits, with margin); CFE: see memory()
 MEMORY = {"mwpm": (0.4, 1.0), "corr_links": (0.4, 1.2), "corr_gauge": (0.4, 1.2), "seq_match": (0.4, 1.2),
           "seq_soft": (0.4, 1.8), "bm": (0.4, 2.0), "tesseract": (0.5, 6.0)}
@@ -145,10 +148,10 @@ def budget(decoder: str, d: int, r: str) -> float:
 
 def memory(decoder: str, d: int, r: str) -> float:
     s = (n_rounds(r, d) + 1) * d * d
-    if decoder in ("cfe", "cfe0"):
+    if decoder in ("cfe", "cfe0", "cfe_tn"):
         n = 33.0 * s                       # fault mechanisms of the detector error model
-        osd = 2 * (0.94 * n) ** 2 / 1e9 if decoder == "cfe" else 0.0
-        return round(0.6 + 1.6e-5 * n + osd, 2)
+        # degeneracy moves and BP (1.2e-5 n) and the bit-packed OSD-CS matrix (m n / 8, m ~ 1.8 S)
+        return round(0.8 + 1.2e-5 * n + (2.0 * 1.8 * s * n / 8 / 1e9 if decoder != "cfe0" else 0.0), 2)
     base, slope = MEMORY[decoder]
     ref = S9 if decoder == "tesseract" else S21
     return round(base + slope * s / ref, 2)
@@ -163,7 +166,7 @@ def weight(noise: str, decoder: str, r: str, p: float) -> float:
 
 
 def make_tasks(noises, decoders, rounds, distances, scale=1.0, cfe_scale=1.0, rep_hours=4.0,
-               cfe_max_gb=CFE_MAX_GB) -> list:
+               tn_max_open=TN_MAX_OPEN, exclude=()) -> list:
     out = []
     for noise in noises:
         for dec in decoders:
@@ -172,13 +175,15 @@ def make_tasks(noises, decoders, rounds, distances, scale=1.0, cfe_scale=1.0, re
                 for d in distances:
                     if d > DMAX.get(dec, 99):
                         continue
-                    if dec == "cfe" and memory(dec, d, r) > cfe_max_gb:
+                    if dec == "cfe_tn" and (3.5 * n_rounds(r, d) - 1) * d > tn_max_open:
                         continue
-                    b = budget(dec, d, r) * scale * (cfe_scale if dec == "cfe" else 1.0)
+                    b = budget(dec, d, r) * scale * (cfe_scale if dec.startswith("cfe") else 1.0)
                     for p in values:
                         bp = max(BUDGET[dec][2], b * weight(noise, dec, r, p))
                         nrep = max(1, math.ceil(bp / (3600.0 * rep_hours)))
                         for i in range(nrep):
+                            if f"{noise}|{dec}|r{r}|d{d}|p{p:.4g}|{i}" in exclude:
+                                continue
                             out.append(dict(
                                 id=f"{noise}|{dec}|r{r}|d{d}|p{p:.4g}|{i}", noise=noise, decoder=dec, rounds=r, d=d,
                                 value=p, target=math.ceil(TARGET[dec] / nrep), max_shots=math.ceil(MAX_SHOTS / nrep),
@@ -393,9 +398,10 @@ def main() -> None:
     a.add_argument("--scale", type=float, default=1.0, help="multiply every time budget")
     a.add_argument("--cfe-scale", type=float, default=1.0, help="multiply the CFE time budgets")
     a.add_argument("--rep-hours", type=float, default=4.0, help="longest task; longer points become replicas")
-    a.add_argument("--cfe-max-gb", type=float, default=CFE_MAX_GB,
-                   help="largest memory of a CFE (OSD-CS) process; 100 includes d = 21 with r = d (~80 GB, "
-                        "~30 min per shot)")
+    a.add_argument("--tn-max-open", type=int, default=TN_MAX_OPEN,
+                   help="make cfe_tn tasks where the tensor-network frontier is at most this wide")
+    a.add_argument("--exclude", nargs="*", default=[],
+                   help="task files whose task ids are left out (e.g. the first stage)")
     b = sub.add_parser("run", help="run one chunk of the task list")
     b.add_argument("tasks")
     b.add_argument("out")
@@ -414,8 +420,11 @@ def main() -> None:
     args = ap.parse_args()
 
     if args.cmd == "tasks":
+        excl = set()
+        for f in args.exclude:
+            excl |= {json.loads(line)["id"] for line in open(f) if line.strip()}
         tasks = make_tasks(args.noises, args.decoders, args.rounds, args.distances,
-                           args.scale, args.cfe_scale, args.rep_hours, args.cfe_max_gb)
+                           args.scale, args.cfe_scale, args.rep_hours, args.tn_max_open, excl)
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         with open(args.out, "w") as fh:
             for t in tasks:

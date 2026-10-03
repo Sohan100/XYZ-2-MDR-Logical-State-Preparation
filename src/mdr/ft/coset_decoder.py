@@ -228,17 +228,18 @@ class CosetFreeEnergyDecoder:
     probabilities for a second, guided BP-OSD run.
     gate : float or None If set, the guided run is skipped when the free
     energies of the unguided candidates already differ by more than `gate`.
-    osd_method : str "osd_cs" (combination sweep, default) or "osd0". The
-    combination sweep of ldpc flips every information bit once and stores
-    one candidate string per information bit, so its memory grows as the
-    square of the number of fault mechanisms (about 0.5 GB at d = 9 with
-    r = 9 and 80 GB at d = 21 with r = 21). OSD-0 keeps only the
-    elimination.
+    osd_method : str "osd_cs" (combination sweep, default) or "osd0" (no sweep).
+    osd_impl : str "fast" (default) computes ldpc's OSD-CS decoding with
+    `fast_osd.FastBpOsd`, which scores all candidates with one back-substitution;
+    "ldpc" calls ldpc's BpOsdDecoder, whose candidate table needs memory that
+    grows as the square of the number of fault mechanisms (about 0.5 GB at
+    d = 9 and 80 GB at d = 21 with r = d). Both give the same decoding.
     """
 
     def __init__(self, H, mech_keys, priors, kappa: float = 0.5,
                  osd_order: int = 10, bp_iters: int = 30, guide=None,
-                 gate: float | None = None, osd_method: str = "osd_cs") -> None:
+                 gate: float | None = None, osd_method: str = "osd_cs",
+                 osd_impl: str = "fast") -> None:
         from ldpc import BpOsdDecoder
 
         self.kappa = float(kappa)
@@ -253,7 +254,12 @@ class CosetFreeEnergyDecoder:
                 L[0, j] = 1
         self.L = L[0].astype(bool)
         Haug = sp.vstack([sp.csr_matrix(H), sp.csr_matrix(L)]).tocsc()
+
         def make():
+            if osd_method == "osd_cs" and osd_impl == "fast":
+                # same decoding as ldpc's OSD-CS, without its k^2 candidate table
+                from .fast_osd import FastBpOsd
+                return FastBpOsd(Haug, priors, bp_iters=bp_iters, order=osd_order)
             return BpOsdDecoder(Haug.astype(np.uint8), error_channel=list(priors),
                                 max_iter=bp_iters, bp_method="product_sum",
                                 osd_method=osd_method,

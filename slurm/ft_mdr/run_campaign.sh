@@ -22,5 +22,5 @@ cd "${REPO_ROOT}"
 source slurm/ft_mdr/env.sh
 : "${NCHUNKS:?NCHUNKS is not set; submit with slurm/ft_mdr/submit_campaign.sh}"
 TASKS="${TASKS:-data/campaign/tasks.jsonl}"
-python scripts/campaign.py run "${TASKS}" "data/campaign/points_${SLURM_ARRAY_TASK_ID}.csv" \
+python scripts/campaign.py run "${TASKS}" "data/campaign/${PREFIX:-points}_${SLURM_ARRAY_TASK_ID}.csv" \
     --chunk "${SLURM_ARRAY_TASK_ID}" --nchunks "${NCHUNKS}" --workers "${WORKERS:-128}"

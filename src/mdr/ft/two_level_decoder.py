@@ -60,14 +60,16 @@ class TwoLevelDecoder:
     """
 
     MODES = ("mwpm", "seq_soft", "seq_erasure", "seq_match", "bp_full",
-             "corr_split", "bp_corr", "tesseract", "cfe")
+             "corr_split", "bp_corr", "tesseract", "cfe", "tnml", "cfe_tn")
 
     def __init__(self, ft: FTMDRCircuit, mode: str = "bp_full",
                  bp_iters: int = 30, erasure_threshold: float = 0.2,
                  bp_method: str = "product_sum", lower: str = "gauge",
                  kappa: float = 0.5, osd_order: int = 10,
                  cfe_guided: bool = True, cfe_gate: Optional[float] = None,
-                 osd_method: str = "osd_cs") -> None:
+                 osd_method: str = "osd_cs", osd_impl: str = "fast",
+                 chi: int = 32, chi_max: int = 256, tn_tol: float = 0.05,
+                 tn_max_open: int = 64) -> None:
         if ft.detectors != "combined":
             raise ValueError("TwoLevelDecoder needs detectors='combined'.")
         if mode not in self.MODES:
@@ -81,6 +83,9 @@ class TwoLevelDecoder:
         self.kappa = kappa
         self.osd_order = osd_order
         self.osd_method = osd_method
+        self.osd_impl = osd_impl
+        self.chi, self.chi_max, self.tn_tol, self.tn_max_open = chi, chi_max, tn_tol, tn_max_open
+        self.tn_used = 0          # shots decided by the converged tensor network (cfe_tn)
         self.cfe_guided = cfe_guided
         self.cfe_gate = cfe_gate
         self.erasure_threshold = erasure_threshold
@@ -245,7 +250,15 @@ class TwoLevelDecoder:
             self._bp = BpDecoder(H.tocsc(), error_channel=list(self.priors),
                                  max_iter=self.bp_iters, bp_method=bp_method,
                                  input_vector_type="syndrome")
-        if self.mode == "cfe":
+        if self.mode in ("tnml", "cfe_tn"):
+            from .tn_decoder import TensorNetworkDecoder, detector_positions
+
+            pos = detector_positions(self.ft, self.circuit)
+            self._tn = TensorNetworkDecoder([k[0] for k in self.mech_keys],
+                                            [0 in k[1] for k in self.mech_keys],
+                                            self.priors, pos, chi=self.chi)
+            self.tn_width = self._tn.sched.max_open
+        if self.mode in ("cfe", "cfe_tn"):
             from .coset_decoder import CosetFreeEnergyDecoder
 
             guide = None
@@ -277,7 +290,7 @@ class TwoLevelDecoder:
             self._cfe = CosetFreeEnergyDecoder(
                 self.H_full, self.mech_keys, self.priors, kappa=self.kappa,
                 osd_order=self.osd_order, bp_iters=self.bp_iters, guide=guide,
-                gate=self.cfe_gate, osd_method=self.osd_method)
+                gate=self.cfe_gate, osd_method=self.osd_method, osd_impl=self.osd_impl)
         if self.mode == "tesseract":
             import tesseract_decoder.tesseract as tesseract
 
@@ -453,6 +466,8 @@ class TwoLevelDecoder:
                               dtype=bool)
         if self.mode == "cfe":
             return self._cfe.decode_batch(dets)
+        if self.mode in ("tnml", "cfe_tn"):
+            return self._decode_tn(dets)
         if self.mode == "corr_split":
             d2 = dets if self.lower == "gauge" else dets * self._lower_mask
             return np.asarray(self._corr.decode_batch(
@@ -545,6 +560,52 @@ class TwoLevelDecoder:
             cached = 1.0 / (1.0 + np.exp(llr))
             self._quiet_q = cached
         return cached
+
+    def tn_shot(self, det_row: np.ndarray):
+        """
+        Tensor-network decision of one shot with a converged bond dimension.
+
+        Starts at `chi` and doubles until the truncated weight is below 1e-9 or the
+        free-energy difference changes by less than `tn_tol` between chi/2 and chi,
+        up to `chi_max`. Returns (decision, ln Z_1 - ln Z_0, converged).
+        """
+        chi = self.chi
+        prev = None
+        while True:
+            l0, l1, disc = self._tn.log_z(det_row, chi=chi)
+            df = l1 - l0
+            if disc < 1e-9 or (prev is not None and abs(df - prev) < self.tn_tol
+                               and (df > 0) == (prev > 0)):
+                return int(df > 0), df, True
+            if chi >= self.chi_max:
+                return int(df > 0), df, False
+            prev = df
+            chi *= 2
+
+    def _decode_tn(self, dets: np.ndarray) -> np.ndarray:
+        """
+        ``tnml``: maximum likelihood by the tensor network (approximate when the bond
+        dimension does not converge, counted in `tn_unconverged`).
+        ``cfe_tn``: the converged tensor network where its frontier has at most
+        `tn_max_open` detectors, the CFE decoder otherwise; `tn_used` counts the shots
+        decided by the tensor network.
+        """
+        dets = np.asarray(dets, dtype=np.uint8)
+        out = np.zeros((dets.shape[0], 1), dtype=bool)
+        use_tn = self.mode == "tnml" or self.tn_width <= self.tn_max_open
+        for s in range(dets.shape[0]):
+            row = dets[s]
+            if use_tn:
+                bit, _, ok = self.tn_shot(row)
+                if ok or self.mode == "tnml":
+                    out[s, 0] = bool(bit)
+                    if ok:
+                        self.tn_used += 1
+                    else:
+                        self.tn_unconverged = getattr(self, "tn_unconverged", 0) + 1
+                    continue
+            out[s, 0] = bool(self._cfe.decode_shot(row)[0])
+        return out
 
     def estimate(self, max_shots: int = 100_000, max_errors: int = 500,
                  batch: int = 2000, seed: Optional[int] = None,

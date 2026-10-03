@@ -58,14 +58,15 @@ NOISES = ["sd6", "si1000", "biased10", "biased100", "purez", "em3",
 NOISE_LAB = {"sd6": "SD6", "si1000": "SI1000", "biased10": r"Biased, $\eta=10$", "biased100": r"Biased, $\eta=100$",
              "purez": r"Pure $Z$", "em3": "EM3", "helios_p": "Helios", "h2_p": "H2",
              "helios_p_noxt": "Helios, no crosstalk", "h2_p_noxt": "H2, no crosstalk"}
-DECODERS = ["mwpm", "corr_links", "corr_gauge", "seq_match", "seq_soft", "bm", "tesseract", "cfe", "cfe0"]
+DECODERS = ["mwpm", "corr_links", "corr_gauge", "seq_match", "seq_soft", "bm", "tesseract", "cfe", "cfe0", "cfe_tn"]
 DEC_LAB = {"mwpm": "MWPM", "corr_links": "HCM, links", "corr_gauge": "HCM", "seq_match": "Erasure passing",
            "seq_soft": "Sequential BP", "bm": "Belief-matching", "tesseract": "Tesseract", "cfe": "CFE",
-           "cfe0": "CFE-0"}
+           "cfe0": "CFE-0", "cfe_tn": "CFE + TN"}
 DEC_COL = {"mwpm": "#F97316", "corr_links": "#C026D3", "corr_gauge": "#E11D48", "seq_match": "#EAB308",
-           "seq_soft": "#EC4899", "bm": "#7C3AED", "tesseract": "#1C1917", "cfe": "#4C1D95", "cfe0": "#9F1239"}
+           "seq_soft": "#EC4899", "bm": "#7C3AED", "tesseract": "#1C1917", "cfe": "#4C1D95", "cfe0": "#9F1239",
+           "cfe_tn": "#B45309"}
 DEC_MARK = {"mwpm": "o", "corr_links": "^", "corr_gauge": "s", "seq_match": "x", "seq_soft": "v", "bm": "D",
-            "tesseract": "*", "cfe": "P", "cfe0": "p"}
+            "tesseract": "*", "cfe": "P", "cfe0": "p", "cfe_tn": "h"}
 RKEYS = ["1", "2", "3", "4", "5", "6", "8", "10", "d"]
 DISTS = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21]
 DCOL = dict(zip(DISTS, ["#FBBF24", "#F59E0B", "#F97316", "#EF4444", "#E11D48", "#EC4899", "#D946EF",

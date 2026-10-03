@@ -11,7 +11,7 @@ or Claude Code on a login node can follow it step by step.
 | | values |
 |---|---|
 | noise models | `sd6`, `si1000`, `biased10`, `biased100`, `purez`, `em3`, `helios_p`, `h2_p`, `helios_p_noxt`, `h2_p_noxt` |
-| decoders | `mwpm`, `corr_links`, `corr_gauge` (HCM), `seq_soft`, `seq_match`, `bm` (belief-matching), `tesseract`, `cfe`, `cfe0` |
+| decoders | `mwpm`, `corr_links`, `corr_gauge` (HCM), `seq_soft`, `seq_match`, `bm` (belief-matching), `tesseract`, `cfe`, `cfe_tn` |
 | rounds r | 1, 2, 3, 4, 5, 6, 8, 10 and r = d |
 | distances | 3, 5, ..., 21 |
 | p | 14 values (10 for the slow decoders) on a geometric grid around the expected threshold |
@@ -19,11 +19,17 @@ or Claude Code on a login node can follow it step by step.
 Limits that come from the decoders, not from the campaign:
 
 - Tesseract stops at d = 9: its beam search grows too fast beyond.
-- CFE with the combination sweep (`cfe`, the decoder of the paper) stores one candidate string per information
-  bit, so a process needs about 2 (33 S)^2 bytes with S = (r + 1) d^2: 0.5 GB at d = 9 with r = 9 and 80 GB at
-  d = 21 with r = 21. The campaign keeps `cfe` up to 16 GB per process, that is d <= 13 for r = d and d = 21 for
-  r <= 5. `cfe0` is the same decoder with OSD-0 candidates (no combination sweep). It runs every case up to
-  d = 21, at about a minute per shot for d = 21, r = 21.
+- `cfe` is the CFE decoder of the paper. Its OSD-CS step runs through `src/mdr/ft/fast_osd.py`, which gives
+  the same decoding as ldpc's `BpOsdDecoder(osd_method="osd_cs", osd_order=10)` (identical outputs in
+  `tests/test_tn_decoder.py`) with memory and time that grow slowly, so CFE reaches d = 21 for every r
+  (about a minute per shot and 5 GB at d = 21 with r = 21).
+- `cfe_tn` is CFE whose decision is replaced, shot by shot, by the maximum-likelihood decision of a
+  tensor-network contraction (`src/mdr/ft/tn_decoder.py`) whenever the bond dimension converges
+  (chi doubled from 32 up to 256). The bond dimension needed grows quickly with the number of rounds:
+  r = 1 converges with chi = 32 up to d = 21 (about 7 s per shot at d = 21), r = 2 with chi = 64 at d = 3,
+  while r = 3 at d = 3 is not converged at chi = 32 and takes minutes per shot at chi = 256. The campaign
+  makes `cfe_tn` tasks for r = 1 at every d and r = 2 up to d = 5 (`--tn-dmax 1=21 2=5`); elsewhere the
+  best decoder is `cfe`. `TwoLevelDecoder.tn_used` counts the shots decided by the network.
 
 Each task stops at a target number of logical errors, a maximum number of shots or a time budget. Budgets grow
 with the circuit size, and points far below the expected threshold get less time. Points whose budget exceeds
@@ -31,10 +37,24 @@ four hours are split into replicas with independent seeds. A task writes its cou
 `data/campaign/points_<chunk>.csv` every five minutes, so a job that hits its time limit loses at most five
 minutes per task, and the next submission continues where it stopped.
 
-`scripts/campaign.py tasks` prints an upper bound of the cost (every task using its whole budget): about
-22,000 core-hours, or 175 node-hours at 128 cores per node, of which CFE-0 and CFE are about 75%. Most tasks
-stop early on their error target, so expect roughly half of that. `--scale` multiplies every budget and
-`--cfe-scale` the CFE budgets, if the allocation is tight.
+`scripts/campaign.py tasks` prints an upper bound of the cost (every task using its whole budget), about
+20,000 core-hours (160 node-hours at 128 cores per node) for the whole list. Most tasks stop early on their
+error target, so expect roughly half of that. `--scale` multiplies every budget and `--cfe-scale` the CFE
+budgets, if the allocation is tight.
+
+### Second stage (fast CFE and CFE + TN)
+
+A campaign started before the fast CFE and the tensor network were added (commit 5e3ea41) ran `cfe` only up
+to 16 GB per process (or with ldpc's slow OSD-CS) and had no `cfe_tn`. Its finished tasks stay valid: the
+fast OSD-CS gives the same decoding. The second stage adds the rest without repeating any task:
+
+```bash
+python scripts/campaign.py tasks --out data/campaign/tasks2.jsonl --decoders cfe cfe_tn \
+    --exclude data/campaign/tasks.jsonl
+bash slurm/ft_mdr/submit_campaign.sh -A <project> -n 24 -T data/campaign/tasks2.jsonl -P points_s2
+```
+
+Resubmitting the first stage after `git pull` runs its remaining `cfe` tasks with the fast OSD-CS.
 
 ## Steps
 

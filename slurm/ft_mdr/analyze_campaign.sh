@@ -19,6 +19,9 @@ cd "${REPO_ROOT}"
 source slurm/ft_mdr/env.sh
 mkdir -p docs/data/campaign
 python scripts/campaign.py merge "data/campaign/points_*.csv" --out docs/data/campaign/points.csv
-python scripts/campaign.py status data/campaign/tasks.jsonl "data/campaign/points_*.csv" \
-    | tee docs/data/campaign/status.txt
+: > docs/data/campaign/status.txt
+for T in data/campaign/tasks*.jsonl; do
+    echo "== ${T}" | tee -a docs/data/campaign/status.txt
+    python scripts/campaign.py status "${T}" "data/campaign/points_*.csv" | tee -a docs/data/campaign/status.txt
+done
 python paper/analysis/campaign_report.py --workers "${REPORT_WORKERS:-64}"

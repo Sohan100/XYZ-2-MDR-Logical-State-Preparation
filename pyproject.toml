@@ -27,6 +27,7 @@ dev = [
 ]
 decoders = [
   "ldpc>=2.0",
+  "numba>=0.58",
   "tesseract-decoder",
 ]
 
