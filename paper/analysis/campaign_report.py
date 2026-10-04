@@ -27,7 +27,8 @@ FIGURES
   thr_<noise>_<decoder>.pdf   p_L against p for every r (3 x 3 panels) and every distance
   rounds_<noise>.pdf          threshold against the number of rounds for every decoder
   crossings_<noise>.pdf       crossings of consecutive distances against distance (r = 1 and r = d)
-  fig_thr_<decoder>.pdf       paper style, r = d, one panel per noise model, d = 3 to 21
+  fig_thr_<decoder>.pdf       paper style, r = d, one panel per noise model, d = 3 to 21 (r = 1 for a
+                              decoder without any r = d threshold, i.e. CFE + TN)
   summary.pdf                 thresholds of every decoder and noise model for r = 1 and r = d
 """
 from __future__ import annotations
@@ -304,7 +305,7 @@ def fig_noise_decoder(df, th, noise, dec, out):
     for ax, rk in zip(axes.flat, RKEYS):
         g = sub[sub.rkey == rk]
         t = th[(th.noise == noise) & (th.decoder == dec) & (th.rounds == rk)]
-        if g.empty:
+        if g.empty or not (g.errors >= 3).any():
             ax.set_visible(False)
             continue
         pth = float(t.pth.iloc[0]) if not t.empty else np.nan
@@ -388,15 +389,15 @@ PAPER_NOISES = ["sd6", "si1000", "biased10", "biased100", "purez", "em3"]
 HW_NOISES = ["helios_p_noxt", "h2_p_noxt", "helios_p", "h2_p"]
 
 
-def fig_paper(df, th, dec, noises, name, out, lo=0.7, hi=1.4):
+def fig_paper(df, th, dec, noises, name, out, lo=0.7, hi=1.4, rkey="d"):
     plt = PLT
     ncol = 3
     nrow = math.ceil(len(noises) / ncol)
     fig, axes = plt.subplots(nrow, ncol, figsize=(FULL, 2.15 * nrow + 0.4), squeeze=False)
     any_panel = False
     for ax, noise in zip(axes.flat, noises):
-        g = df[(df.noise == noise) & (df.decoder == dec) & (df.rkey == "d")]
-        t = th[(th.noise == noise) & (th.decoder == dec) & (th.rounds == "d")]
+        g = df[(df.noise == noise) & (df.decoder == dec) & (df.rkey == rkey)]
+        t = th[(th.noise == noise) & (th.decoder == dec) & (th.rounds == rkey)]
         if g.empty or t.empty or not np.isfinite(t.pth.iloc[0]):
             ax.set_visible(False)
             continue
@@ -404,7 +405,7 @@ def fig_paper(df, th, dec, noises, name, out, lo=0.7, hi=1.4):
         pth, err = float(t.pth.iloc[0]), float(t.err.iloc[0])
         curves(ax, g, pth, err, lo=lo * pth, hi=hi * pth, logx=False)
         ax.set_xlim(lo * pth * 0.98, hi * pth * 1.02)
-        ax.set_title(NOISE_LAB[noise], loc="left", color=INK)
+        ax.set_title(NOISE_LAB[noise] + ("" if rkey == "d" else rf", $r={rkey}$"), loc="left", color=INK)
         txt = (rf"$p_c={100 * pth:.3f}${pct(0)}" if t.flag.iloc[0] == "drift"
                else rf"$p_{{\mathrm{{th}}}}={100 * pth:.3f}${pct(0)}")
         ax.text(0.04, 0.95, txt, transform=ax.transAxes, fontsize=6.8, color=INK, va="top")
@@ -581,8 +582,11 @@ def main():
         fig_rounds(th, noise, out)
         fig_crossings(cr, noise, out)
     for dec in DECODERS:
-        fig_paper(df, th, dec, PAPER_NOISES, f"fig_thr_{dec}", out)
-        fig_paper(df, th, dec, HW_NOISES, f"fig_thr_hw_{dec}", out, lo=0.6, hi=1.6)
+        # paper style at r = d; a decoder without any r = d threshold (CFE + TN, whose network converges
+        # at r = d only for d = 3) is shown at r = 1 instead, and its panels say so
+        rk = "d" if th[(th.decoder == dec) & (th.rounds == "d")].pth.notna().any() else "1"
+        fig_paper(df, th, dec, PAPER_NOISES, f"fig_thr_{dec}", out, rkey=rk)
+        fig_paper(df, th, dec, HW_NOISES, f"fig_thr_hw_{dec}", out, lo=0.6, hi=1.6, rkey=rk)
     fig_summary(th, out)
     print(f"figures -> {out}", flush=True)
 
