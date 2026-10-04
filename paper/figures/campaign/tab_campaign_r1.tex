@@ -1,0 +1,20 @@
+\begin{table*}[t]
+  \begin{ruledtabular}
+  \begin{tabular}{lcccccccccc}
+    Noise & MWPM & HCM, links & HCM & Erasure passing & Sequential BP & Belief-matching & Tesseract & CFE & CFE-0 & CFE + TN \\
+    \hline
+    SD6 & 1.80(3) & 1.81(5) & 1.80(4) & 1.44(4) & 1.8(1) & 1.80(5) & 1.6(1)$^\dagger$ & 1.76(7) & 1.7(1) & 1.9(1) \\
+    SI1000 & 0.97(1) & 0.98(3) & 0.98(1) & 0.78(2) & 0.88(7) & 1.4(2)$^\dagger$ & 1.1(2)$^\dagger$ & 1.36(8) & 1.1(2)$^\dagger$ & 1.3(1) \\
+    Biased, $\eta=10$ & 1.81(3) & 1.87(4) & 1.86(4) & 1.43(4) & 1.8(1) & 1.91(6) & 1.9(3)$^\dagger$ & 1.9(2) & 2.2(1) & 1.8(2) \\
+    Biased, $\eta=100$ & 1.86(5) & 1.88(7) & 1.93(8) & 1.44(5) & 1.78(6) & 2.1(1) & 2.2(4)$^\dagger$ & 2.0(2) & 2.04(4) & 2.1(1) \\
+    Pure $Z$ & 1.87(8) & 1.89(3) & 1.86(5) & 1.42(7) & 1.9(1) & 4.4(5)$^\dagger$ & -- & 2.0(1) & 2.1(1) & 2.4(3)$^\dagger$ \\
+    EM3 & 0.99(2) & 1.00(3) & 0.98(2) & 0.76(2) & 0.95(7) & 0.99(9) & -- & 1.0(1) & 0.95(5) & 1.0(1) \\
+    Helios, no crosstalk & 1.45(6) & 1.45(5) & 1.47(4) & 1.22(5) & 1.43(5) & 1.46(4) & 1.2(1)$^\dagger$ & 1.41(5) & 1.5(1) & 1.54(5) \\
+    H2, no crosstalk & 2.1(1) & 2.13(5) & 2.13(4) & 1.72(5) & 2.06(5) & 2.18(9) & 1.8(2)$^\dagger$ & 2.0(1) & 2.2(2) & 2.1(2) \\
+    Helios & 0.12(2)$^\dagger$ & -- & 0.16(2)$^\dagger$ & 0.24(1)$^\dagger$ & -- & -- & -- & -- & -- & -- \\
+    H2 & \textit{0.74(4)} & \textit{0.46(9)} & \textit{0.53(7)} & \textit{0.43(6)} & -- & -- & 1.9(4)$^\dagger$ & \textit{1.0(2)} & 1.0(2)$^\dagger$ & -- \\
+  \end{tabular}
+  \end{ruledtabular}
+  \caption{Thresholds (in \%) of every decoder with $r=1$ rounds, from finite-size-scaling fits to the largest distances (up to $d=21$). A dagger marks the crossing of the two largest distances when fewer than three distances $d\ge 11$ were simulated, and italics the crossing of the two largest distances when the crossings keep falling with $d$ (no threshold).}
+  \label{tab:campaign_r1}
+\end{table*}
