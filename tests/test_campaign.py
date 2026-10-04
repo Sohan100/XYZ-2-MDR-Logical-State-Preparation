@@ -96,6 +96,18 @@ def test_memory_covers_measured_peaks():
         assert campaign.memory(r["decoder"], d, r["rounds"]) >= 1.3 * peak, r
 
 
+def test_memory_run_covers_decoding():
+    # once built, a CFE decoder stays below mem_run (with a margin of 1.3) while decoding at the highest p
+    with open(ROOT / "docs" / "data" / "campaign" / "memory_run_probe.csv", newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    assert rows
+    for r in rows:
+        assert campaign.memory_run(r["decoder"], int(r["d"]), r["rounds"]) >= 1.3 * float(r["decode_max_gb"]), r
+    t = campaign.make_tasks(["sd6"], ["cfe", "mwpm"], ["d"], [21])
+    assert all(x["mem_run"] < x["mem"] for x in t if x["decoder"] == "cfe")
+    assert all("mem_run" not in x for x in t if x["decoder"] == "mwpm")
+
+
 def test_progress_and_finished(tmp_path):
     t = dict(id="a", target=10, max_shots=100, budget=50.0)
     f = tmp_path / "points_0.csv"

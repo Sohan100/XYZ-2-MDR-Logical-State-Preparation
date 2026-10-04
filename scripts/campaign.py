@@ -47,6 +47,7 @@ import glob  # noqa: E402
 import json  # noqa: E402
 import math  # noqa: E402
 import multiprocessing as mp  # noqa: E402
+import queue  # noqa: E402
 import sys  # noqa: E402
 import threading  # noqa: E402
 import time  # noqa: E402
@@ -239,6 +240,16 @@ def memory(decoder: str, d: int, r: str) -> float:
     return round(base + slope * s / ref + (BATCH_GB if decoder in FAST else 0.0), 2)
 
 
+# Memory of a CFE task once its decoder is built, as a fraction of `memory`: at most 0.30 measured while
+# decoding at the highest p of the grid, d = 17 and 21 (docs/data/campaign/memory_run_probe.csv), so 0.45
+# keeps a margin of 1.3. The runner reserves `memory` until the decoder is built and `mem_run` after.
+RUN_FRACTION = {"cfe": 0.45, "cfe0": 0.45}
+
+
+def memory_run(decoder: str, d: int, r: str) -> float:
+    return round(RUN_FRACTION.get(decoder, 1.0) * memory(decoder, d, r), 2)
+
+
 def weight(noise: str, decoder: str, r: str, p: float, c: float | None = None) -> float:
     """Budget factor: points well below the expected threshold (centre `c`) get less time."""
     if noise in XT_RANGE:
@@ -276,7 +287,8 @@ def make_tasks(noises, decoders, rounds, distances, scale=1.0, cfe_scale=1.0, re
                             out.append(dict(
                                 id=f"{noise}|{dec}|r{r}|d{d}|p{p:.4g}|{i}", noise=noise, decoder=dec, rounds=r, d=d,
                                 value=p, target=math.ceil(TARGET[dec] / nrep), max_shots=math.ceil(MAX_SHOTS / nrep),
-                                budget=round(bp / nrep, 1), mem=memory(dec, d, r)))
+                                budget=round(bp / nrep, 1), mem=memory(dec, d, r),
+                                **({"mem_run": memory_run(dec, d, r)} if dec in RUN_FRACTION else {})))
     # long tasks first, so that no chunk ends with one long straggler
     out.sort(key=lambda t: (-t["budget"], t["id"]))
     return out
@@ -344,7 +356,7 @@ def _row(t, shots, errors, seconds, note=""):
             round(seconds, 1), t["id"], note]
 
 
-def _work(t: dict, prev, q) -> None:
+def _work(t: dict, prev, q, ev=None) -> None:
     from mdr.ft import FTMDRCircuit
     from mdr.ft.two_level_decoder import TwoLevelDecoder
     from run_decoder_threshold_sweep import DECODERS as DEC, NOISE
@@ -358,6 +370,8 @@ def _work(t: dict, prev, q) -> None:
         sampler = dec.circuit.compile_detector_sampler()
         # the memory of a batch must not grow with the decoding speed (see BATCH_BITS)
         max_size = int(np.clip(BATCH_BITS // max(dec.circuit.num_detectors, 1), 1, 200_000))
+        if ev is not None:
+            ev.put(os.getpid())                     # the decoder is built: its construction peak is over
     except Exception as exc:  # noqa: BLE001  (e.g. a decoder package missing on this machine)
         q.put(_row(t, 0, 0, time.time() - t0, f"failed: {type(exc).__name__}: {exc}"[:300]))
         return
@@ -431,12 +445,24 @@ def run(tasks: list, out: str, workers: int, mem_gb: float, log=print) -> None:
     gc.freeze()
     ctx = mp.get_context("fork")
     q = ctx.Queue()
+    ev = ctx.Queue()            # pids of workers whose decoder is built (see mem_run)
     wt = threading.Thread(target=_writer, args=(q, out), daemon=True)
     wt.start()
     running = {}
     used = 0.0
     done = 0
     while todo or running:
+        # a task reserves its construction peak `mem` until its decoder is built, then `mem_run`
+        while True:
+            try:
+                pid = ev.get_nowait()
+            except queue.Empty:
+                break
+            if pid in running:
+                p, t, m = running[pid]
+                m2 = min(m, t.get("mem_run", m))
+                used -= m - m2
+                running[pid] = (p, t, m2)
         for pid in list(running):
             p, t, m = running[pid]
             if not p.is_alive():
@@ -450,7 +476,7 @@ def run(tasks: list, out: str, workers: int, mem_gb: float, log=print) -> None:
         while len(running) < workers and i < len(todo):
             t = todo[i]
             if used + t["mem"] <= mem_gb or not running:
-                p = ctx.Process(target=_work, args=(t, prog.get(t["id"]), q))
+                p = ctx.Process(target=_work, args=(t, prog.get(t["id"]), q, ev))
                 p.start()
                 running[p.pid] = (p, t, t["mem"])
                 used += t["mem"]
