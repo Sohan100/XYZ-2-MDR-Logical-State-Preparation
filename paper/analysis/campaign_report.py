@@ -59,16 +59,20 @@ NOISES = ["sd6", "si1000", "biased10", "biased100", "purez", "em3",
 NOISE_LAB = {"sd6": "SD6", "si1000": "SI1000", "biased10": r"Biased, $\eta=10$", "biased100": r"Biased, $\eta=100$",
              "purez": r"Pure $Z$", "em3": "EM3", "helios_p": "Helios", "h2_p": "H2",
              "helios_p_noxt": "Helios, no crosstalk", "h2_p_noxt": "H2, no crosstalk"}
-DECODERS = ["mwpm", "corr_links", "corr_gauge", "seq_match", "seq_soft", "bm", "tesseract", "cfe", "cfe0", "cfe_tn"]
+DECODERS = ["mwpm", "corr_links", "corr_gauge", "seq_match", "seq_soft", "seq_erasure", "bm", "bp_full", "bp_corr",
+            "tesseract", "cfe", "cfe0", "cfe_tn", "tnml"]
 DEC_LAB = {"mwpm": "MWPM", "corr_links": "HCM, links", "corr_gauge": "HCM", "seq_match": "Erasure passing",
            "seq_soft": "Sequential BP", "bm": "Belief-matching", "tesseract": "Tesseract", "cfe": "CFE",
-           "cfe0": "CFE-0", "cfe_tn": "CFE + TN"}
+           "cfe0": "CFE-0", "cfe_tn": "CFE + TN", "seq_erasure": "Sequential BP, erasures",
+           "bp_full": "Belief-matching, 30 it.", "bp_corr": "BP + HCM", "tnml": "TN ML"}
 DEC_COL = {"mwpm": "#F97316", "corr_links": "#C026D3", "corr_gauge": "#E11D48", "seq_match": "#EAB308",
            "seq_soft": "#EC4899", "bm": "#7C3AED", "tesseract": "#1C1917", "cfe": "#4C1D95", "cfe0": "#9F1239",
-           "cfe_tn": "#B45309"}
+           "cfe_tn": "#B45309", "seq_erasure": "#DB2777", "bp_full": "#6366F1", "bp_corr": "#0E7490",
+           "tnml": "#78350F"}
 DEC_MARK = {"mwpm": "o", "corr_links": "^", "corr_gauge": "s", "seq_match": "x", "seq_soft": "v", "bm": "D",
-            "tesseract": "*", "cfe": "P", "cfe0": "p", "cfe_tn": "h"}
-RKEYS = ["1", "2", "3", "4", "5", "6", "8", "10", "d"]
+            "tesseract": "*", "cfe": "P", "cfe0": "p", "cfe_tn": "h", "seq_erasure": "<", "bp_full": "d",
+            "bp_corr": ">", "tnml": "H"}
+RKEYS = [str(r) for r in range(1, 22)] + ["d"]
 DISTS = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21]
 DCOL = dict(zip(DISTS, ["#FBBF24", "#F59E0B", "#F97316", "#EF4444", "#E11D48", "#EC4899", "#D946EF",
                         "#9333EA", "#6D28D9", "#3B0764"]))
@@ -301,13 +305,18 @@ def fig_noise_decoder(df, th, noise, dec, out):
     sub = df[(df.noise == noise) & (df.decoder == dec)]
     if sub.empty:
         return
-    fig, axes = plt.subplots(3, 3, figsize=(FULL, 6.3))
-    for ax, rk in zip(axes.flat, RKEYS):
+    # one panel per number of rounds with points to draw, five per row
+    rks = [rk for rk in RKEYS if ((sub.rkey == rk) & (sub.errors >= 3)).any()]
+    if not rks:
+        return
+    ncol = min(5, len(rks))
+    nrow = math.ceil(len(rks) / ncol)
+    fig, axes = plt.subplots(nrow, ncol, figsize=(FULL, 1.9 * nrow + 0.6), squeeze=False)
+    for ax in axes.flat[len(rks):]:
+        ax.set_visible(False)
+    for ax, rk in zip(axes.flat, rks):
         g = sub[sub.rkey == rk]
         t = th[(th.noise == noise) & (th.decoder == dec) & (th.rounds == rk)]
-        if g.empty or not (g.errors >= 3).any():
-            ax.set_visible(False)
-            continue
         pth = float(t.pth.iloc[0]) if not t.empty else np.nan
         err = float(t.err.iloc[0]) if not t.empty else np.nan
         curves(ax, g, pth, err)
@@ -335,7 +344,7 @@ def fig_rounds(th, noise, out):
     if t.empty:
         return
     xs = {rk: i for i, rk in enumerate(RKEYS)}
-    fig, ax = plt.subplots(figsize=(3.6, 2.6))
+    fig, ax = plt.subplots(figsize=(FULL, 3.2))
     for dec in DECODERS:
         s = t[t.decoder == dec]
         if s.empty:
@@ -348,14 +357,14 @@ def fig_rounds(th, noise, out):
             if c == "white":
                 ax.plot([x], [y], marker=DEC_MARK[dec], ms=3.5, mfc="white", mec=DEC_COL[dec], ls="none")
     ax.set_xticks(range(len(RKEYS)))
-    ax.set_xticklabels([rk if rk != "d" else "$d$" for rk in RKEYS])
+    ax.set_xticklabels([rk if rk != "d" else "$d$" for rk in RKEYS], fontsize=6)
     ax.set_yscale("log")
     import matplotlib
     ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}"))
     ax.set_xlabel(r"rounds $r$")
     ax.set_ylabel(f"threshold ({pct(0)})")
     ax.set_title(NOISE_LAB[noise], loc="left", color=INK)
-    ax.legend(fontsize=6, ncol=2, loc="upper right")
+    ax.legend(fontsize=5.5, ncol=3, loc="upper right")
     fig.tight_layout()
     fig.savefig(out / f"rounds_{noise}.pdf")
     plt.close(fig)
