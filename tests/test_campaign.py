@@ -7,6 +7,8 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+import sys as _sys  # noqa: E402
+_sys.path.insert(0, str(ROOT / "scripts"))
 spec = importlib.util.spec_from_file_location("campaign", ROOT / "scripts" / "campaign.py")
 campaign = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(campaign)
@@ -55,6 +57,29 @@ def test_tn_dmax_limits_cfe_tn():
     tn = {r: {t["d"] for t in tasks if t["decoder"] == "cfe_tn" and t["rounds"] == r} for r in ("1", "2", "3", "d")}
     assert max(tn["1"]) == 21 and max(tn["2"]) == 5 and not tn["3"] and not tn["d"]
     assert max(t["d"] for t in tasks if t["decoder"] == "cfe" and t["rounds"] == "d") == 21
+
+
+def test_full_matrix_centres_and_caps():
+    # every number of rounds from 1 to 21 and r = d, every decoder of the registry
+    assert campaign.ROUNDS[0] == "1" and campaign.ROUNDS[-2] == "21" and campaign.ROUNDS[-1] == "d"
+    from run_decoder_threshold_sweep import DECODERS as REG
+    assert set(campaign.DECODERS) <= set(REG)
+    # the wide grid gives the slow decoders 14 points too
+    assert len(campaign.grid("sd6", "cfe", "7", wide=True)) == 14 and len(campaign.grid("sd6", "cfe", "7")) == 10
+    # measured centres: kept, interpolated in log r, towards the r = d value at large r, proxies, formula
+    meas = {("sd6", "mwpm", "6"): 0.007, ("sd6", "mwpm", "8"): 0.0064, ("sd6", "mwpm", "d"): 0.0043,
+            ("sd6", "bm", "1"): 0.018}
+    assert campaign.center_from(meas, "sd6", "mwpm", "6") == 0.007
+    assert 0.0064 < campaign.center_from(meas, "sd6", "mwpm", "7") < 0.007
+    assert 0.0043 < campaign.center_from(meas, "sd6", "mwpm", "12") < 0.0064
+    assert campaign.center_from(meas, "sd6", "mwpm", "21") == 0.0043 == campaign.center_from(meas, "sd6", "mwpm", "d")
+    assert campaign.center_from(meas, "sd6", "bp_full", "1") == 0.018          # proxy: belief-matching
+    assert campaign.center_from(meas, "si1000", "mwpm", "7") == campaign.center("si1000", "mwpm", "7")
+    # Tesseract to d = 21 when asked; the tensor-network decoders only where the network can be contracted
+    tasks = campaign.make_tasks(["sd6"], ["tesseract", "tnml"], ["1", "21"], campaign.DISTANCES,
+                                dmax={"tesseract": 21}, wide=True, centers=meas)
+    assert max(t["d"] for t in tasks if t["decoder"] == "tesseract") == 21
+    assert {t["rounds"] for t in tasks if t["decoder"] == "tnml"} == {"1"}
 
 
 def test_memory_covers_measured_peaks():

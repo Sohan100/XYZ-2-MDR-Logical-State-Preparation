@@ -60,8 +60,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 NOISES = ["sd6", "si1000", "biased10", "biased100", "purez", "em3",
           "helios_p", "h2_p", "helios_p_noxt", "h2_p_noxt"]
-DECODERS = ["mwpm", "corr_links", "corr_gauge", "seq_soft", "seq_match", "bm", "tesseract", "cfe", "cfe_tn"]
-ROUNDS = ["1", "2", "3", "4", "5", "6", "8", "10", "d"]
+DECODERS = ["mwpm", "corr_links", "corr_gauge", "seq_soft", "seq_erasure", "seq_match", "bm", "bp_full", "bp_corr",
+            "tesseract", "cfe", "cfe0", "cfe_tn", "tnml"]
+ROUNDS = [str(r) for r in range(1, 22)] + ["d"]
 DISTANCES = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21]
 # Tesseract's beam search grows too fast with the circuit beyond d = 9.
 DMAX = {"tesseract": 9}
@@ -78,6 +79,12 @@ TN_MAX_OPEN = 60
 P_MWPM = {"sd6": 4.35e-3, "si1000": 3.67e-3, "biased10": 4.49e-3, "biased100": 4.57e-3,
           "purez": 4.53e-3, "em3": 2.3e-3, "helios_p_noxt": 2.8e-3, "h2_p_noxt": 4.4e-3}
 F_ROUNDS = {"1": 4.14, "2": 2.80, "3": 2.23, "4": 1.91, "5": 1.72, "6": 1.63, "8": 1.47, "10": 1.40, "d": 1.0}
+
+
+def f_rounds(r: str) -> float:
+    """F_ROUNDS, and for the other numbers of rounds the fit 1.055 + 3.45 / r of its values for r >= 6."""
+    return F_ROUNDS[r] if r in F_ROUNDS else 1.055 + 3.45 / int(r)
+
 # threshold of each decoder relative to matching (measured for r = d; guesses for seq_* and the ion models)
 _G = {
     "corr_links": dict(sd6=1.17, si1000=1.19, biased10=1.26, biased100=1.29, purez=1.29, em3=1.2),
@@ -86,17 +93,21 @@ _G = {
     "bm": dict(sd6=1.28, si1000=1.25, biased10=1.76, biased100=1.89, purez=1.85, em3=1.3),
 }
 _G_DEFAULT = {"mwpm": 1.0, "corr_links": 1.18, "corr_gauge": 1.2, "seq_soft": 1.05, "seq_match": 0.9, "bm": 1.3}
-_G["tesseract"] = _G["cfe"] = _G["cfe0"] = _G["cfe_tn"] = _G["bm"]
+_G["tesseract"] = _G["cfe"] = _G["cfe0"] = _G["cfe_tn"] = _G["tnml"] = _G["bp_full"] = _G["bp_corr"] = _G["bm"]
 _G_DEFAULT["tesseract"] = _G_DEFAULT["cfe"] = _G_DEFAULT["cfe0"] = _G_DEFAULT["cfe_tn"] = 1.3
+_G_DEFAULT["tnml"] = _G_DEFAULT["bp_full"] = _G_DEFAULT["bp_corr"] = 1.3
+_G["seq_erasure"], _G_DEFAULT["seq_erasure"] = {}, 1.05
 # The crosstalk models have no threshold: the crossings of consecutive distances drift to small p.
 XT_RANGE = {"helios_p": (6e-5, 3e-3), "h2_p": (5e-4, 6e-3)}
 
 STEP = 4.0 ** (1 / 13)
 KRANGE = {"wide": range(-7, 7), "narrow": range(-5, 5)}
-SLOW = {"seq_soft", "bm", "tesseract", "cfe", "cfe0", "cfe_tn"}
+SLOW = {"seq_soft", "seq_erasure", "bm", "bp_full", "bp_corr", "tesseract", "cfe", "cfe0", "cfe_tn", "tnml"}
+TN = {"cfe_tn", "tnml"}           # decoders with the tensor network: tasks only where it can be contracted
 
 TARGET = {"mwpm": 500, "corr_links": 400, "corr_gauge": 400, "seq_soft": 250, "seq_match": 300,
-          "bm": 250, "tesseract": 150, "cfe": 200, "cfe0": 150, "cfe_tn": 200}
+          "bm": 250, "tesseract": 150, "cfe": 200, "cfe0": 150, "cfe_tn": 200,
+          "seq_erasure": 250, "bp_full": 250, "bp_corr": 250, "tnml": 200}
 MAX_SHOTS = 2_000_000
 S21 = 22 * 21 * 21
 S9 = 10 * 9 * 9
@@ -104,10 +115,12 @@ S9 = 10 * 9 * 9
 BUDGET = {"mwpm": (600, 1.15, 30), "corr_links": (1200, 1.15, 60), "corr_gauge": (1800, 1.15, 60),
           "seq_match": (1800, 1.1, 60), "seq_soft": (5400, 1.1, 120), "bm": (5400, 1.1, 120),
           "tesseract": (7200, 2.0, 120), "cfe": (60_000, 1.3, 300), "cfe0": (60_000, 1.4, 300),
-          "cfe_tn": (150_000, 1.0, 600)}
+          "cfe_tn": (150_000, 1.0, 600), "seq_erasure": (5400, 1.1, 120), "bp_full": (5400, 1.1, 120),
+          "bp_corr": (5400, 1.1, 120), "tnml": (150_000, 1.0, 600)}
 # memory in GB: base + slope * S / S21 (measured on d = 9 to 21 circuits, with margin); CFE: see memory()
 MEMORY = {"mwpm": (0.4, 1.0), "corr_links": (0.4, 1.2), "corr_gauge": (0.4, 1.2), "seq_match": (0.4, 1.2),
-          "seq_soft": (0.4, 1.8), "bm": (0.4, 2.0), "tesseract": (0.5, 6.0)}
+          "seq_soft": (0.4, 1.8), "bm": (0.4, 2.0), "tesseract": (0.5, 6.0),
+          "seq_erasure": (0.4, 1.8), "bp_full": (0.4, 2.0), "bp_corr": (0.4, 2.0)}
 # Peak memory measured on Perlmutter CPU nodes (docs/data/campaign/memory_probe.csv: the largest task of every
 # decoder and noise model at the lowest and highest p of its grid, and CFE-0 from S = 810 to 9702). A batch
 # holds at most BATCH_BITS detector bits, and the fast decoders keep up to 6.2 bytes per sampled bit while
@@ -116,7 +129,7 @@ MEMORY = {"mwpm": (0.4, 1.0), "corr_links": (0.4, 1.2), "corr_gauge": (0.4, 1.2)
 # fault mechanism, 9.5 GB at d = 21, r = 21 (CFE0_GB_PER_MECH = 3.8e-5 with a margin of 1.3).
 BATCH_BITS = 25_000_000
 BATCH_GB = 8 * BATCH_BITS / 1e9
-FAST = {"mwpm", "corr_links", "corr_gauge", "seq_match"}
+FAST = {"mwpm", "corr_links", "corr_gauge", "seq_match", "bp_corr"}
 CFE0_GB_PER_MECH = 3.8e-5
 
 COLS = ["noise", "value", "d", "rounds", "final", "decoder", "shots", "errors", "p_L", "stderr", "seconds"]
@@ -135,18 +148,77 @@ def center(noise: str, decoder: str, r: str) -> float:
         return math.sqrt(lo * hi)
     base = noise.replace("_noxt", "") if noise.endswith("_noxt") else noise
     g = _G.get(decoder, {}).get(base, _G_DEFAULT.get(decoder, 1.0)) if decoder != "mwpm" else 1.0
-    return P_MWPM[noise] * F_ROUNDS[r] * g
+    return P_MWPM[noise] * f_rounds(r) * g
 
 
-def grid(noise: str, decoder: str, r: str) -> list:
+def grid(noise: str, decoder: str, r: str, c: float | None = None, wide: bool = False) -> list:
+    """p values of a series: geometric around the centre `c` (default: the expected threshold).
+    `wide` gives every decoder the 14 points over a factor 4 of the matching decoders."""
     if noise in XT_RANGE:
         lo, hi = XT_RANGE[noise]
-        lo, hi = lo * F_ROUNDS[r] ** 0.5, hi * F_ROUNDS[r]
-        n = 14 if decoder not in SLOW else 10
+        lo, hi = lo * f_rounds(r) ** 0.5, hi * f_rounds(r)
+        n = 14 if (decoder not in SLOW or wide) else 10
         return [float(f"{x:.4g}") for x in np.geomspace(lo, hi, n)]
-    c = center(noise, decoder, r)
-    ks = KRANGE["narrow" if decoder in SLOW else "wide"]
+    c = center(noise, decoder, r) if c is None else c
+    ks = KRANGE["narrow" if (decoder in SLOW and not wide) else "wide"]
     return [float(f"{c * STEP ** k:.4g}") for k in ks]
+
+
+# decoders without measured thresholds take the centres of a close relative
+PROXY = {"bp_full": "bm", "bp_corr": "bm", "seq_erasure": "seq_soft", "tnml": "cfe_tn"}
+R_EFF_D = 18          # the r = d threshold, set by d ~ 15 to 21, stands for about 18 rounds
+
+
+def measured_centers(thresholds_csv: str, points_csv: str) -> dict:
+    """{(noise, decoder, rounds): centre} from the thresholds of an earlier analysis (drift left out).
+    A threshold within 8% of the edge of the p values it was fitted on is moved out by 20%."""
+    import pandas as pd
+
+    th = pd.read_csv(thresholds_csv)
+    th = th[th.pth.notna() & (th.flag.fillna("") != "drift")]
+    pts = pd.read_csv(points_csv)
+    pts["rk"] = np.where(pts.rounds == pts.d, "d", pts.rounds.astype(str))
+    rng = pts.groupby(["noise", "decoder", "rk"]).value.agg(["min", "max"])
+    out = {}
+    for row in th.itertuples():
+        key = (row.noise, row.decoder, str(row.rounds))
+        c = float(row.pth)
+        if (key[0], key[1], key[2]) in rng.index:
+            lo, hi = rng.loc[(key[0], key[1], key[2])]
+            c = c * 0.8 if c <= 1.08 * lo else (c * 1.25 if c >= 0.92 * hi else c)
+        out[key] = c
+    return out
+
+
+def center_from(meas: dict, noise: str, decoder: str, r: str) -> float:
+    """Centre of a series from measured thresholds: the measured value, else interpolated in log r between
+    the measured numbers of rounds (towards the r = d value, placed at R_EFF_D rounds), else `center`."""
+    if noise in XT_RANGE:
+        return center(noise, decoder, r)
+    for dec in (decoder, PROXY.get(decoder)):
+        if dec is None:
+            continue
+        have = {int(k[2]): v for k, v in meas.items() if k[0] == noise and k[1] == dec and k[2] != "d"}
+        cd = meas.get((noise, dec, "d"))
+        if r == "d":
+            if cd is not None:
+                return cd
+            continue
+        if r in {str(x) for x in have}:
+            return have[int(r)]
+        pts = sorted(have.items()) + ([(R_EFF_D, cd)] if cd is not None and (not have or max(have) < R_EFF_D) else [])
+        if not pts:
+            continue
+        x = int(r)
+        if x <= pts[0][0]:
+            return pts[0][1]
+        if x >= pts[-1][0]:
+            return pts[-1][1]
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+            if x0 <= x <= x1:
+                t = (math.log(x) - math.log(x0)) / (math.log(x1) - math.log(x0))
+                return float(math.exp((1 - t) * math.log(y0) + t * math.log(y1)))
+    return center(noise, decoder, r)
 
 
 def budget(decoder: str, d: int, r: str) -> float:
@@ -158,41 +230,45 @@ def budget(decoder: str, d: int, r: str) -> float:
 
 def memory(decoder: str, d: int, r: str) -> float:
     s = (n_rounds(r, d) + 1) * d * d
-    if decoder in ("cfe", "cfe0", "cfe_tn"):
+    if decoder in ("cfe", "cfe0", "cfe_tn", "tnml"):
         n = 33.0 * s                       # fault mechanisms of the detector error model
         # decoder construction, measured (see CFE0_GB_PER_MECH); cfe_tn adds the tensor network
-        return round(0.6 + CFE0_GB_PER_MECH * n + (0.2 if decoder == "cfe_tn" else 0.0), 2)
+        return round(0.6 + CFE0_GB_PER_MECH * n + (0.2 if decoder in TN else 0.0), 2)
     base, slope = MEMORY[decoder]
     ref = S9 if decoder == "tesseract" else S21
     return round(base + slope * s / ref + (BATCH_GB if decoder in FAST else 0.0), 2)
 
 
-def weight(noise: str, decoder: str, r: str, p: float) -> float:
-    """Budget factor: points well below the expected threshold get less time."""
+def weight(noise: str, decoder: str, r: str, p: float, c: float | None = None) -> float:
+    """Budget factor: points well below the expected threshold (centre `c`) get less time."""
     if noise in XT_RANGE:
         return 1.0
-    x = p / center(noise, decoder, r)
+    x = p / (center(noise, decoder, r) if c is None else c)
     return 1.0 if x >= 0.8 else (0.5 if x >= 0.65 else 0.25)
 
 
 def make_tasks(noises, decoders, rounds, distances, scale=1.0, cfe_scale=1.0, rep_hours=4.0,
-               tn_max_open=TN_MAX_OPEN, exclude=(), tn_dmax=None) -> list:
-    """`tn_dmax` ({rounds: largest d}, e.g. {"1": 21, "2": 5}) limits the cfe_tn tasks further."""
+               tn_max_open=TN_MAX_OPEN, exclude=(), tn_dmax=None, centers=None, wide=False, dmax=None) -> list:
+    """`tn_dmax` ({rounds: largest d}, e.g. {"1": 21, "2": 5}) limits the tensor-network tasks further.
+    `centers` (from measured_centers) centres every series on its measured threshold; `wide` gives every
+    decoder the wide grid; `dmax` ({decoder: largest d}) replaces DMAX."""
+    caps = dict(DMAX if dmax is None else dmax)
     out = []
     for noise in noises:
         for dec in decoders:
             for r in rounds:
-                values = grid(noise, dec, r)
+                c = center_from(centers, noise, dec, r) if centers is not None else center(noise, dec, r)
+                values = grid(noise, dec, r, c=c, wide=wide)
                 for d in distances:
-                    if d > DMAX.get(dec, 99):
+                    if d > caps.get(dec, 99):
                         continue
-                    if dec == "cfe_tn" and (3.5 * n_rounds(r, d) - 1) * d > tn_max_open:
+                    if dec in TN and (3.5 * n_rounds(r, d) - 1) * d > tn_max_open:
                         continue
-                    if dec == "cfe_tn" and tn_dmax is not None and d > tn_dmax.get(r, 0):
+                    if dec in TN and tn_dmax is not None and d > tn_dmax.get(r, 0):
                         continue
                     b = budget(dec, d, r) * scale * (cfe_scale if dec.startswith("cfe") else 1.0)
                     for p in values:
-                        bp = max(BUDGET[dec][2], b * weight(noise, dec, r, p))
+                        bp = max(BUDGET[dec][2], b * weight(noise, dec, r, p, c))
                         nrep = max(1, math.ceil(bp / (3600.0 * rep_hours)))
                         for i in range(nrep):
                             if f"{noise}|{dec}|r{r}|d{d}|p{p:.4g}|{i}" in exclude:
@@ -346,7 +422,13 @@ def run(tasks: list, out: str, workers: int, mem_gb: float, log=print) -> None:
     # progress of every chunk, so that a task keeps its counts if the number of chunks changes
     prog = progress(glob.glob(os.path.join(os.path.dirname(out) or ".", "points_*.csv")) + [out])
     todo = [t for t in tasks if not finished(t, prog.get(t["id"]))]
+    prog = {t["id"]: prog[t["id"]] for t in todo if t["id"] in prog}
     log(f"{len(tasks)} tasks in this chunk, {len(todo)} to run, {workers} workers, {mem_gb:.0f} GB")
+    # the forked workers share the parent's pages; keep the cyclic collector from touching (and so
+    # copying) them in every worker
+    import gc
+    gc.collect()
+    gc.freeze()
     ctx = mp.get_context("fork")
     q = ctx.Queue()
     wt = threading.Thread(target=_writer, args=(q, out), daemon=True)
@@ -422,6 +504,12 @@ def main() -> None:
                    help="make cfe_tn tasks where the tensor-network frontier is at most this wide")
     a.add_argument("--exclude", nargs="*", default=[],
                    help="task files whose task ids are left out (e.g. the first stage)")
+    a.add_argument("--centers", nargs=2, default=None, metavar=("THRESHOLDS_CSV", "POINTS_CSV"),
+                   help="centre every series on the thresholds of an earlier analysis (thresholds.csv and the "
+                        "points.csv they were fitted on)")
+    a.add_argument("--wide", action="store_true", help="14 points over a factor 4 for every decoder")
+    a.add_argument("--dmax", nargs="+", default=None, metavar="DEC=D",
+                   help="largest d per decoder, replacing the defaults (e.g. tesseract=21)")
     a.add_argument("--tn-dmax", nargs="+", default=None, metavar="R=D",
                    help="largest d of the cfe_tn tasks for each number of rounds, e.g. 1=21 2=5 "
                         "(rounds not listed get none); default: every case within --tn-max-open")
@@ -448,7 +536,10 @@ def main() -> None:
             excl |= {json.loads(line)["id"] for line in open(f) if line.strip()}
         tasks = make_tasks(args.noises, args.decoders, args.rounds, args.distances,
                            args.scale, args.cfe_scale, args.rep_hours, args.tn_max_open, excl,
-                           None if args.tn_dmax is None else {k: int(v) for k, v in (x.split("=") for x in args.tn_dmax)})
+                           None if args.tn_dmax is None else {k: int(v) for k, v in (x.split("=") for x in args.tn_dmax)},
+                           None if args.centers is None else measured_centers(*args.centers), args.wide,
+                           None if args.dmax is None else
+                           {**DMAX, **{k: int(v) for k, v in (x.split("=") for x in args.dmax)}})
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         with open(args.out, "w") as fh:
             for t in tasks:
@@ -463,6 +554,7 @@ def main() -> None:
     elif args.cmd == "run":
         tasks = [json.loads(line) for line in open(args.tasks) if line.strip()]
         mine = tasks[args.chunk::args.nchunks]
+        del tasks                                   # only this chunk stays in memory
         if args.limit:
             mine = mine[:args.limit]
         if args.max_seconds:

@@ -48,6 +48,7 @@ DECODERS = {
     "corr_links": dict(mode="corr_split", lower="links"),
     "corr_gauge": dict(mode="corr_split", lower="gauge"),
     "seq_soft": dict(mode="seq_soft"),
+    "seq_erasure": dict(mode="seq_erasure"),
     "seq_match": dict(mode="seq_match"),
     "bp_full": dict(mode="bp_full"),
     "bm": dict(mode="bp_full", bp_method="product_sum", bp_iters=10),
@@ -105,7 +106,7 @@ def main() -> None:
                         continue
                     t0 = time.time()
                     dec = TwoLevelDecoder(ft, **DECODERS[name])
-                    slow = name in ("seq_soft", "seq_match", "bp_full", "bm", "tnml", "cfe_tn",
+                    slow = name in ("seq_soft", "seq_erasure", "seq_match", "bp_full", "bm", "bp_corr", "tnml", "cfe_tn",
                                     "tesseract", "cfe")
                     batch = args.batch or (500 if slow else 20000)
                     est = dec.estimate(max_shots=args.max_shots,
