@@ -26,3 +26,7 @@ for T in data/campaign/tasks*.jsonl; do
     python scripts/campaign.py status "${T}" "data/campaign/points_*.csv" | tee -a docs/data/campaign/status.txt
 done
 python paper/analysis/campaign_report.py --workers "${REPORT_WORKERS:-64}"
+# coverage of the full matrix (every noise, decoder, rounds and distance) and of the thresholds
+(cd scripts && python campaign_coverage.py --tasks "../data/campaign/tasks*.jsonl" --points "../data/campaign/points_*.csv" \
+    --thresholds ../docs/data/campaign/thresholds.csv --merged ../docs/data/campaign/points.csv \
+    --out ../docs/data/campaign/coverage)
