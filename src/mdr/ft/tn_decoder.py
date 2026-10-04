@@ -34,6 +34,7 @@ import math
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
+import scipy.linalg
 
 
 # --------------------------------------------------------------------------- geometry
@@ -249,7 +250,10 @@ class _Mps:
         for k in range(b, a, -1):
             t = A[k]
             Dl, _, Dr = t.shape
-            u, s, vh = np.linalg.svd(t.reshape(Dl, 2 * Dr), full_matrices=False)
+            # LAPACK's gesvd: numpy's default gesdd fails to converge on some of these matrices,
+            # whose entries span ~24 orders of magnitude (pure Z noise, wide networks)
+            u, s, vh = scipy.linalg.svd(t.reshape(Dl, 2 * Dr), full_matrices=False,
+                                        lapack_driver="gesvd", check_finite=False)
             tot = float(np.dot(s, s))
             keep = int(np.sum(s > self.cutoff * s[0])) if s.size else 0
             keep = max(1, min(self.chi, keep))
