@@ -2,7 +2,8 @@
 #SBATCH --job-name=ftmdr_analysis
 #SBATCH --output=logs/analysis_%j.out
 #SBATCH -C cpu
-#SBATCH -q regular
+#SBATCH -q preempt
+#SBATCH --requeue
 #SBATCH -t 02:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1

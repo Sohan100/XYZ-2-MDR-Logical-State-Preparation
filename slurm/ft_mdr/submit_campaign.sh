@@ -2,7 +2,7 @@
 # Submit the whole threshold campaign on Perlmutter: NODES array elements of run_campaign.sh and,
 # after them, analyze_campaign.sh. Run from the repository root on a login node:
 #
-#   bash slurm/ft_mdr/submit_campaign.sh -A <project> [-n NODES] [-t HH:MM:SS] [-q regular]
+#   bash slurm/ft_mdr/submit_campaign.sh -A <project> [-n NODES] [-t HH:MM:SS] [-q preempt]
 #                                        [-T data/campaign/tasks.jsonl] [-P points]
 #
 # The task list (-T, default data/campaign/tasks.jsonl) is written on the first call if it does not
@@ -13,7 +13,7 @@ set -euo pipefail
 ACCOUNT=""
 NODES=24
 TIME="12:00:00"
-QOS="regular"
+QOS="preempt"
 TASKS="data/campaign/tasks.jsonl"
 PREFIX="points"
 while getopts "A:n:t:q:T:P:" opt; do
@@ -45,8 +45,11 @@ ACC=()
 if [ -n "${ACCOUNT}" ]; then
     ACC=(-A "${ACCOUNT}")
 fi
-JID=$(sbatch --parsable "${ACC[@]}" -q "${QOS}" -t "${TIME}" --array="0-$((NODES - 1))" \
+# --requeue: a job of the preempt QOS that is preempted (after its first two hours) goes back to the
+# queue instead of being cancelled; the runner then continues every task from its last flushed counts.
+JID=$(sbatch --parsable "${ACC[@]}" -q "${QOS}" --requeue -t "${TIME}" --array="0-$((NODES - 1))" \
       --export=ALL,NCHUNKS="${NODES}",TASKS="${TASKS}",PREFIX="${PREFIX}" slurm/ft_mdr/run_campaign.sh)
-AID=$(sbatch --parsable "${ACC[@]}" --dependency="afterany:${JID}" slurm/ft_mdr/analyze_campaign.sh)
+AID=$(sbatch --parsable "${ACC[@]}" -q "${QOS}" --requeue --dependency="afterany:${JID}" \
+      slurm/ft_mdr/analyze_campaign.sh)
 echo "campaign array ${JID} (${NODES} nodes), analysis job ${AID} after it"
 echo "progress: python scripts/campaign.py status ${TASKS} \"data/campaign/points_*.csv\""

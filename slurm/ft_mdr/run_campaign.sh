@@ -2,7 +2,8 @@
 #SBATCH --job-name=ftmdr_campaign
 #SBATCH --output=logs/campaign_%A_%a.out
 #SBATCH -C cpu
-#SBATCH -q regular
+#SBATCH -q preempt
+#SBATCH --requeue
 #SBATCH -t 12:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
