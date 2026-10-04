@@ -4,7 +4,7 @@ coverage.py
 Coverage of the threshold campaign: does every (noise, decoder, rounds, d) instance have data, and does
 every (noise, decoder, rounds) series have a threshold?
 
-    python scripts/coverage.py --tasks "data/campaign/tasks*.jsonl" --points "data/campaign/points_*.csv" \
+    python scripts/campaign_coverage.py --tasks "data/campaign/tasks*.jsonl" --points "data/campaign/points_*.csv" \
         --thresholds docs/data/campaign/thresholds.csv --merged docs/data/campaign/points.csv \
         --out docs/data/campaign/coverage
 

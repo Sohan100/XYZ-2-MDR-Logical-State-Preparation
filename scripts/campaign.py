@@ -120,14 +120,15 @@ BUDGET = {"mwpm": (600, 1.15, 30), "corr_links": (1200, 1.15, 60), "corr_gauge":
           "bp_corr": (5400, 1.1, 120), "tnml": (150_000, 1.0, 600)}
 # memory in GB: base + slope * S / S21 (measured on d = 9 to 21 circuits, with margin); CFE: see memory()
 MEMORY = {"mwpm": (0.4, 1.0), "corr_links": (0.4, 1.2), "corr_gauge": (0.4, 1.2), "seq_match": (0.4, 1.2),
-          "seq_soft": (0.4, 1.8), "bm": (0.4, 2.0), "tesseract": (0.5, 6.0),
+          "seq_soft": (0.4, 1.8), "bm": (0.4, 2.0), "tesseract": (0.3, 0.162),
           "seq_erasure": (0.4, 1.8), "bp_full": (0.4, 2.0), "bp_corr": (0.4, 2.0)}
 # Peak memory measured on Perlmutter CPU nodes (docs/data/campaign/memory_probe.csv: the largest task of every
 # decoder and noise model at the lowest and highest p of its grid, and CFE-0 from S = 810 to 9702). A batch
 # holds at most BATCH_BITS detector bits, and the fast decoders keep up to 6.2 bytes per sampled bit while
 # they decode it (BATCH_GB adds 8 bytes per bit to their estimate). The peak of every CFE variant is the
 # decoder construction (degeneracy moves, BP and ldpc's OSD-0, or the fast OSD-CS): up to 2.9e-5 GB per
-# fault mechanism, 9.5 GB at d = 21, r = 21 (CFE0_GB_PER_MECH = 3.8e-5 with a margin of 1.3).
+# fault mechanism, 9.5 GB at d = 21, r = 21 (CFE0_GB_PER_MECH = 3.8e-5 with a margin of 1.3). Tesseract
+# (MEMORY) was measured from d = 9 to 21 at the highest p: 1.44 GB at d = 21, r = 21, about linear in S.
 BATCH_BITS = 25_000_000
 BATCH_GB = 8 * BATCH_BITS / 1e9
 FAST = {"mwpm", "corr_links", "corr_gauge", "seq_match", "bp_corr"}
