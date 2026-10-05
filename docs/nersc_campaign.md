@@ -136,3 +136,49 @@ All commands run from the repository root on a Perlmutter login node.
 
 `data/campaign/points_*.csv` hold the raw counts per task. They are not needed for the figures once
 `docs/data/campaign/points.csv` is written, but keep them on `$SCRATCH` or `$CFS` until the paper is done.
+
+## Large runs: a work pool on 128-node jobs
+
+The array of single-node jobs works while the machine has room. A full campaign is different: every decoder,
+r = 1 to 21 and r = d, d up to 21 and 4x budgets is about 1.5 million core-hours. When the queue is full,
+the array barely moves:
+
+- Perlmutter lets only two pending jobs per user and QOS gain age priority (`MaxJobsAccruePU = 2`).
+- A job gets a node reservation only from priority 69121 on (`bf_min_prio_reserve`), about a day of age
+  above the 67679 of `regular` and `preempt`.
+
+So an array element starts only when a backfill hole fits it, two at a time. In October 2026 that was
+about 4 node-hours per hour.
+
+A large job ages just like a small one. The largest `preempt` job (128 nodes, 2 days) therefore gets 128
+nodes as soon as it holds one of the two slots, and such jobs started within 3 to 21 hours that month.
+`regular` jobs cannot preempt `preempt` jobs (`sacctmgr show qos format=name,preempt`), so they run their
+full time.
+
+The pool spreads the tasks over the nodes of such jobs:
+
+```bash
+python scripts/campaign.py pool data/campaign/pool1.jsonl --tasks data/campaign/tasks4.jsonl \
+    data/campaign/tasks5.jsonl data/campaign/tasks6.jsonl data/campaign/tasks7.jsonl
+sbatch -A <project> --export=ALL,POOL=data/campaign/pool1.jsonl slurm/ft_mdr/run_pool.sh   # twice
+python scripts/campaign.py pool-status data/campaign/pool1.jsonl
+```
+
+How the pool works:
+
+- `pool` writes every unfinished task with its counts so far, longest budget first, in units of 128 tasks.
+- Every node runs `campaign.py pool-run`, which works like `run` on one node. It claims a unit whenever
+  all tasks claimed so far have started, by creating `pool1.d/claims/<unit>`, and refreshes the claim
+  every minute.
+- The counts of a unit go to `points_pool1_u<unit>.csv`.
+- A claim that has not been refreshed for 15 minutes belongs to a node that stopped. The next node takes
+  the unit over and continues from that file.
+- Finished units move to `pool1.d/done/`. A node stops when no unit is free and no other node of its job
+  holds one.
+
+Submit jobs before the pool exists, so they start aging; a job that starts first waits up to three hours
+for the pool. Keep the pool's name: claims and counts refer to it. For a later pool, make
+`pool2.jsonl` from the same task files once every job of the first one has ended; it reads the counts
+of `points_pool1_*` like any other.
+
+`status`, `merge` and the analysis read the pool's files with every other `points_*.csv`.

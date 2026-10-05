@@ -2,6 +2,8 @@
 import csv
 import importlib.util
 import json
+import os
+import time
 from pathlib import Path
 
 import pytest
@@ -128,6 +130,8 @@ def test_progress_and_finished(tmp_path):
         csv.writer(fh).writerow(["sd6", 0.004, 3, 3, "frame", "mwpm", 5, 0, 0.0, 0.0, 9.9, "a", "done"])
     prog = campaign.progress([str(f)])
     assert prog["a"][2] < 50.0 and prog["a"][3] == "done" and campaign.finished(t, prog["a"])
+    # the same task listed again with four times the budget goes on
+    assert not campaign.finished(dict(t, budget=200.0), prog["a"])
 
 
 def test_run_and_merge(tmp_path):
@@ -149,6 +153,51 @@ def test_run_and_merge(tmp_path):
     m = list(csv.DictReader(open(merged)))
     assert set(m[0]) == set(campaign.COLS)
     assert sum(int(r["shots"]) for r in m) == sum(int(r["shots"]) for r in rows)
+
+
+def test_pool_build_run_and_takeover(tmp_path, monkeypatch):
+    monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+    tasks = [t for t in campaign.make_tasks(["sd6"], ["mwpm"], ["1"], [3]) if t["value"] > 0.02][:5]
+    for t in tasks:
+        t["budget"] = 2.0
+        t["target"] = 20
+    tf = tmp_path / "tasks.jsonl"
+    tf.write_text("".join(json.dumps(t) + "\n" for t in tasks))
+    # counts of an earlier job: the first task is finished, the second has 7 shots
+    old = tmp_path / "points_0.csv"
+    with open(old, "w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(campaign.RAW)
+        w.writerow(["sd6", tasks[0]["value"], 3, 1, "frame", "mwpm", 50, 25, 0.5, 0.07, 1.0, tasks[0]["id"], "done"])
+        w.writerow(["sd6", tasks[1]["value"], 3, 1, "frame", "mwpm", 7, 1, 0.1, 0.1, 0.5, tasks[1]["id"], ""])
+    pool = tmp_path / "pool1.jsonl"
+    assert campaign.build_pool([str(tf)], [str(old)], str(pool), unit_size=2) == (4, 2)
+    prev = {t["id"]: t.get("prev") for line in pool.read_text().splitlines() for t in json.loads(line)["tasks"]}
+    assert prev[tasks[1]["id"]] == [7, 1, 0.5] and tasks[0]["id"] not in prev
+    with pytest.raises(SystemExit):                     # a new pool needs a new name
+        campaign.build_pool([str(tf)], [str(old)], str(pool))
+    # a node that stopped an hour ago held unit 1, and a node of another job holds unit 0
+    _, claims, done = campaign.pool_dirs(str(pool))
+    c0, c1 = Path(claims) / "0", Path(claims) / "1"
+    c1.write_text("123.0.nid1.1\n")
+    os.utime(c1, (time.time() - 3600,) * 2)
+    c0.write_text("456.0.nid2.2\n")
+    log = []
+    assert campaign.pool_run(str(pool), workers=2, mem_gb=4.0, log=log.append) == 1
+    assert os.listdir(done) == ["1"] and os.listdir(claims) == ["0"]
+    st = campaign.pool_status(str(pool))
+    assert (st["done"], st["claimed"], st["stale"], st["free"], st["jobs"]) == (1, 1, 0, 0, {"456": 1})
+    # that node stops too: the next node takes unit 0 over and finishes the pool
+    os.utime(c0, (time.time() - 3600,) * 2)
+    assert campaign.pool_run(str(pool), workers=2, mem_gb=4.0, log=log.append) == 1
+    assert sorted(os.listdir(done)) == ["0", "1"] and os.listdir(claims) == []
+    files = [str(old)] + [str(f) for f in tmp_path.glob("points_pool1_u*.csv")]
+    prog = campaign.progress(files)
+    assert all(campaign.finished(t, prog.get(t["id"])) for t in tasks)
+    rows = [r for f in files[1:] for r in csv.DictReader(open(f))]
+    assert {r["task"] for r in rows} == {t["id"] for t in tasks[1:]}
+    assert all(not r["note"].startswith("failed") for r in rows)
+    assert campaign.pool_run(str(pool), workers=2, mem_gb=4.0, log=log.append) == 0
 
 
 def test_task_file_roundtrip(tmp_path):
