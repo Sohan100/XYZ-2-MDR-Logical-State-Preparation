@@ -67,6 +67,41 @@ def test_bp_modes_decode_trivial_syndrome(mode):
     assert not dec.decode_batch(zeros).any()
 
 
+def test_bp_corr_edge_weights_keep_their_sign():
+    """A bp_corr shot at d = 21 (sd6, p = 0.0026) that PyMatching refused: 17 faults on one edge, three of
+    which BP was sure of. The merged weight came out -1.1e-16 instead of +6e-18, and the correlated
+    reweighting of that edge then raised. The same faults in the same order, each with its own partner edge."""
+    import pymatching
+    import stim
+    from mdr.ft.two_level_decoder import SPLIT_EDGE_FLOOR
+
+    q = [2.85267329e-07, 2.73626235e-06, 1.42579968e-06, 6.86657655e-06, 0.000619036821, 0.00131830763,
+         0.0200238345, 0.6, 2.94819001e-05, 5.15077965e-05, 0.0005896192, 0.00123583736, 0.152530713,
+         0.00122778285, 0.6, 0.228791136, 0.6]
+    corr = [k != 4 for k in range(len(q))]
+    terms = [f"D{2 * k + 2} D{2 * k + 3} ^ D0 D1" if c else "D0 D1" for k, c in enumerate(corr)]
+    terms += [f"D{2 * k + 2} D{2 * k + 3}" for k, c in enumerate(corr) if c]
+    q = np.array(q + [0.3] * sum(corr))
+    dec = TwoLevelDecoder.__new__(TwoLevelDecoder)
+    dec._split_terms = list(enumerate(terms))
+    dec._split_tail = [f"detector D{i}" for i in range(2 * len(corr) + 2)]
+    syn = np.zeros(2 * len(corr) + 2, dtype=np.uint8)
+    syn[:2] = 1
+    plain = stim.DetectorErrorModel("\n".join(
+        [f"error({x:.9g}) {t}" for x, t in zip(np.clip(q, 1e-9, 0.5 - 1e-6), terms)] + dec._split_tail))
+    with pytest.raises(ValueError, match="change the sign"):
+        pymatching.Matching.from_detector_error_model(plain, enable_correlations=True).decode(
+            syn, enable_correlations=True)
+    dem = dec._split_dem_with(q)
+    probs = np.array([inst.args_copy()[0] for inst in dem if inst.type == "error"])
+    assert np.exp(dec._split_inc @ np.log1p(-2.0 * probs)).min() >= 0.99 * SPLIT_EDGE_FLOOR
+    pymatching.Matching.from_detector_error_model(dem, enable_correlations=True).decode(syn, enable_correlations=True)
+    # posteriors away from 0.5 give the model as it was
+    q2 = np.full(len(terms), 1e-3)
+    assert str(dec._split_dem_with(q2)) == str(stim.DetectorErrorModel("\n".join(
+        [f"error({x:.9g}) {t}" for x, t in zip(q2, terms)] + dec._split_tail)))
+
+
 def test_hierarchical_matching_beats_s0_matching():
     ft = FTMDRCircuit(5, 5, CircuitNoise.biased(5e-3, 100), detectors="combined")
     circuit = ft.build()

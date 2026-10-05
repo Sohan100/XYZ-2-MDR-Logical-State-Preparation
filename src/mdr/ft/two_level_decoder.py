@@ -20,6 +20,10 @@ from .s0_matching_decoder import LogicalErrorEstimate
 
 S0_PHASES = {0, 1, 2}
 GAUGE_PHASES = {3, 4}
+# PyMatching merges the faults of an edge into one weight w with tanh(w/2) = prod(1 - 2 q), adding
+# log-odds in a form whose rounding error (~1e-16) can flip the sign of a weight near zero; it then
+# refuses the correlated reweighting of that edge. bp_corr keeps that product at or above this floor.
+SPLIT_EDGE_FLOOR = 1e-12
 
 
 class TwoLevelDecoder:
@@ -522,9 +526,39 @@ class TwoLevelDecoder:
     def _split_dem_with(self, q: np.ndarray) -> stim.DetectorErrorModel:
         """
         The split detector error model with mechanism probabilities `q`.
+
+        Where BP is sure of several faults of one edge (q near 0.5), the product prod(1 - 2 q) over the
+        faults of the edge falls to PyMatching's rounding error, the merged weight can come out negative
+        and PyMatching refuses to decode (see SPLIT_EDGE_FLOOR). The faults of such an edge are scaled in
+        -log(1 - 2 q) just enough to keep the product at the floor, so the edge still costs ~1e-12; the
+        posteriors of all other faults are used as they are.
         """
         q = np.clip(q, 1e-9, 0.5 - 1e-6)
-        lines = [f"error({q[j]:.9g}) {txt}" for j, txt in self._split_terms]
+        if not hasattr(self, "_split_inc"):
+            # edges (as PyMatching merges them: by detectors) x split terms, and the fault of every term
+            keys: Dict[Tuple[str, ...], int] = {}
+            rows, cols = [], []
+            for t, (_, txt) in enumerate(self._split_terms):
+                for comp in txt.split("^"):
+                    k = tuple(sorted(x for x in comp.split() if x.startswith("D")))
+                    rows.append(keys.setdefault(k, len(keys)))
+                    cols.append(t)
+            shape = (len(keys), len(self._split_terms))
+            self._split_inc = sp.csr_matrix((np.ones(len(rows)), (rows, cols)), shape=shape)
+            self._split_on = sp.csr_matrix((np.ones(len(rows)), (cols, rows)), shape=shape[::-1])
+            self._split_on.data[:] = 1.0
+            self._split_j = np.array([j for j, _ in self._split_terms], dtype=np.int64)
+        qt = q[self._split_j]
+        v = -np.log1p(-2.0 * qt)
+        t_max = -np.log(SPLIT_EDGE_FLOOR)
+        tot = self._split_inc @ v
+        if tot.max(initial=0.0) > t_max:
+            over = np.maximum(tot / t_max, 1.0)
+            c = self._split_on.multiply(over[None, :]).tocsr().max(axis=1).toarray().ravel()
+            s = c > 1.0
+            qt = qt.copy()
+            qt[s] = -np.expm1(-v[s] / c[s]) / 2.0
+        lines = [f"error({x:.9g}) {txt}" for x, (_, txt) in zip(qt, self._split_terms)]
         return stim.DetectorErrorModel("\n".join(lines + self._split_tail))
 
     def _decode_bp_corr(self, dets: np.ndarray) -> np.ndarray:
