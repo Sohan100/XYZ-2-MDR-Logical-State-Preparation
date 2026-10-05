@@ -752,6 +752,7 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
     used = 0.0
     n_done = 0
     next_beat = time.time() + beat
+    next_report = time.time() + 1800
     next_scan = 0.0
     idle_check = False
 
@@ -788,6 +789,10 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
             if p.exitcode not in (0, -15):           # -15: the end of the job (SIGTERM)
                 q.put(_row(t, 0, 0, 0.0, f"failed: worker exit code {p.exitcode} (-9: out of memory?)"))
             end_task(k)
+        if now >= next_report:
+            log(f"{time.strftime('%H:%M:%S')} running {len(running)}, waiting {len(pending)}, "
+                f"{used:.0f} of {mem_gb:.0f} GB reserved, units held {len(left)}, finished {n_done}")
+            next_report = now + 1800
         if now >= next_beat:
             for k in list(left):
                 if k in lost:
@@ -815,7 +820,16 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
                 next_scan = now + scan
                 idle_check = True
             else:
-                tasks = load_unit(k)
+                try:
+                    tasks = load_unit(k)
+                except Exception as exc:  # noqa: BLE001  (a unit this node cannot read: leave it to others)
+                    log(f"{time.strftime('%H:%M:%S')} unit {k}: cannot load it ({type(exc).__name__}: {exc})")
+                    known_done.add(k)
+                    try:
+                        os.unlink(claim_path(k))
+                    except OSError:
+                        pass
+                    continue
                 log(f"{time.strftime('%H:%M:%S')} unit {k}: {len(tasks)} tasks to run")
                 if not tasks:
                     q.put(("close", k, True))
