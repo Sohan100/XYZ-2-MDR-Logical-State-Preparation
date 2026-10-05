@@ -158,8 +158,7 @@ full time.
 The pool spreads the tasks over the nodes of such jobs:
 
 ```bash
-python scripts/campaign.py pool data/campaign/pool1.jsonl --tasks data/campaign/tasks4.jsonl \
-    data/campaign/tasks5.jsonl data/campaign/tasks6.jsonl data/campaign/tasks7.jsonl
+python scripts/campaign.py pool data/campaign/pool1.jsonl --first d --tasks data/campaign/tasks*.jsonl
 sbatch -A <project> --export=ALL,POOL=data/campaign/pool1.jsonl slurm/ft_mdr/run_pool.sh   # twice
 python scripts/campaign.py pool-status data/campaign/pool1.jsonl
 ```
@@ -167,6 +166,7 @@ python scripts/campaign.py pool-status data/campaign/pool1.jsonl
 How the pool works:
 
 - `pool` writes every unfinished task with its counts so far, longest budget first, in units of 128 tasks.
+  `--first d` puts every r = d task ahead of the rest, so the r = d thresholds finish in the first hours.
 - Every node runs `campaign.py pool-run`, which works like `run` on one node. It claims a unit whenever
   all tasks claimed so far have started, by creating `pool1.d/claims/<unit>`, and refreshes the claim
   every minute.

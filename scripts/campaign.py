@@ -522,8 +522,9 @@ def pool_dirs(pool: str) -> tuple:
     return stem + ".idx", stem + ".d/claims", stem + ".d/done"
 
 
-def build_pool(task_files, points, out: str, unit_size: int = 128, seed: int = 0) -> tuple:
-    """Write every unfinished task of `task_files`, with its counts in `points`, to the pool `out`."""
+def build_pool(task_files, points, out: str, unit_size: int = 128, seed: int = 0, first=()) -> tuple:
+    """Write every unfinished task of `task_files`, with its counts in `points`, to the pool `out`; the tasks
+    whose number of rounds is in `first` (e.g. "d") come before all others."""
     index, claims, done_dir = pool_dirs(out)
     if os.path.exists(os.path.dirname(claims)):
         raise SystemExit(f"{os.path.dirname(claims)} exists: claims and counts refer to a pool by its name, "
@@ -547,11 +548,13 @@ def build_pool(task_files, points, out: str, unit_size: int = 128, seed: int = 0
             t["prev"] = s[:3]
         todo.append(t)
     del best
-    # longest remaining budget first, in steps of ten minutes and at random within a step: the pool
-    # ends with short tasks, and every unit mixes decoders, noise models and sizes (and so memory)
+    # the rounds asked for first, then longest remaining budget first, in steps of ten minutes and at
+    # random within a step: the pool ends with short tasks, and every unit mixes decoders, noise models
+    # and sizes (and so memory)
     tie = np.random.default_rng(seed).random(len(todo))
     left = [round((t["budget"] - t.get("prev", [0, 0, 0.0])[2]) / 600.0) for t in todo]
-    order = sorted(range(len(todo)), key=lambda i: (-left[i], tie[i]))
+    tier = [0 if t["rounds"] in set(first) else 1 for t in todo]
+    order = sorted(range(len(todo)), key=lambda i: (tier[i], -left[i], tie[i]))
     offsets, pos = [], 0
     Path(out).parent.mkdir(parents=True, exist_ok=True)
     with open(out + ".tmp", "w") as fh:
@@ -957,6 +960,8 @@ def main() -> None:
     po.add_argument("--tasks", nargs="+", required=True, help="task files")
     po.add_argument("--points", nargs="+", default=["data/campaign/points_*.csv"], help="counts so far")
     po.add_argument("--unit-size", type=int, default=128)
+    po.add_argument("--first", nargs="*", default=[], metavar="ROUNDS",
+                    help="numbers of rounds whose tasks go first (e.g. d: every r = d threshold before the rest)")
     pr = sub.add_parser("pool-run", help="work through a pool on this node (one per node; run_pool.sh)")
     pr.add_argument("pool")
     pr.add_argument("--workers", type=int, default=0, help="default: number of physical cores")
@@ -1004,7 +1009,7 @@ def main() -> None:
         n = merge(_expand(args.files), args.out)
         print(f"{n} points -> {args.out}")
     elif args.cmd == "pool":
-        n, units = build_pool(_expand(args.tasks), _expand(args.points), args.out, args.unit_size)
+        n, units = build_pool(_expand(args.tasks), _expand(args.points), args.out, args.unit_size, first=args.first)
         print(f"{n} unfinished tasks in {units} units -> {args.out}")
     elif args.cmd == "pool-run":
         workers = args.workers or max(1, (os.cpu_count() or 2) // 2)

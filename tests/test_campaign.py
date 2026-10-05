@@ -171,6 +171,13 @@ def test_pool_build_run_and_takeover(tmp_path, monkeypatch):
         w.writerow(["sd6", tasks[0]["value"], 3, 1, "frame", "mwpm", 50, 25, 0.5, 0.07, 1.0, tasks[0]["id"], "done"])
         w.writerow(["sd6", tasks[1]["value"], 3, 1, "frame", "mwpm", 7, 1, 0.1, 0.1, 0.5, tasks[1]["id"], ""])
     pool = tmp_path / "pool1.jsonl"
+    # r = d first: the order of the pool puts a task of another number of rounds after it
+    other = dict(campaign.make_tasks(["sd6"], ["mwpm"], ["d"], [3])[0], budget=1.0, target=20)
+    tf.write_text("".join(json.dumps(t) + "\n" for t in tasks + [other]))
+    first = tmp_path / "first.jsonl"
+    campaign.build_pool([str(tf)], [str(old)], str(first), unit_size=2, first=["d"])
+    assert json.loads(first.read_text().splitlines()[0])["tasks"][0]["id"] == other["id"]
+    tf.write_text("".join(json.dumps(t) + "\n" for t in tasks))
     assert campaign.build_pool([str(tf)], [str(old)], str(pool), unit_size=2) == (4, 2)
     prev = {t["id"]: t.get("prev") for line in pool.read_text().splitlines() for t in json.loads(line)["tasks"]}
     assert prev[tasks[1]["id"]] == [7, 1, 0.5] and tasks[0]["id"] not in prev
