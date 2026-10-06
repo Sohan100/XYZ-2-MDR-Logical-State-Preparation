@@ -232,6 +232,25 @@ def test_pool_order_takes_listed_pools_first(tmp_path, monkeypatch):
     assert {r["task"] for r in rows} == {t["id"] for t in tasks}
 
 
+def test_competitor_series_run_like_ours(tmp_path):
+    assert campaign.competitor("mwpm") is None
+    assert campaign.competitor("xzzx-X:corr") == ("xzzx", "X", "corr")
+    assert campaign.base_decoder("css-Z:bposd") == "cfe0" and campaign.base_decoder("bm") == "bm"
+    with pytest.raises(ValueError):
+        campaign.competitor("toric-X:mwpm")
+    tasks = [dict(id=f"sd6|{dec}|rd|d3|p0.02|0", noise="sd6", decoder=dec, rounds="d", d=3, value=0.02,
+                  target=20, max_shots=2000, budget=3.0, mem=1.0)
+             for dec in ("css-X:mwpm", "xzzx-Z:corr", "honeycomb-X:mwpm")]
+    tasks[2]["d"] = 4
+    tasks[2]["id"] = "sd6|honeycomb-X:mwpm|rd|d4|p0.02|0"
+    out = tmp_path / "points_0.csv"
+    campaign.run(tasks, str(out), workers=3, mem_gb=4.0, log=lambda m: None)
+    rows = list(csv.DictReader(open(out)))
+    assert {r["task"] for r in rows} == {t["id"] for t in tasks}
+    assert all(not r["note"].startswith("failed") for r in rows), [r["note"] for r in rows]
+    assert sum(int(r["shots"]) for r in rows) > 0
+
+
 def test_task_file_roundtrip(tmp_path):
     tasks = campaign.make_tasks(["em3"], ["mwpm"], ["d"], [3, 5])
     p = tmp_path / "t.jsonl"

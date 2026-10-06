@@ -140,6 +140,31 @@ BATCH_GB = 8 * BATCH_BITS / 1e9
 FAST = {"mwpm", "corr_links", "corr_gauge", "seq_match", "bp_corr"}
 CFE0_GB_PER_MECH = 3.8e-5
 
+# Other codes under the same noise models (src/mdr/ft/competitor_circuits.py): a series "code-basis:decoder",
+# e.g. "xzzx-X:mwpm", is the memory of that code in that basis decoded by that decoder
+# (src/mdr/ft/competitor_decoders.py). Budgets, targets and memory are those of the XYZ^2 decoder of the
+# same kind; the competitor circuits are at most as large as ours at the same d and r.
+COMPETITOR_CODES = ("css", "xzzx", "xy", "honeycomb")
+COMPETITOR_DECODERS = {"mwpm": "mwpm", "corr": "corr_links", "bm": "bm", "bposd": "cfe0", "tesseract": "tesseract"}
+
+
+def competitor(decoder: str):
+    """(code, basis, decoder) of a competitor series "code-basis:decoder", None for an XYZ^2 decoder."""
+    if ":" not in decoder:
+        return None
+    cb, name = decoder.split(":", 1)
+    code, basis = cb.split("-", 1)
+    if code not in COMPETITOR_CODES or name not in COMPETITOR_DECODERS or basis not in ("X", "Z"):
+        raise ValueError(f"unknown competitor series {decoder!r}")
+    return code, basis, name
+
+
+def base_decoder(decoder: str) -> str:
+    """The XYZ^2 decoder whose budget, target and memory a series uses."""
+    comp = competitor(decoder)
+    return decoder if comp is None else COMPETITOR_DECODERS[comp[2]]
+
+
 COLS = ["noise", "value", "d", "rounds", "final", "decoder", "shots", "errors", "p_L", "stderr", "seconds"]
 RAW = COLS + ["task", "note"]
 KEYS = ["noise", "value", "d", "rounds", "final", "decoder"]
@@ -375,12 +400,22 @@ def _work(t: dict, prev, q, ev=None) -> None:
     s_tot, e_tot, sec0 = (prev[0], prev[1], prev[2]) if prev else (0, 0, 0.0)
     t0 = last = time.time()
     try:
-        ft = FTMDRCircuit(t["d"], n_rounds(t["rounds"], t["d"]), NOISE[t["noise"]](t["value"]),
-                          final="frame", detectors="combined")
-        dec = TwoLevelDecoder(ft, **DEC[t["decoder"]])
-        sampler = dec.circuit.compile_detector_sampler()
+        noise = NOISE[t["noise"]](t["value"])
+        comp = competitor(t["decoder"])
+        if comp is not None:                        # another code: see COMPETITOR_DECODERS
+            from mdr.ft.competitor_circuits import competitor_circuit
+            from mdr.ft.competitor_decoders import competitor_decoder
+
+            code, basis, name = comp
+            circuit = competitor_circuit(code, t["d"], n_rounds(t["rounds"], t["d"]), noise, basis=basis)
+            dec = competitor_decoder(circuit, name)
+        else:
+            ft = FTMDRCircuit(t["d"], n_rounds(t["rounds"], t["d"]), noise, final="frame", detectors="combined")
+            dec = TwoLevelDecoder(ft, **DEC[t["decoder"]])
+            circuit = dec.circuit
+        sampler = circuit.compile_detector_sampler()
         # the memory of a batch must not grow with the decoding speed (see BATCH_BITS)
-        max_size = int(np.clip(BATCH_BITS // max(dec.circuit.num_detectors, 1), 1, 200_000))
+        max_size = int(np.clip(BATCH_BITS // max(circuit.num_detectors, 1), 1, 200_000))
         if ev is not None:
             ev.put(os.getpid())                     # the decoder is built: its construction peak is over
     except Exception as exc:  # noqa: BLE001  (e.g. a decoder package missing on this machine)
