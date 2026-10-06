@@ -15,8 +15,8 @@ decoder of the same kind (campaign.COMPETITOR_DECODERS).
     python scripts/campaign_competitors.py --out data/campaign/tasks9.jsonl \
         --centers /pscratch/sd/s/sohan100/ftmdr_tools/competitors/pilot_centers.csv
 
-Grids have 14 points over a factor 4, centred on the series' pilot crossing (MWPM, d = 5/7, or 6/8 for
-the honeycomb). For the other decoders the centre is multiplied by the gain our own decoders show over
+Grids have 14 points over a factor 4, centred on the series' pilot crossing (MWPM, d = 5/7, or 4/8 for
+the honeycomb, whose d = 4, 8, ..., 20 patches share one shape). For the other decoders the centre is multiplied by the gain our own decoders show over
 MWPM (campaign._G_DEFAULT). A series without a pilot crossing is centred at twice the top of the
 scanned range. A crosstalk model without a crossing takes the fixed range of our own runs
 (campaign.XT_RANGE).
@@ -41,7 +41,12 @@ DECODERS = ("mwpm", "corr", "bm", "tesseract", "bposd")
 DMAX = {"tesseract": 11, "bposd": 11}
 HONEYCOMB_DECODERS = ("mwpm", "corr", "bm")
 SURFACE_D = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21]
-HONEYCOMB_D = [4, 6, 8, 10, 12, 14, 16, 18, 20]
+# the honeycomb patch is d x 6 ceil(d / 4): d = 4, 8, ..., 20 keep the same shape (d x 1.5 d), which the
+# fit of a threshold across d needs (d = 6 has the height of d = 8)
+HONEYCOMB_D = [4, 8, 12, 16, 20]
+# pilot rows to centre on: the largest pair for the surface codes, the pair of equal shapes for the honeycomb
+PILOT_PAIR = {"css": "5/7", "xzzx": "5/7", "xy": "5/7", "honeycomb": "4/8"}
+PILOT_BASIS = {"H": "X", "V": "Z", "X": "X", "Z": "Z"}
 GAIN = {"mwpm": 1.0, "corr": 1.18, "bm": 1.3, "tesseract": 1.3, "bposd": 1.3}
 
 
@@ -58,7 +63,9 @@ def pilot_centers(path: str) -> dict:
     rows = {}
     with open(path, newline="") as fh:
         for r in csv.DictReader(fh):
-            key = (r["code"], r["basis"], r["noise"], r["rounds"])
+            if r.get("d_pair") and r["d_pair"] != PILOT_PAIR.get(r["code"], r["d_pair"]):
+                continue
+            key = (r["code"], PILOT_BASIS[r["basis"]], r["noise"], r["rounds"])
             rows.setdefault(key, {})[r["decoder"]] = (num(r.get("crossing_p")), num(r.get("lo")), num(r.get("hi")))
     out = {}
     for key, by in rows.items():
@@ -67,9 +74,21 @@ def pilot_centers(path: str) -> dict:
     return out
 
 
+def pilot_center(pilot: dict, code: str, basis: str, noise: str, r: str):
+    """(crossing, lo, hi) of a series; for r other than 1 and d, the crossing interpolated in log r between
+    r = 1 and r = d (placed at campaign.R_EFF_D rounds), as campaign.center_from does for our code."""
+    if r in ("1", "d") or (code, basis, noise, "1") not in pilot or (code, basis, noise, "d") not in pilot:
+        return pilot.get((code, basis, noise, r), (None, None, None))
+    x1, xd = pilot[(code, basis, noise, "1")][0], pilot[(code, basis, noise, "d")][0]
+    if x1 is None or xd is None:
+        return (None, None, None)
+    t = min(1.0, math.log(int(r)) / math.log(C.R_EFF_D))
+    return (math.exp((1 - t) * math.log(x1) + t * math.log(xd)), None, None)
+
+
 def series_grid(noise: str, code: str, basis: str, r: str, dec: str, pilot: dict):
     """(p values, centre) of a series."""
-    x, lo, hi = pilot.get((code, basis, noise, r), (None, None, None))
+    x, lo, hi = pilot_center(pilot, code, basis, noise, r)
     if x is None and noise in C.XT_RANGE:
         return C.grid(noise, "mwpm", r), C.center(noise, "mwpm", r)
     if x is None:

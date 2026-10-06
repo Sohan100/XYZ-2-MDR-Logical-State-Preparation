@@ -182,3 +182,22 @@ for the pool. Keep the pool's name: claims and counts refer to it. For a later p
 of `points_pool1_*` like any other.
 
 `status`, `merge` and the analysis read the pool's files with every other `points_*.csv`.
+
+## Competitor codes
+
+The rotated CSS, XZZX and XY surface codes (X- and Z-basis memories) and the periodic honeycomb Floquet code
+(H and V observables) run under the same noise models, for comparison with XYZ^2's thresholds.
+`src/mdr/ft/competitor_circuits.py` builds them with `FTMDRCircuit`'s own noise methods, and
+`src/mdr/ft/competitor_decoders.py` decodes them (mwpm, corr, bm, bposd, tesseract). Each series is named
+`code-basis:decoder` (e.g. `xzzx-X:corr`) and runs like any other task.
+
+```bash
+python scripts/campaign_competitors.py --out data/campaign/tasks9.jsonl --scale 4 --rounds d 1 2 3 5 10 \
+    --centers pilot_centers.csv      # small-d MWPM crossings per code, basis, noise and r
+python scripts/campaign.py pool data/campaign/pool2.jsonl --first d --tasks data/campaign/tasks9.jsonl
+echo pool2.jsonl > data/campaign/pool_order.txt
+```
+
+Nodes started with `pool1` read `pool_order.txt` and take units from the pools it lists first, so queued
+jobs pick up a new pool without being resubmitted.
+
