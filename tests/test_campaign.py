@@ -207,6 +207,31 @@ def test_pool_build_run_and_takeover(tmp_path, monkeypatch):
     assert campaign.pool_run(str(pool), workers=2, mem_gb=4.0, log=log.append) == 0
 
 
+def test_pool_order_takes_listed_pools_first(tmp_path, monkeypatch):
+    monkeypatch.delenv("SLURM_JOB_ID", raising=False)
+    tasks = [t for t in campaign.make_tasks(["sd6"], ["mwpm"], ["1"], [3]) if t["value"] > 0.02][:4]
+    for t in tasks:
+        t["budget"] = 1.0
+        t["target"] = 10
+    for name, part in (("pool1", tasks[:2]), ("pool2", tasks[2:])):
+        f = tmp_path / f"{name}_tasks.jsonl"
+        f.write_text("".join(json.dumps(t) + "\n" for t in part))
+        campaign.build_pool([str(f)], [], str(tmp_path / f"{name}.jsonl"), unit_size=1)
+    order = tmp_path / "pool_order.txt"
+    order.write_text("# the second pool first\npool2.jsonl\n")
+    assert campaign.pool_order(str(tmp_path / "pool1.jsonl"), str(order)) == [
+        str(tmp_path / "pool2.jsonl"), str(tmp_path / "pool1.jsonl")]
+    log = []
+    assert campaign.pool_run(str(tmp_path / "pool1.jsonl"), workers=1, mem_gb=4.0, log=log.append,
+                             order_file=str(order)) == 4
+    claimed = [m for m in log if "tasks to run" in m]
+    assert [("pool2" in m) for m in claimed] == [True, True, False, False]
+    for name in ("pool1", "pool2"):
+        assert len(os.listdir(tmp_path / f"{name}.d" / "done")) == 2
+    rows = [r for f in tmp_path.glob("points_pool*_u*.csv") for r in csv.DictReader(open(f))]
+    assert {r["task"] for r in rows} == {t["id"] for t in tasks}
+
+
 def test_task_file_roundtrip(tmp_path):
     tasks = campaign.make_tasks(["em3"], ["mwpm"], ["d"], [3, 5])
     p = tmp_path / "t.jsonl"

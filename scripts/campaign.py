@@ -571,18 +571,19 @@ def build_pool(task_files, points, out: str, unit_size: int = 128, seed: int = 0
     return len(todo), len(offsets)
 
 
-def _pool_writer(q, pool: str, unit_of: dict, claims: str, done_dir: str, me: str) -> None:
-    """Append the rows of every unit to its file; ("close", unit, done) ends a unit, after its last row."""
+def _pool_writer(q, unit_of: dict, me: str) -> None:
+    """Append the rows of every unit to its file; ("close", pool, unit, done) ends a unit, after its last row."""
     files = {}
     while True:
         item = q.get()
         if item is None:
             break
         if isinstance(item, tuple):
-            _, k, mark = item
-            fh = files.pop(k, None)
+            _, pool, k, mark = item
+            fh = files.pop((pool, k), None)
             if fh is not None:
                 fh.close()
+            _, claims, done_dir = pool_dirs(pool)
             path = os.path.join(claims, str(k))
             try:
                 if mark and open(path).read().strip() == me:
@@ -590,11 +591,13 @@ def _pool_writer(q, pool: str, unit_of: dict, claims: str, done_dir: str, me: st
             except OSError:
                 pass
             continue
-        k = unit_of.get(item[11], "x")             # "x": cannot happen, but keep the row
-        if k not in files:
-            out = pool_unit_out(pool, k)
+        key = unit_of.get(item[11])
+        if key is None:                             # cannot happen, but keep the row
+            key = (next(iter(unit_of.values()), ("orphans", "x"))[0], "x")
+        if key not in files:
+            out = pool_unit_out(*key)
             size = os.path.getsize(out) if os.path.exists(out) else 0
-            fh = files[k] = open(out, "a", newline="")
+            fh = files[key] = open(out, "a", newline="")
             if size == 0:
                 csv.writer(fh).writerow(RAW)
             else:
@@ -602,18 +605,50 @@ def _pool_writer(q, pool: str, unit_of: dict, claims: str, done_dir: str, me: st
                     rb.seek(size - 1)
                     if rb.read(1) != b"\n":     # a line cut off when an earlier node stopped
                         fh.write("\n")
-        csv.writer(files[k]).writerow(item)
-        files[k].flush()
+        csv.writer(files[key]).writerow(item)
+        files[key].flush()
     for fh in files.values():
         fh.close()
 
 
+def pool_order(pool: str, order_file: str | None) -> list:
+    """The pools to work on, first to last: those listed in `order_file` (one per line, relative to the
+    file's folder; "#" starts a comment), then `pool` if the file does not list it."""
+    pools = []
+    if order_file:
+        try:
+            with open(order_file) as fh:
+                for line in fh:
+                    x = line.split("#", 1)[0].strip()
+                    if x:
+                        pools.append(os.path.normpath(os.path.join(os.path.dirname(order_file), x)))
+        except OSError:
+            pass
+    if os.path.normpath(pool) not in pools:
+        pools.append(os.path.normpath(pool))
+    return pools
+
+
+class _PoolView:
+    """The units of one pool as one node sees them."""
+
+    def __init__(self, path: str):
+        self.path = path
+        index, self.claims, self.done = pool_dirs(path)
+        with open(index) as fh:
+            self.offsets = json.load(fh)
+        self.known_done = set()
+        self.seen = {}              # unit -> time before which its claim by another node cannot be stale
+
+
 def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: float = 0.0,
-             stale: float = POOL_STALE, beat: float = POOL_BEAT, scan: float = POOL_SCAN) -> int:
+             stale: float = POOL_STALE, beat: float = POOL_BEAT, scan: float = POOL_SCAN,
+             order_file: str | None = None, refresh: float = 600.0) -> int:
     """Work through a pool on this node, like `run` on one chunk: claim a unit whenever every task claimed
     so far has started, and stop when no unit is free and no other node of this Slurm job holds one (its
-    nodes are held until the last one ends, so they wait for units of nodes that stop). Returns the
-    number of units finished here."""
+    nodes are held until the last one ends, so they wait for units of nodes that stop). With `order_file`
+    (read again every `refresh` seconds), the node takes its units from the pools listed there first, in
+    that order, then from `pool`. Returns the number of units finished here."""
     import random
     import socket
 
@@ -621,34 +656,44 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
     import mdr.ft.two_level_decoder  # noqa: F401
     import run_decoder_threshold_sweep  # noqa: F401
 
-    index, claims, done_dir = pool_dirs(pool)
     wait_until = time.time() + 3 * 3600         # a job submitted ahead of its pool waits for it
-    while not os.path.exists(pool):
+    while not any(os.path.exists(x) for x in pool_order(pool, order_file)):
         if time.time() > wait_until:
             raise SystemExit(f"{pool} does not exist")
         log(f"{time.strftime('%H:%M:%S')} waiting for {pool}")
         time.sleep(60)
-    with open(index) as fh:
-        offsets = json.load(fh)
-    n_units = len(offsets)
     job = os.environ.get("SLURM_JOB_ID", "local")
     me = f"{job}.{os.environ.get('SLURM_RESTART_COUNT', '0')}.{socket.gethostname()}.{os.getpid()}"
     rng = random.Random(me)
-    known_done = set()
-    seen = {}                       # unit -> time before which its claim by another node cannot be stale
+    views = {}                      # pool path -> _PoolView
+    order = []
 
-    def claim_path(k):
-        return os.path.join(claims, str(k))
+    def refresh_order():
+        nonlocal order
+        order = []
+        for x in pool_order(pool, order_file):
+            if x not in views and os.path.exists(x):
+                try:
+                    views[x] = _PoolView(x)
+                    log(f"{time.strftime('%H:%M:%S')} pool {x}: {len(views[x].offsets)} units")
+                except (OSError, ValueError) as exc:
+                    log(f"{time.strftime('%H:%M:%S')} pool {x}: cannot read it ({exc})")
+                    continue
+            if x in views:
+                order.append(views[x])
 
-    def owner(k):
+    def claim_path(v, k):
+        return os.path.join(v.claims, str(k))
+
+    def owner(v, k):
         try:
-            with open(claim_path(k)) as fh:
+            with open(claim_path(v, k)) as fh:
                 return fh.read().strip()
         except OSError:
             return None
 
-    def try_claim(k) -> bool:
-        path = claim_path(k)
+    def try_claim(v, k) -> bool:
+        path = claim_path(v, k)
         for _ in range(2):
             try:
                 fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
@@ -658,7 +703,7 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
                 except FileNotFoundError:
                     continue
                 if time.time() - mtime < stale:
-                    seen[k] = mtime + stale
+                    v.seen[k] = mtime + stale
                     return False
                 # its node stopped: move the claim aside (one taker succeeds), check it, claim anew
                 aside = f"{path}.stale.{me}"
@@ -679,32 +724,33 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
                 continue
             with os.fdopen(fd, "w") as fh:
                 fh.write(me + "\n")
-            if os.path.exists(os.path.join(done_dir, str(k))):    # finished just before
+            if os.path.exists(os.path.join(v.done, str(k))):     # finished just before
                 os.unlink(path)
-                known_done.add(k)
+                v.known_done.add(k)
                 return False
             return True
         return False
 
     def next_unit():
         now = time.time()
-        free = [k for k in range(n_units) if k not in known_done and seen.get(k, 0.0) <= now]
-        if not free:
-            return None
-        start = rng.randrange(min(len(free), POOL_WINDOW))
-        for k in free[start:] + free[:start]:
-            if os.path.exists(os.path.join(done_dir, str(k))):
-                known_done.add(k)
-            elif try_claim(k):
-                return k
+        for v in order:
+            free = [k for k in range(len(v.offsets)) if k not in v.known_done and v.seen.get(k, 0.0) <= now]
+            if not free:
+                continue
+            start = rng.randrange(min(len(free), POOL_WINDOW))
+            for k in free[start:] + free[:start]:
+                if os.path.exists(os.path.join(v.done, str(k))):
+                    v.known_done.add(k)
+                elif try_claim(v, k):
+                    return v, k
         return None
 
-    def load_unit(k):
-        with open(pool, "rb") as fh:
-            fh.seek(offsets[k])
+    def load_unit(v, k):
+        with open(v.path, "rb") as fh:
+            fh.seek(v.offsets[k])
             rec = json.loads(fh.readline())
         assert rec["unit"] == k, (rec["unit"], k)
-        prog = progress([pool_unit_out(pool, k)])
+        prog = progress([pool_unit_out(v.path, k)])
         out = []
         for t in rec["tasks"]:
             p0 = t.pop("prev", None) or [0, 0, 0.0]
@@ -720,22 +766,23 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
     def job_busy() -> bool:
         if job == "local":
             return False
-        try:
-            names = os.listdir(claims)
-        except OSError:
-            return False
-        for name in names:
-            if not name.isdigit() or int(name) in left:
-                continue
-            path = os.path.join(claims, name)
+        for v in views.values():
             try:
-                if time.time() - os.stat(path).st_mtime >= stale:
-                    continue
-                with open(path) as fh:
-                    if fh.read().split(".", 1)[0] == job:
-                        return True
+                names = os.listdir(v.claims)
             except OSError:
                 continue
+            for name in names:
+                if not name.isdigit() or (v.path, int(name)) in left:
+                    continue
+                path = os.path.join(v.claims, name)
+                try:
+                    if time.time() - os.stat(path).st_mtime >= stale:
+                        continue
+                    with open(path) as fh:
+                        if fh.read().split(".", 1)[0] == job:
+                            return True
+                except OSError:
+                    continue
         return False
 
     import gc
@@ -744,31 +791,34 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
     ctx = mp.get_context("fork")
     q = ctx.Queue()
     ev = ctx.Queue()
-    unit_of = {}
-    wt = threading.Thread(target=_pool_writer, args=(q, pool, unit_of, claims, done_dir, me), daemon=True)
+    unit_of = {}                    # task id -> (pool, unit)
+    wt = threading.Thread(target=_pool_writer, args=(q, unit_of, me), daemon=True)
     wt.start()
-    log(f"{me}: pool of {n_units} units, {workers} workers, {mem_gb:.0f} GB")
-    pending = []                    # (task, counts so far, unit)
-    running = {}                    # pid -> (process, task, memory reserved, unit)
-    left = {}                       # unit -> its tasks claimed here that have not ended
+    refresh_order()
+    log(f"{me}: pools {[v.path for v in order]}, {workers} workers, {mem_gb:.0f} GB")
+    pending = []                    # (task, counts so far, (pool, unit))
+    running = {}                    # pid -> (process, task, memory reserved, (pool, unit))
+    left = {}                       # (pool, unit) -> its tasks claimed here that have not ended
     lost = set()
     used = 0.0
     n_done = 0
     next_beat = time.time() + beat
     next_report = time.time() + 1800
+    next_refresh = time.time() + refresh
     next_scan = 0.0
     idle_check = False
 
-    def end_task(k):
+    def end_task(key):
         nonlocal n_done
-        left[k] -= 1
-        if left[k] == 0:
-            del left[k]
-            q.put(("close", k, k not in lost))
-            if k not in lost:
+        left[key] -= 1
+        if left[key] == 0:
+            del left[key]
+            q.put(("close", key[0], key[1], key not in lost))
+            if key not in lost:
                 n_done += 1
-                log(f"{time.strftime('%H:%M:%S')} unit {k} finished ({n_done} here), running {len(running)}")
-            lost.discard(k)
+                log(f"{time.strftime('%H:%M:%S')} unit {key[1]} of {key[0]} finished ({n_done} here), "
+                    f"running {len(running)}")
+            lost.discard(key)
 
     while True:
         now = time.time()
@@ -778,12 +828,12 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
             except queue.Empty:
                 break
             if pid in running:
-                p, t, m, k = running[pid]
+                p, t, m, key = running[pid]
                 m2 = min(m, t.get("mem_run", m))
                 used -= m - m2
-                running[pid] = (p, t, m2, k)
+                running[pid] = (p, t, m2, key)
         for pid in list(running):
-            p, t, m, k = running[pid]
+            p, t, m, key = running[pid]
             if p.is_alive():
                 continue
             p.join()
@@ -791,64 +841,73 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
             del running[pid]
             if p.exitcode not in (0, -15):           # -15: the end of the job (SIGTERM)
                 q.put(_row(t, 0, 0, 0.0, f"failed: worker exit code {p.exitcode} (-9: out of memory?)"))
-            end_task(k)
+            end_task(key)
         if now >= next_report:
             log(f"{time.strftime('%H:%M:%S')} running {len(running)}, waiting {len(pending)}, "
                 f"{used:.0f} of {mem_gb:.0f} GB reserved, units held {len(left)}, finished {n_done}")
             next_report = now + 1800
+        if now >= next_refresh:
+            refresh_order()
+            next_refresh = now + refresh
         if now >= next_beat:
-            for k in list(left):
-                if k in lost:
+            for key in list(left):
+                if key in lost:
                     continue
-                if owner(k) != me:
-                    lost.add(k)
-                    drop = [x for x in pending if x[2] == k]
-                    pending = [x for x in pending if x[2] != k]
-                    log(f"{time.strftime('%H:%M:%S')} lost the claim of unit {k}; leaving {len(drop)} tasks")
+                v = views[key[0]]
+                if owner(v, key[1]) != me:
+                    lost.add(key)
+                    drop = [x for x in pending if x[2] == key]
+                    pending = [x for x in pending if x[2] != key]
+                    log(f"{time.strftime('%H:%M:%S')} lost the claim of unit {key[1]} of {key[0]}; "
+                        f"leaving {len(drop)} tasks")
                     for _ in drop:
-                        end_task(k)
+                        end_task(key)
                 else:
                     try:
-                        os.utime(claim_path(k))
+                        os.utime(claim_path(v, key[1]))
                     except OSError:
                         pass
             next_beat = now + beat
         if not pending and len(running) < workers and now >= next_scan:
             try:
-                k = next_unit()
+                got = next_unit()
             except OSError as exc:                  # e.g. a file system hiccup: look again later
                 log(f"{time.strftime('%H:%M:%S')} looking for a unit: {exc}")
-                k = None
-            if k is None:
+                got = None
+            if got is None:
                 next_scan = now + scan
                 idle_check = True
+                refresh_order()                     # a pool may have been added
             else:
+                v, k = got
+                key = (v.path, k)
                 try:
-                    tasks = load_unit(k)
+                    tasks = load_unit(v, k)
                 except Exception as exc:  # noqa: BLE001  (a unit this node cannot read: leave it to others)
-                    log(f"{time.strftime('%H:%M:%S')} unit {k}: cannot load it ({type(exc).__name__}: {exc})")
-                    known_done.add(k)
+                    log(f"{time.strftime('%H:%M:%S')} unit {k} of {v.path}: cannot load it "
+                        f"({type(exc).__name__}: {exc})")
+                    v.known_done.add(k)
                     try:
-                        os.unlink(claim_path(k))
+                        os.unlink(claim_path(v, k))
                     except OSError:
                         pass
                     continue
-                log(f"{time.strftime('%H:%M:%S')} unit {k}: {len(tasks)} tasks to run")
+                log(f"{time.strftime('%H:%M:%S')} unit {k} of {v.path}: {len(tasks)} tasks to run")
                 if not tasks:
-                    q.put(("close", k, True))
+                    q.put(("close", v.path, k, True))
                     n_done += 1
                 else:
-                    left[k] = len(tasks)
+                    left[key] = len(tasks)
                     for t, tot in tasks:
-                        unit_of[t["id"]] = k
-                        pending.append((t, tot, k))
+                        unit_of[t["id"]] = key
+                        pending.append((t, tot, key))
         i = 0
         while len(running) < workers and i < len(pending):
-            t, tot, k = pending[i]
+            t, tot, key = pending[i]
             if used + t["mem"] <= mem_gb or not running:
                 p = ctx.Process(target=_work, args=(t, tot, q, ev))
                 p.start()
-                running[p.pid] = (p, t, t["mem"], k)
+                running[p.pid] = (p, t, t["mem"], key)
                 used += t["mem"]
                 pending.pop(i)
             else:
@@ -967,6 +1026,9 @@ def main() -> None:
     pr.add_argument("--workers", type=int, default=0, help="default: number of physical cores")
     pr.add_argument("--mem-gb", type=float, default=0.0, help="default: 85%% of the node memory")
     pr.add_argument("--max-seconds", type=float, default=0.0, help="cap every task's time budget (tests)")
+    pr.add_argument("--order", default=None,
+                    help="file listing pools to work on before this one, read again every 10 minutes "
+                         "(default: pool_order.txt next to the pool; an empty string turns it off)")
     ps = sub.add_parser("pool-status", help="units of a pool finished, claimed (by job) and free")
     ps.add_argument("pool")
     args = ap.parse_args()
@@ -1014,7 +1076,9 @@ def main() -> None:
     elif args.cmd == "pool-run":
         workers = args.workers or max(1, (os.cpu_count() or 2) // 2)
         mem = args.mem_gb or 0.85 * node_memory_gb()
-        pool_run(args.pool, workers, mem, log=lambda m: print(m, flush=True), max_seconds=args.max_seconds)
+        order = args.order if args.order is not None else os.path.join(os.path.dirname(args.pool), "pool_order.txt")
+        pool_run(args.pool, workers, mem, log=lambda m: print(m, flush=True), max_seconds=args.max_seconds,
+                 order_file=order or None)
     elif args.cmd == "pool-status":
         st = pool_status(args.pool)
         print(" ".join(f"{k} {v}" for k, v in st.items() if k != "jobs")
