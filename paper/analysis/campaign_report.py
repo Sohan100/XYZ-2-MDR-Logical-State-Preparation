@@ -155,8 +155,13 @@ def fss(g, dset, center, half, boot=0, plo=0.003, phi=0.45):
     return out
 
 
+MIN_ERRORS = 10      # a point locates a crossing only with this many logical errors at both distances
+
+
 def first_guess(g, d1, d2):
-    """p where ln p_L of d2 overtakes that of d1, from the values both distances share."""
+    """p where ln p_L of d2 overtakes that of d1, from the values both distances share (with at least
+    MIN_ERRORS logical errors each: a few errors at small p make spurious crossings)."""
+    g = g[g.errors >= MIN_ERRORS]
     a = g[g.d == d1].set_index("value").p_L
     b = g[g.d == d2].set_index("value").p_L
     common = sorted(set(a.index) & set(b.index))

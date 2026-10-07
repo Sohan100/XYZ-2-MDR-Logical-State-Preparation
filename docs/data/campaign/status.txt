@@ -1,20 +1,84 @@
 == data/campaign/tasks2.jsonl
 decoder        tasks    done partial failed  core-h used  of at most
-cfe             6424    6424       0      0       5747.6      5926.5
-cfe_tn          2084    2084       0    236        801.3      1365.0
-   failed: LinAlgError: SVD did not converge
+cfe             6424    6424       0      0       5917.7      5926.5
+cfe_tn          2084    2084       0      0        927.9      1365.0
 == data/campaign/tasks3.jsonl
 decoder        tasks    done partial failed  core-h used  of at most
-cfe_tn           100     100       0      8         16.2        16.7
-   failed: LinAlgError: SVD did not converge
+cfe_tn           100     100       0      0        151.8        16.7
+== data/campaign/tasks4.jsonl
+decoder        tasks    done partial failed  core-h used  of at most
+bm             37208   37208       0      0      13335.4     30839.8
+corr_gauge     30800   30800       0      0       1951.5      9970.3
+seq_match      30800   30800       0      0       3336.0     10402.4
+seq_soft       37208   37208       0      0      12648.9     30839.8
+cfe0          149676  149676       0      0     203643.4    261505.7
+cfe           158804  158804       0      0     218156.2    283600.0
+corr_links     30800   30800       0      0       1128.6      6822.4
+mwpm           30800   30800       0      0        411.4      3411.2
+== data/campaign/tasks5.jsonl
+decoder        tasks    done partial failed  core-h used  of at most
+bp_full        37208   37208       0      0      16727.5     30839.8
+seq_erasure    37208   37208       0      0      12117.9     30839.8
+== data/campaign/tasks6.jsonl
+decoder        tasks    done partial failed  core-h used  of at most
+tesseract     390212  390212       0      0     248690.7    742558.5
+== data/campaign/tasks7.jsonl
+decoder        tasks    done partial failed  core-h used  of at most
+cfe_tn         17060   17053       7      0      32979.4     31617.5
+tnml           17060   17054       6      0      32771.9     31617.5
+== data/campaign/tasks8.jsonl
+decoder        tasks    done partial failed  core-h used  of at most
+bp_corr        37208   37208       0      0      16935.9     30839.8
+== data/campaign/tasks9.jsonl
+decoder        tasks    done partial failed  core-h used  of at most
+css-X:bm        9232    9232       0      0        630.8      4937.1
+css-X:tesseract    8084    8084       0      0       1209.0     10465.0
+css-Z:bm        9232    9232       0      0        696.5      4937.1
+css-Z:tesseract    8084    8084       0      0       2562.0     10465.0
+xy-X:bm         9232    9232       0      0       1173.3      4937.1
+xy-X:tesseract    8084    8084       0      0       3570.0     10465.0
+xy-Z:bm         9232    9232       0      0       1179.4      4937.1
+xy-Z:tesseract    8084    8084       0      0       3548.6     10465.0
+xzzx-X:bm       9232    9232       0      0        636.8      4937.1
+xzzx-X:tesseract    8084    8084       0      0       1869.2     10465.0
+xzzx-Z:bm       9232    9232       0      0        681.5      4937.1
+xzzx-Z:tesseract    8084    8084       0      0       1973.0     10465.0
+css-X:bposd     4832    4832       0      0        384.2      3062.5
+css-Z:bposd     4832    4832       0      0        479.2      3062.5
+xy-X:bposd      4832    4832       0      0        678.3      3062.5
+xy-Z:bposd      4832    4832       0      0        682.5      3062.5
+xzzx-X:bposd    4832    4832       0      0        405.2      3062.5
+xzzx-Z:bposd    4832    4832       0      0        436.1      3062.5
+honeycomb-X:bm    4616    4616       0      0        232.5      2445.8
+honeycomb-Z:bm    4616    4616       0      0        269.7      2445.8
+css-X:corr      8400    8400       0      0         41.7      1151.8
+css-Z:corr      8400    8400       0      0         59.6      1151.8
+xy-X:corr       8400    8400       0      0         81.1      1151.8
+xy-Z:corr       8400    8400       0      0         81.6      1151.8
+xzzx-X:corr     8400    8400       0      0         48.4      1151.8
+xzzx-Z:corr     8400    8400       0      0         52.2      1151.8
+honeycomb-X:corr    4200    4200       0      0         16.8       569.9
+honeycomb-Z:corr    4200    4200       0      0         22.4       569.9
+css-X:mwpm      8400    8400       0      0         20.8       575.9
+css-Z:mwpm      8400    8400       0      0         33.5       575.9
+xy-X:mwpm       8400    8400       0      0         25.4       575.9
+xy-Z:mwpm       8400    8400       0      0         24.7       575.9
+xzzx-X:mwpm     8400    8400       0      0         24.7       575.9
+xzzx-Z:mwpm     8400    8400       0      0         27.7       575.9
+honeycomb-X:mwpm    4200    4200       0      0          6.1       284.9
+honeycomb-Z:mwpm    4200    4200       0      0          8.5       284.9
+== data/campaign/tasks9_rerun.jsonl
+decoder        tasks    done partial failed  core-h used  of at most
+honeycomb-X:corr      14      14       0      0          0.0         0.7
+honeycomb-Z:corr      14      14       0      0          0.0         0.7
 == data/campaign/tasks.jsonl
 decoder        tasks    done partial failed  core-h used  of at most
-tesseract       3920    3920       0      0        953.5      1112.2
-cfe0           16336   16336       0      0       8575.8     10151.3
-cfe            11628   11628       0      0       3915.4      6227.4
-bm              9152    9152       0      0        685.4      1378.3
-seq_soft        9152    9152       0      0        832.4      1378.3
-corr_gauge     12600   12600       0      0        164.7       608.7
-seq_match      12600   12600       0      0        236.6       641.2
-corr_links     12600   12600       0      0        115.2       442.7
-mwpm           12600   12600       0      0         56.6       221.4
+tesseract       3920    3920       0      0        977.7      1112.2
+cfe0           16336   16336       0      0       9023.4     10151.3
+cfe            11628   11628       0      0       4136.6      6227.4
+bm              9152    9152       0      0        760.8      1378.3
+seq_soft        9152    9152       0      0        907.6      1378.3
+corr_gauge     12600   12600       0      0        249.2       608.7
+seq_match      12600   12600       0      0        475.1       641.2
+corr_links     12600   12600       0      0        154.7       442.7
+mwpm           12600   12600       0      0         62.2       221.4

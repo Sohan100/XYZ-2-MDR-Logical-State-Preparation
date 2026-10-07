@@ -46,7 +46,9 @@ MIN_DMAX = 11      # a threshold counts when its series reaches this distance (s
 
 
 def usable(th: pd.DataFrame, min_dmax: int = MIN_DMAX) -> pd.DataFrame:
-    return th[th.pth.notna() & (th.flag.fillna("") != "drift") & (th.dmax >= min_dmax)]
+    # a finite-size fit over the large distances; a crossing of the two largest distances alone is
+    # left out (Tesseract's and the crosstalk models' pair crossings jump between distance pairs)
+    return th[th.pth.notna() & (th.flag.fillna("") != "drift") & (th.dmax >= min_dmax) & (th.method == "fss")]
 
 
 def code_values(th: pd.DataFrame) -> pd.DataFrame:
@@ -110,8 +112,9 @@ def markdown(t: pd.DataFrame) -> str:
 
     lines = ["# XYZ^2 against competitor codes", "",
              "Thresholds in % of p. A competitor's value is its best decoder in its weaker basis; XYZ^2's is its "
-             "best decoder (Logical-X memory). Ratio: XYZ^2 over the best competitor. Thresholds that drift, and "
-             f"series that stop below d = {MIN_DMAX} (honeycomb: d = 12), are left out.", ""]
+             "best decoder (Logical-X memory). Ratio: XYZ^2 over the best competitor. Only finite-size fits over "
+             f"d >= 11 count: thresholds that drift, crossings of two distances only, and series that stop below "
+             f"d = {MIN_DMAX} (honeycomb: d = 12) are left out.", ""]
     for rk, g in t.groupby("rounds", sort=False):
         if not g[CODES].notna().any().any():
             continue
