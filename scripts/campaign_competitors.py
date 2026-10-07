@@ -89,12 +89,15 @@ def pilot_center(pilot: dict, code: str, basis: str, noise: str, r: str):
 def series_grid(noise: str, code: str, basis: str, r: str, dec: str, pilot: dict):
     """(p values, centre) of a series."""
     x, lo, hi = pilot_center(pilot, code, basis, noise, r)
+    if x is None:                                   # e.g. no crossing below 25% (phen_b10, r = 1): the other basis
+        x = pilot_center(pilot, code, "Z" if basis == "X" else "X", noise, r)[0]
     if x is None and noise in C.XT_RANGE:
         return C.grid(noise, "mwpm", r), C.center(noise, "mwpm", r)
     if x is None:
         x = 2.0 * (hi if hi else C.center(noise, "mwpm", r))
     c = x * GAIN[dec]
-    return [float(f"{c * C.STEP ** k:.4g}") for k in C.KRANGE["wide"]], c
+    # every rate of a noise model must stay a probability (phenomenological r = 1 crossings reach 20%)
+    return [v for v in (float(f"{c * C.STEP ** k:.4g}") for k in C.KRANGE["wide"]) if v < 0.45], c
 
 
 def make_tasks(noises, rounds, pilot: dict, scale: float = 1.0, rep_hours: float = 2.0, codes=CODES,
