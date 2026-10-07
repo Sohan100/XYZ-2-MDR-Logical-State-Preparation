@@ -148,6 +148,33 @@ COMPETITOR_CODES = ("css", "xzzx", "xy", "honeycomb")
 COMPETITOR_DECODERS = {"mwpm": "mwpm", "corr": "corr_links", "bm": "bm", "bposd": "cfe0", "tesseract": "tesseract"}
 
 
+def split_noise(noise: str):
+    """(noise model, schedule, logical) of a noise label: "sd6" is the campaign's circuit (DEPTH6 schedule,
+    Logical X memory); "sd6@both-Y" the both-bases schedule and the Logical Y memory (see
+    docs/fair_comparison.md)."""
+    if "@" not in noise:
+        return noise, "depth6", "X"
+    base, rest = noise.split("@", 1)
+    sched, logical = rest.split("-", 1)
+    return base, sched, logical
+
+
+# Measured peak memory of the circuits of the extraction variants against the campaign's (d = 21, r = 21;
+# memory()'s estimate covers 1.3 times the peak only after this factor): repeated links and the hybrid add
+# detectors and mechanisms, which the CFE family and Tesseract hold in memory.
+VARIANT_MEMORY = {"sd6_lr2": 1.15, "si1000_lr2": 1.15, "sd6_lr3": 1.3, "hyb": 1.3, "hyb_lr2": 1.5}
+VARIANT_MEMORY_DECODERS = {"cfe", "cfe0", "cfe_tn", "tnml"}
+TESSERACT_VARIANT_MEMORY = {"sd6_lr2": 1.6, "si1000_lr2": 1.6, "sd6_lr3": 1.8, "hyb": 1.8, "hyb_lr2": 1.8}
+
+
+def memory_for(noise: str, decoder: str, d: int, r: str) -> float:
+    """memory() with the factor of the extraction variant of `noise`."""
+    base = split_noise(noise)[0]
+    f = TESSERACT_VARIANT_MEMORY.get(base, 1.0) if decoder == "tesseract" else \
+        (VARIANT_MEMORY.get(base, 1.0) if decoder in VARIANT_MEMORY_DECODERS else 1.0)
+    return round(f * memory(decoder, d, r), 2)
+
+
 def competitor(decoder: str):
     """(code, basis, decoder) of a competitor series "code-basis:decoder", None for an XYZ^2 decoder."""
     if ":" not in decoder:
@@ -319,8 +346,9 @@ def make_tasks(noises, decoders, rounds, distances, scale=1.0, cfe_scale=1.0, re
                             out.append(dict(
                                 id=f"{noise}|{dec}|r{r}|d{d}|p{p:.4g}|{i}", noise=noise, decoder=dec, rounds=r, d=d,
                                 value=p, target=math.ceil(TARGET[dec] / nrep), max_shots=math.ceil(MAX_SHOTS / nrep),
-                                budget=round(bp / nrep, 1), mem=memory(dec, d, r),
-                                **({"mem_run": memory_run(dec, d, r)} if dec in RUN_FRACTION else {})))
+                                budget=round(bp / nrep, 1), mem=memory_for(noise, dec, d, r),
+                                **({"mem_run": round(RUN_FRACTION[dec] * memory_for(noise, dec, d, r), 2)}
+                                   if dec in RUN_FRACTION else {})))
     # long tasks first, so that no chunk ends with one long straggler
     out.sort(key=lambda t: (-t["budget"], t["id"]))
     return out
@@ -400,7 +428,8 @@ def _work(t: dict, prev, q, ev=None) -> None:
     s_tot, e_tot, sec0 = (prev[0], prev[1], prev[2]) if prev else (0, 0, 0.0)
     t0 = last = time.time()
     try:
-        noise = NOISE[t["noise"]](t["value"])
+        base, sched, logical = split_noise(t["noise"])
+        noise = NOISE[base](t["value"])
         comp = competitor(t["decoder"])
         if comp is not None:                        # another code: see COMPETITOR_DECODERS
             from mdr.ft.competitor_circuits import competitor_circuit
@@ -410,7 +439,9 @@ def _work(t: dict, prev, q, ev=None) -> None:
             circuit = competitor_circuit(code, t["d"], n_rounds(t["rounds"], t["d"]), noise, basis=basis)
             dec = competitor_decoder(circuit, name)
         else:
-            ft = FTMDRCircuit(t["d"], n_rounds(t["rounds"], t["d"]), noise, final="frame", detectors="combined")
+            from run_decoder_threshold_sweep import SCHEDULES
+            ft = FTMDRCircuit(t["d"], n_rounds(t["rounds"], t["d"]), noise, final="frame", detectors="combined",
+                              schedule=SCHEDULES[sched], logical=logical)
             dec = TwoLevelDecoder(ft, **DEC[t["decoder"]])
             circuit = dec.circuit
         sampler = circuit.compile_detector_sampler()

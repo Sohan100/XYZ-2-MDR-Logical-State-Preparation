@@ -19,7 +19,9 @@ from .ft_mdr_circuit import FTMDRCircuit
 from .s0_matching_decoder import LogicalErrorEstimate
 
 S0_PHASES = {0, 1, 2}
-GAUGE_PHASES = {3, 4}
+# 3, 4: gauge comparisons between rounds and with the final round; 5 (REP_PHASE of
+# ft_mdr_circuit): comparisons of consecutive repetitions of a link in one round
+GAUGE_PHASES = {3, 4, 5}
 # PyMatching merges the faults of an edge into one weight w with tanh(w/2) = prod(1 - 2 q), adding
 # log-odds in a form whose rounding error (~1e-16) can flip the sign of a weight near zero; it then
 # refuses the correlated reweighting of that edge. bp_corr keeps that product at or above this floor.
@@ -34,7 +36,11 @@ class TwoLevelDecoder:
     detectors, which decides the logical outcome and alone has the full
     fault distance. The lower level is formed by the gauge detectors (odd
     links, class-A hexagons, left and right boundary checks), whose first
-    outcomes are random and which are compared round to round from round 2.
+    outcomes are random and which are compared round to round from round 2,
+    and, when links are measured several times per round
+    (`CircuitNoise.link_reps`), by the comparisons of consecutive
+    repetitions of every link; all of these count as link detectors when
+    they belong to a link.
     Modes, with the names used in the paper:
 
     - ``mwpm`` (MWPM): matching on the $S_0$ graph with static weights.
@@ -123,6 +129,7 @@ class TwoLevelDecoder:
             schedule=self.ft.schedule, init=self.ft.init, final=self.ft.final,
             detectors="s0", odd_rep=self.ft.frame.odd_rep,
             share_ancillas=len(self.ft.shared_pairs),
+            logical=getattr(self.ft, "logical", "X"),
         )
         self.s0_circuit = s0_ft.build()
         s0_coords = self.s0_circuit.get_detector_coordinates()

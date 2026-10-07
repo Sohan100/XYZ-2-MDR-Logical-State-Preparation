@@ -65,6 +65,8 @@ def _pairs_within_groups(group: np.ndarray, items: np.ndarray):
         right.append(items[idx + k])
         k += 1
         idx = idx[run_len[idx] - pos[idx] > k]
+    if not left:  # no two entries share a label (e.g. the small phenomenological circuits)
+        return np.zeros(0, items.dtype), np.zeros(0, items.dtype)
     return np.concatenate(left), np.concatenate(right)
 
 

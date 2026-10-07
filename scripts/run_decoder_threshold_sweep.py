@@ -24,7 +24,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from dataclasses import replace  # noqa: E402
 
-from mdr.ft import CircuitNoise, FTMDRCircuit  # noqa: E402
+from mdr.ft import BOTH_BASES_SCHEDULE, DEPTH6_SCHEDULE, CircuitNoise, FTMDRCircuit  # noqa: E402
 from mdr.ft.two_level_decoder import TwoLevelDecoder  # noqa: E402
 
 NOISE = {
@@ -54,6 +54,9 @@ NOISE = {
     "phen": lambda v: CircuitNoise.phenomenological(v),
     "phen_b10": lambda v: CircuitNoise.phenomenological(v, 10),
 }
+# extraction schedules: "depth6" (the campaign's, distance d + 1 for Logical X but (d + 1) / 2 for
+# Logical Y) and "both" (distance >= d for both logical bases, see extraction_schedule.py)
+SCHEDULES = {"depth6": DEPTH6_SCHEDULE, "both": BOTH_BASES_SCHEDULE}
 DECODERS = {
     "mwpm": dict(mode="mwpm"),
     "corr_links": dict(mode="corr_split", lower="links"),
@@ -91,7 +94,13 @@ def main() -> None:
     ap.add_argument("--time-limit", type=float, default=120.0)
     ap.add_argument("--batch", type=int, default=0)
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--logical", default="X", choices=["X", "Y"],
+                    help="logical operator of the memory (Y: the conjugate basis)")
+    ap.add_argument("--schedule", default="depth6", choices=sorted(SCHEDULES))
     args = ap.parse_args()
+    # the noise column carries the circuit options when they are not the defaults
+    label = args.noise if (args.logical, args.schedule) == ("X", "depth6") else \
+        f"{args.noise}@{args.schedule}-{args.logical}"
 
     done = set()
     if args.out.exists():
@@ -110,9 +119,10 @@ def main() -> None:
             for d in args.distances:
                 rounds = d if args.rounds == "d" else int(args.rounds)
                 ft = FTMDRCircuit(d, rounds, NOISE[args.noise](value),
-                                  final=args.final, detectors="combined")
+                                  final=args.final, detectors="combined",
+                                  schedule=SCHEDULES[args.schedule], logical=args.logical)
                 for name in args.decoders:
-                    key = (args.noise, value, d, rounds, name, args.final)
+                    key = (label, value, d, rounds, name, args.final)
                     if key in done:
                         continue
                     t0 = time.time()
@@ -124,11 +134,11 @@ def main() -> None:
                                        max_errors=args.max_errors,
                                        batch=batch,
                                        time_limit=args.time_limit)
-                    w.writerow([args.noise, value, d, rounds, args.final,
+                    w.writerow([label, value, d, rounds, args.final,
                                 name, est.shots, est.errors, est.rate,
                                 est.stderr, round(time.time() - t0, 1)])
                     fh.flush()
-                    print(f"{args.noise} v={value:g} d={d} {name}: "
+                    print(f"{label} v={value:g} d={d} {name}: "
                           f"pL={est.rate:.3e} ({est.errors}/{est.shots}) "
                           f"{time.time() - t0:.0f}s", flush=True)
 

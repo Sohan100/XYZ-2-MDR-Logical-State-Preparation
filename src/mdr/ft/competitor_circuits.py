@@ -31,6 +31,27 @@ Floquet code (`FLOQUET_CODES`):
 - ``honeycomb``: the periodic Hastings-Haah honeycomb code in the layout of
   Gidney, Newman, Fowler and Broughton (Quantum 5, 605 (2021)), see
   `HoneycombCircuit`.
+
+Extraction variants of `CircuitNoise.native` (docs/fair_comparison.md):
+
+- ``gates`` (sd6, si1000, biased, trapped-ion models): ancillas and
+  controlled Paulis; the honeycomb measures its edges the same way.
+- ``pairs`` (em3): native pair measurements; cat states for the surface
+  codes, one pair measurement per edge for the honeycomb.
+- ``hybrid`` (hyb): gates and pair measurements on the same hardware. Each
+  code takes its best compilation (`weight2` selects the others): all gates
+  for the surface codes (the circuit of sd6, because measuring the weight-2
+  boundary checks as single pair measurements, ``weight2="direct"``, lowers
+  the fault distance to (d + 1) / 2), and one pair measurement per edge for
+  the honeycomb (the circuit of em3 at the same p).
+- ``phen`` (phen, phen_b10): phenomenological noise. Before every round
+  (every sub-round of the honeycomb) each data qubit gets
+  PAULI_CHANNEL_1(`data_xyz`), then every check (edge) is measured by a
+  noiseless MPP whose outcome flips with `p_meas`; preparation and the final
+  data readout are noiseless (a perfect last round).
+
+`link_reps != 1` and `link_noise=False` change how XYZ^2 measures its XX
+links; these codes have no such links, so both raise ValueError.
 """
 
 from __future__ import annotations
@@ -66,6 +87,101 @@ SCHEDULE = {"X": ("NW", "NE", "SW", "SE"), "Z": ("NW", "SW", "NE", "SE")}
 # vertical pair for Z plaquettes, the same hook geometry as `SCHEDULE`.
 CAT_STAR = {"X": ("NW", "SW", "SE", "NE"), "Z": ("NW", "NE", "SE", "SW")}
 _CORNERS = {"NW": (0, 0), "NE": (1, 0), "SW": (0, 1), "SE": (1, 1)}
+NATIVES = ("gates", "pairs", "hybrid", "phen")
+# Compilations (`weight2`) of the rotated surface codes on each kind of
+# hardware, the default first: "gates" measures every check with an ancilla
+# and controlled Paulis, "cat" every check with a cat state of pair
+# measurements (the em3 circuit), "direct" the weight-2 boundary checks with
+# one pair measurement each (and the other checks as "cat" under pairs, with
+# gates under hybrid). Phenomenological noise has no compilation (None).
+SURFACE_WEIGHT2 = {"gates": ("gates",), "pairs": ("cat", "direct"),
+                   "hybrid": ("gates", "direct", "cat"), "phen": (None,)}
+# The same for the honeycomb code, whose checks all have weight 2: "direct"
+# measures every edge with one pair measurement, "gates" with an ancilla.
+HONEYCOMB_WEIGHT2 = {"gates": ("gates",), "pairs": ("direct",),
+                     "hybrid": ("direct", "gates"), "phen": (None,)}
+# EM3 errors of a pair measurement: {I,X,Y,Z}^2 x {flip, no flip} without the identity
+_EM3_COMBOS = [(a, b, f) for a in "IXYZ" for b in "IXYZ" for f in (0, 1)][1:]
+
+
+def _native(noise: CircuitNoise) -> str:
+    native = getattr(noise, "native", "gates")
+    if native not in NATIVES:
+        raise ValueError(f"noise.native must be one of {NATIVES}, not {native!r}.")
+    return native
+
+
+def _check_no_links(noise: CircuitNoise, code: str) -> None:
+    """Raise ValueError for the link variants of XYZ^2 (`link_reps`, `link_noise`)."""
+    if getattr(noise, "link_reps", 1) != 1 or not getattr(noise, "link_noise", True):
+        raise ValueError(
+            f"the {code} code has no XX link checks: link_reps != 1 and link_noise=False "
+            f"(noise {getattr(noise, 'name', '') or noise!r}) only change how XYZ^2 measures its "
+            "links. Compare with this code on the base hardware (docs/fair_comparison.md, rule 2).")
+
+
+def _resolve_weight2(weight2, native: str, options: Dict[str, tuple], code: str):
+    allowed = options[native]
+    if weight2 is None:
+        return allowed[0]
+    if weight2 not in allowed:
+        raise ValueError(f"weight2={weight2!r} is not a compilation of the {code} code for "
+                         f"native={native!r}; use one of {allowed} (None is the default).")
+    return weight2
+
+
+def _append_em3_mpp(c: stim.Circuit, q1: int, p1: str, q2: int, p2: str, f: int,
+                    p: float) -> None:
+    """
+    Noisy pair measurement P1 P2 (FTMDRCircuit's direct link measurement).
+
+    With probability `p` an element of {I,X,Y,Z}^2 x {flip, no flip} other
+    than the identity, chosen uniformly, acts before the MPP; the flip acts
+    through the auxiliary qubit `f`, reset in |0> and included in the MPP as
+    Z_f, so that it stays correlated with the Pauli error.
+    """
+    c.append("R", [f])
+    if p:
+        acc = 0.0
+        for j, (e1, e2, ff) in enumerate(_EM3_COMBOS):
+            tg = []
+            if e1 != "I":
+                tg.append(stim.target_pauli(q1, e1))
+            if e2 != "I":
+                tg.append(stim.target_pauli(q2, e2))
+            if ff:
+                tg.append(stim.target_x(f))
+            c.append("E" if j == 0 else "ELSE_CORRELATED_ERROR", tg, (p / 32.0) / (1.0 - acc))
+            acc += p / 32.0
+    c.append("MPP", [stim.target_pauli(q1, p1), stim.target_combiner(),
+                     stim.target_pauli(q2, p2), stim.target_combiner(), stim.target_z(f)])
+
+
+def _mpp_targets(terms: Sequence[Tuple[str, int]]) -> List[stim.GateTarget]:
+    out: List[stim.GateTarget] = []
+    for k, (p, q) in enumerate(terms):
+        if k:
+            out.append(stim.target_combiner())
+        out.append(stim.target_pauli(q, p))
+    return out
+
+
+def _append_phen_round(c: stim.Circuit, noise: CircuitNoise, data: Sequence[int],
+                       products: Sequence[Sequence[Tuple[str, int]]]) -> None:
+    """
+    One phenomenological round: PAULI_CHANNEL_1(data_xyz) on every data qubit,
+    then noiseless MPPs of `products` whose outcomes flip with p_meas.
+    """
+    xyz = list(noise.data_xyz) if noise.data_xyz is not None else [0.0, 0.0, 0.0]
+    if any(xyz):
+        c.append("PAULI_CHANNEL_1", list(data), xyz)
+    targets: List[stim.GateTarget] = []
+    for terms in products:
+        targets += _mpp_targets(terms)
+    if noise.p_meas:
+        c.append("MPP", targets, noise.p_meas)
+    else:
+        c.append("MPP", targets)
 
 
 def code_pauli(code: str, x: int, y: int, css_pauli: str) -> str:
@@ -258,8 +374,32 @@ class CompetitorCircuit:
     fault distance to (d + 1) / 2. A round has 1 + 4 steps here (four
     colours) against 1 + 3 in FTMDRCircuit.
 
+    Gates and pair measurements (`noise.native == "hybrid"`, hyb): the best
+    compilation of these codes is all gates (`weight2="gates"`, the
+    default), which is the sd6 circuit: the hybrid model has the gate,
+    reset, measurement and idle rates of sd6, so the circuit and its
+    detector error model are those of sd6 at the same p. The alternatives
+    are `weight2="cat"`, the em3 circuit (every check from pair
+    measurements; the hybrid model has the rates of em3 there), and
+    `weight2="direct"`: the weight-2 boundary checks are measured by one
+    noisy pair measurement each (EM3 channel p_mpp, an auxiliary flip qubit
+    as above), in the ancilla measurement step of the round, where their
+    data qubits would otherwise idle; the weight-4 checks keep their
+    ancillas and gates. Its fault distance is (d + 1) / 2 (the correlated
+    Z_u Z_l or X_u X_l of a pair-measurement fault runs along the boundary),
+    so it is not the default.
+
+    Phenomenological noise (`noise.native == "phen"`): before every round,
+    PAULI_CHANNEL_1(`data_xyz`) on every data qubit; then every check is
+    measured by one noiseless MPP of its Pauli product whose outcome flips
+    with probability `p_meas` (no ancillas, no gate noise). Preparation and
+    the final readout of the data are noiseless, so the readout acts as a
+    perfect last round, as in Srivastava et al. (arXiv:2505.03691) and the
+    usual phenomenological simulations. The detectors are those of the
+    other circuits.
+
     The circuit fault distance is d for every code and basis under sd6,
-    purez (also with its non-Z components removed) and em3
+    purez (also with its non-Z components removed), em3, phen and phen_b10
     (tests/test_competitor_circuits.py). Choice of basis: Z errors commute
     with the CSS logical Z, so under Z-biased noise the CSS Z-basis memory
     only sees the preparation and readout flips and looks far better than
@@ -273,9 +413,12 @@ class CompetitorCircuit:
     named after the CSS logical). layout : RotatedSurfaceLayout Patch.
     frame : Dict[int, str] Preparation and readout Pauli of every data qubit.
     logical : List[Tuple[str, int]] Observable. det_checks : List[int] Checks
-    deterministic on the initial product state. ancilla_of : Dict[int, int]
-    Ancilla of every check (native gates). layers : List[List[Tuple[int, int,
-    str]]] (ancilla, data qubit, Pauli) of every gate layer.
+    deterministic on the initial product state. native : str Extraction
+    (`noise.native`). weight2 : str or None Compilation (see
+    `SURFACE_WEIGHT2`). direct : List[int] Checks measured by one pair
+    measurement each. ancilla_of : Dict[int, int] Ancilla of every check
+    measured with gates. layers : List[List[Tuple[int, int, str]]]
+    (ancilla, data qubit, Pauli) of every gate layer.
     """
 
     # The noise and detector helpers of FTMDRCircuit, shared verbatim: they
@@ -287,18 +430,18 @@ class CompetitorCircuit:
     _detector = FTMDRCircuit._detector
 
     def __init__(self, code: str, distance: int, rounds: int, noise: CircuitNoise,
-                 basis: str = "Z", weight2: str = "cat") -> None:
+                 basis: str = "Z", weight2: str | None = None) -> None:
         if rounds < 1:
             raise ValueError("rounds must be at least 1.")
-        if weight2 not in ("cat", "direct"):
-            raise ValueError("weight2 must be 'cat' or 'direct'.")
+        self.native = _native(noise)
+        self.layout = RotatedSurfaceLayout(code, distance)
+        _check_no_links(noise, code)
+        self.weight2 = _resolve_weight2(weight2, self.native, SURFACE_WEIGHT2, code)
         self.code = code
         self.d = distance
         self.rounds = rounds
         self.noise = noise
         self.basis = basis
-        self.weight2 = weight2
-        self.layout = RotatedSurfaceLayout(code, distance)
         self.n = self.layout.n
         self.checks = self.layout.checks
         self.frame = self.layout.frame(basis)
@@ -307,10 +450,14 @@ class CompetitorCircuit:
             raise RuntimeError("logical operator is not a product of frame Paulis")
         self.det_checks = [ci for ci, ch in enumerate(self.checks)
                            if all(self.frame[q] == p for p, q in ch["terms"])]
-        self.ancilla_of = {ci: self.n + ci for ci in range(len(self.checks))}
+        self.direct = ([ci for ci, ch in enumerate(self.checks) if len(ch["terms"]) == 2]
+                       if self.weight2 == "direct" else [])
+        gated = [ci for ci in range(len(self.checks)) if ci not in set(self.direct)]
+        self.ancilla_of = {ci: self.n + k for k, ci in enumerate(gated)}
         depth = 1 + max(t for ch in self.checks for t in ch["layer"].values())
         self.layers: List[List[Tuple[int, int, str]]] = [[] for _ in range(depth)]
-        for ci, ch in enumerate(self.checks):
+        for ci in gated:
+            ch = self.checks[ci]
             for p, q in ch["terms"]:
                 self.layers[ch["layer"][q]].append((self.ancilla_of[ci], q, p))
 
@@ -318,23 +465,34 @@ class CompetitorCircuit:
         """
         Return the noisy, detector-annotated Stim circuit.
         """
-        if getattr(self.noise, "native", "gates") == "pairs":
+        if self.native == "phen":
+            return self._build_phen()
+        if self.native == "pairs" or self.weight2 == "cat":
             return self._build_pairs()
         return self._build_gates()
 
     # ------------------------------------------------------------ gates
     def _build_gates(self) -> stim.Circuit:
+        """
+        Ancillas and controlled Paulis; under hybrid with `weight2="direct"`
+        the weight-2 checks are noisy pair measurements in the measurement step.
+        """
         nz = self.noise
-        n, m = self.n, len(self.checks)
+        n = self.n
         data = list(range(n))
-        anc = [self.ancilla_of[ci] for ci in range(m)]
+        gated = sorted(self.ancilla_of, key=self.ancilla_of.get)
+        anc = [self.ancilla_of[ci] for ci in gated]
+        flips = list(range(n + len(anc), n + len(anc) + len(self.direct)))
+        pair_q = {q for ci in self.direct for _, q in self.checks[ci]["terms"]}
         all_q = data + anc
         center = [ch["center"] for ch in self.checks]
         c = stim.Circuit()
         for q in data:
             c.append("QUBIT_COORDS", [q], list(self.layout.coords[q]))
-        for ci, a in enumerate(anc):
+        for ci, a in zip(gated, anc):
             c.append("QUBIT_COORDS", [a], list(center[ci]))
+        for k, f in enumerate(flips):
+            c.append("QUBIT_COORDS", [f], [k, -2])
         for b in "XYZ":
             qs = [q for q in data if self.frame[q] == b]
             if qs:
@@ -383,40 +541,87 @@ class CompetitorCircuit:
             if nz.p_meas:
                 c.append("Z_ERROR", anc, nz.p_meas)
             c.append("MX", anc)
-            for ci in range(m):
-                rec[(r, ci)] = count + ci
-            count += m
+            for k, ci in enumerate(gated):
+                rec[(r, ci)] = count + k
+            count += len(anc)
+            for ci, f in zip(self.direct, flips):
+                (pu, u), (pl, l) = self.checks[ci]["terms"]
+                _append_em3_mpp(c, u, pu, l, pl, f, nz.p_mpp)
+                rec[(r, ci)] = count
+                count += 1
             self._xtalk(c, data, len(anc))
-            self._idle_mr(c, data)
+            self._idle_mr(c, [q for q in data if q not in pair_q])
             self._memory(c, data)
-            if r == 0:
-                for ci in self.det_checks:
-                    self._detector(c, [rec[(0, ci)]], count, (*center[ci], 0))
-            else:
-                for ci in range(m):
-                    self._detector(c, [rec[(r, ci)], rec[(r - 1, ci)]], count,
-                                   (*center[ci], r))
+            self._round_detectors(c, r, rec, count)
             c.append("TICK")
+        self._finish(c, data, rec, count)
+        return c
+
+    def _round_detectors(self, c: stim.Circuit, r: int, rec: Dict[Tuple[int, int], int],
+                         count: int) -> None:
+        """Detectors of round r: deterministic checks in round 0, else every check against round r - 1."""
+        center = [ch["center"] for ch in self.checks]
+        if r == 0:
+            for ci in self.det_checks:
+                self._detector(c, [rec[(0, ci)]], count, (*center[ci], 0))
+        else:
+            for ci in range(len(self.checks)):
+                self._detector(c, [rec[(r, ci)], rec[(r - 1, ci)]], count, (*center[ci], r))
+
+    def _finish(self, c: stim.Circuit, data: Sequence[int], rec: Dict[Tuple[int, int], int],
+                count: int, flip: bool = True) -> None:
+        """Data readout, the detectors that compare it with the last round, and the observable."""
+        center = [ch["center"] for ch in self.checks]
         last = self.rounds - 1
-        position = self._read_data(c, data, count)
-        count += n
+        position = self._read_data(c, data, count, flip=flip)
+        count += self.n
         for ci in self.det_checks:
             idx = [position[q] for _, q in self.checks[ci]["terms"]] + [rec[(last, ci)]]
             self._detector(c, idx, count, (*center[ci], self.rounds))
         c.append("OBSERVABLE_INCLUDE",
                  [stim.target_rec(position[q] - count) for _, q in self.logical], 0)
+
+    # ------------------------------------------------------------ phenomenological
+    def _build_phen(self) -> stim.Circuit:
+        """
+        Phenomenological noise: data noise before every round, noiseless MPPs
+        of the checks with outcome flips p_meas, noiseless preparation and readout.
+        """
+        n = self.n
+        data = list(range(n))
+        c = stim.Circuit()
+        for q in data:
+            c.append("QUBIT_COORDS", [q], list(self.layout.coords[q]))
+        for b in "XYZ":
+            qs = [q for q in data if self.frame[q] == b]
+            if qs:
+                c.append(_RESET[b], qs)
+        c.append("TICK")
+        rec: Dict[Tuple[int, int], int] = {}
+        count = 0
+        products = [ch["terms"] for ch in self.checks]
+        for r in range(self.rounds):
+            _append_phen_round(c, self.noise, data, products)
+            for ci in range(len(self.checks)):
+                rec[(r, ci)] = count + ci
+            count += len(self.checks)
+            self._round_detectors(c, r, rec, count)
+            c.append("TICK")
+        self._finish(c, data, rec, count, flip=False)
         return c
 
-    def _read_data(self, c: stim.Circuit, data: Sequence[int], count: int) -> Dict[int, int]:
+    def _read_data(self, c: stim.Circuit, data: Sequence[int], count: int,
+                   flip: bool = True) -> Dict[int, int]:
         """
-        Destructive data readout in the frame; returns the record index of every qubit.
+        Destructive data readout in the frame (flipped with p_meas when `flip`);
+        returns the record index of every qubit.
         """
         nz = self.noise
         position: Dict[int, int] = {}
         for b in "XYZ":
             qs = [q for q in data if self.frame[q] == b]
             if qs:
-                if nz.p_meas:
+                if flip and nz.p_meas:
                     c.append(_FLIP[b], qs, nz.p_meas)
                 c.append(_MEAS[b], qs)
                 for k, q in enumerate(qs):
@@ -526,29 +731,12 @@ class CompetitorCircuit:
         rec_m: Dict[Tuple[int, int], List[int]] = {}
         rec_z: Dict[Tuple[int, int, int], int] = {}
         rec_c: Dict[Tuple[int, int, int], int] = {}
-        combos = [(a, b2, f) for a in "IXYZ" for b2 in "IXYZ" for f in (0, 1)][1:]
         live = set(data)
 
         def noisy_mpp(q1, p1, q2, p2, f):
             """MPP P1 P2 with the correlated EM3 error, using the flip qubit f."""
             nonlocal count
-            c.append("R", [f])
-            if p:
-                acc = 0.0
-                for j, (e1, e2, ff) in enumerate(combos):
-                    tg = []
-                    if e1 != "I":
-                        tg.append(stim.target_pauli(q1, e1))
-                    if e2 != "I":
-                        tg.append(stim.target_pauli(q2, e2))
-                    if ff:
-                        tg.append(stim.target_x(f))
-                    c.append("E" if j == 0 else "ELSE_CORRELATED_ERROR", tg,
-                             (p / 32.0) / (1.0 - acc))
-                    acc += p / 32.0
-            c.append("MPP", [stim.target_pauli(q1, p1), stim.target_combiner(),
-                             stim.target_pauli(q2, p2), stim.target_combiner(),
-                             stim.target_z(f)])
+            _append_em3_mpp(c, q1, p1, q2, p2, f, p)
             count += 1
             return count - 1
 
@@ -937,20 +1125,41 @@ class HoneycombCircuit:
       FTMDRCircuit (no pipelining of consecutive sub-rounds).
     - Data preparation R / RX / RY with the flip p_prep, readout with the flip
       p_meas, as in FTMDRCircuit.
+    - Gates and pair measurements (`noise.native == "hybrid"`, hyb): every
+      check of the honeycomb code has weight 2, so its native pair-measurement
+      circuit is its hybrid compilation (`weight2="direct"`, the default):
+      the hybrid model has the pair-measurement, preparation and readout
+      rates of em3, and the circuit is the em3 circuit at the same p.
+      `weight2="gates"` gives the sd6 circuit instead; at threshold the pair
+      circuit is about ten times better (em3 about 2 % against sd6 about
+      0.2 %, Gidney et al. and pilot_centers.csv), although its fault
+      distance is lower (see below).
+    - Phenomenological noise (`noise.native == "phen"`): before every
+      sub-round (every step of edge measurements, as in the phenomenological
+      model of Floquet codes of Derks et al., arXiv:2505.07658, Sec. 2.3.1),
+      PAULI_CHANNEL_1(`data_xyz`) on every data qubit, then one noiseless MPP
+      P_u P_v per edge whose outcome flips with probability `p_meas`.
+      Preparation and the final readout are noiseless. A round (three
+      sub-rounds) therefore has three layers of data noise and three edge
+      outcomes per qubit, where a surface-code round has one layer and four
+      check outcomes per qubit: the honeycomb code pays for its three
+      measurement steps per round (docs/fair_comparison.md, rule 1).
 
     The detector count and circuit fault distance equal those of the reference
     circuits of Gidney et al. at every tested size (d = 4, 6, 8). The fault
     distance is below the code distance d: about d / 2 under EM3, where a
     pair-measurement fault acts like a two-qubit error (d = 4, 6, 8: 2, 4, 4
     for "H" and 2, 3, 4 for "V"), and 3, 6, 6 ("H") and 4, 6, 8 ("V") with
-    native gates. Compare it with other codes at equal qubit count or logical
-    error rate rather than at equal d.
+    native gates and under phenomenological noise. Compare it with other
+    codes at equal qubit count or logical error rate rather than at equal d.
 
     Attributes
     ----------
     d : int Distance (width). rounds : int Rounds of three sub-rounds.
     noise : CircuitNoise Noise model. basis : str "X" (observable "H") or "Z"
-    (observable "V"). layout : HoneycombLayout Lattice.
+    (observable "V"). layout : HoneycombLayout Lattice. native : str
+    Extraction (`noise.native`). weight2 : str or None Compilation (see
+    `HONEYCOMB_WEIGHT2`).
     """
 
     _idle = FTMDRCircuit._idle
@@ -958,17 +1167,21 @@ class HoneycombCircuit:
     _memory = FTMDRCircuit._memory
     _xtalk = FTMDRCircuit._xtalk
 
-    def __init__(self, distance: int, rounds: int, noise: CircuitNoise, basis: str = "Z") -> None:
+    def __init__(self, distance: int, rounds: int, noise: CircuitNoise, basis: str = "Z",
+                 weight2: str | None = None) -> None:
         if rounds < 1:
             raise ValueError("rounds must be at least 1.")
         if basis not in BASES:
             raise ValueError(f"basis must be one of {BASES}.")
+        self.native = _native(noise)
+        self.layout = HoneycombLayout(distance)
+        _check_no_links(noise, "honeycomb")
+        self.weight2 = _resolve_weight2(weight2, self.native, HONEYCOMB_WEIGHT2, "honeycomb")
         self.d = distance
         self.rounds = rounds
         self.noise = noise
         self.basis = basis
         self.obs = "H" if basis == "X" else "V"
-        self.layout = HoneycombLayout(distance)
         self.n = self.layout.n
 
     def build(self) -> stim.Circuit:
@@ -976,11 +1189,12 @@ class HoneycombCircuit:
         Return the noisy, detector-annotated Stim circuit.
         """
         lay, nz = self.layout, self.noise
-        pairs = getattr(nz, "native", "gates") == "pairs"
+        phen = self.native == "phen"
+        pairs = self.weight2 == "direct"
         n = self.n
         data = list(range(n))
         # one ancilla (native gates) or flip qubit (pairs) per edge of a sub-round
-        extra = list(range(n, n + n // 2))
+        extra = [] if phen else list(range(n, n + n // 2))
         mt = _Tracker()
         c = stim.Circuit()
         for q in data:
@@ -995,7 +1209,7 @@ class HoneycombCircuit:
 
         init_basis = lay.observable(self.obs, 0)[0]
         c.append(_RESET[init_basis], data)
-        if nz.p_prep:
+        if nz.p_prep and not phen:
             c.append(_FLIP[init_basis], data, nz.p_prep)
         c.append("TICK")
         edge_init = "XYZ".index(init_basis)
@@ -1012,7 +1226,10 @@ class HoneycombCircuit:
             col = k % 3
             p = "XYZ"[col]
             edges = lay.edges[col]
-            if pairs:
+            if phen:
+                idx = lay.index
+                _append_phen_round(c, nz, data, [((p, idx[e[0]]), (p, idx[e[1]])) for e in edges])
+            elif pairs:
                 self._pair_sub_round(c, edges, p, extra)
             else:
                 self._gate_sub_round(c, edges, p, data, extra, first=k == 0)
@@ -1033,7 +1250,7 @@ class HoneycombCircuit:
             c.append("TICK")
         # readout of the data in the basis of the observable
         obs_basis, obs_qubits = lay.observable(self.obs, n_sub)
-        if nz.p_meas:
+        if nz.p_meas and not phen:
             c.append(_FLIP[obs_basis], data, nz.p_meas)
         c.append(_MEAS[obs_basis], data)
         mt.measure(*[("q", q) for q in lay.coords])
@@ -1056,27 +1273,9 @@ class HoneycombCircuit:
     def _pair_sub_round(self, c: stim.Circuit, edges: Sequence[Edge], p: str,
                         flips: Sequence[int]) -> None:
         """One EM3 step: a noisy MPP P_u P_v per edge (FTMDRCircuit's direct link measurement)."""
-        pm = self.noise.p_mpp
         idx = self.layout.index
-        combos = [(a, b2, f) for a in "IXYZ" for b2 in "IXYZ" for f in (0, 1)][1:]
         for e, f in zip(edges, flips):
-            q1, q2 = idx[e[0]], idx[e[1]]
-            c.append("R", [f])
-            if pm:
-                acc = 0.0
-                for j, (e1, e2, ff) in enumerate(combos):
-                    tg = []
-                    if e1 != "I":
-                        tg.append(stim.target_pauli(q1, e1))
-                    if e2 != "I":
-                        tg.append(stim.target_pauli(q2, e2))
-                    if ff:
-                        tg.append(stim.target_x(f))
-                    c.append("E" if j == 0 else "ELSE_CORRELATED_ERROR", tg,
-                             (pm / 32.0) / (1.0 - acc))
-                    acc += pm / 32.0
-            c.append("MPP", [stim.target_pauli(q1, p), stim.target_combiner(),
-                             stim.target_pauli(q2, p), stim.target_combiner(), stim.target_z(f)])
+            _append_em3_mpp(c, idx[e[0]], p, idx[e[1]], p, f, self.noise.p_mpp)
         # every data qubit is in one pair measurement: no idle qubits in this step
 
     def _gate_sub_round(self, c: stim.Circuit, edges: Sequence[Edge], p: str,
@@ -1130,7 +1329,10 @@ def competitor_circuit(code: str, d: int, rounds: int, noise: CircuitNoise,
     and read out ("X" or "Z"): the CSS logical, mapped through the code's
     Clifford for ``xzzx`` and ``xy``, and the observable "H" ("X") or "V"
     ("Z") for ``honeycomb``. Extra keyword arguments go to
-    `CompetitorCircuit` (`weight2` for the pair-measurement circuits).
+    `CompetitorCircuit` or `HoneycombCircuit`: `weight2` picks a compilation
+    other than the default for `noise.native` (`SURFACE_WEIGHT2`,
+    `HONEYCOMB_WEIGHT2`). Noise with `link_reps != 1` or `link_noise=False`
+    (XYZ^2 link variants) raises ValueError.
     """
     if code in FLOQUET_CODES:
         return HoneycombCircuit(d, rounds, noise, basis=basis, **kwargs).build()

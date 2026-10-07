@@ -49,28 +49,52 @@ class XYZ2FrameBasis:
     The all-X frame (`|+>^n`) only fixes the XX links, which cannot tell the
     two vertices of a block apart, so it has fault distance 1 or 2.
 
+    `logical="Y"` gives the conjugate frame: the parities swap, so blocks
+    with `i + j` odd are X on both vertices and blocks with `i + j` even use
+    `odd_rep`. Seen as the YZZY code concatenated with the XX repetition
+    code, this prepares the other checkerboard of inner logical eigenstates:
+    the odd links, the class-A plaquettes and the left and right boundary
+    checks become deterministic (`d^2 - 1` independent products), and
+    Logical Y has a representative (weight d + 1) that is a product of frame
+    Paulis. Logical Z has no such representative in either frame.
+
     Attributes
     ----------
     geometry : XYZ2Geometry Lattice metadata. basis : Dict[int, str] Frame
     Pauli for every data qubit. s0_rows : np.ndarray Binary matrix of shape
-    `(d^2, m)`. Row `k` lists the generators whose product is the `k`-th
-    frame-deterministic stabilizer.
+    `(d^2, m)` (`(d^2 - 1, m)` for `logical="Y"`). Row `k` lists the
+    generators whose product is the `k`-th frame-deterministic stabilizer.
+    logical : str "X" or "Y", the logical operator the frame fixes.
+    logical_spec : str Sparse Pauli string of a representative of that
+    logical operator that is a product of frame Paulis (Logical X itself for
+    `logical="X"`).
     """
 
-    def __init__(self, geometry: XYZ2Geometry, odd_rep: str = "ZY") -> None:
+    def __init__(self, geometry: XYZ2Geometry, odd_rep: str = "ZY",
+                 logical: str = "X") -> None:
         if odd_rep not in {"ZY", "YZ"}:
             raise ValueError("odd_rep must be 'ZY' or 'YZ'.")
+        if logical not in {"X", "Y"}:
+            raise ValueError("logical must be 'X' or 'Y' (Logical Z has no "
+                             "representative that is a product of frame Paulis).")
         self.geometry = geometry
         self.odd_rep = odd_rep
+        self.logical = logical
+        xx_parity = 0 if logical == "X" else 1
         self.basis: Dict[int, str] = {}
         for i in range(geometry.d):
             for j in range(geometry.d):
                 up, lo = geometry.verts(i, j)
-                if (i + j) % 2 == 0:
+                if (i + j) % 2 == xx_parity:
                     self.basis[up], self.basis[lo] = "X", "X"
                 else:
                     self.basis[up], self.basis[lo] = odd_rep[0], odd_rep[1]
         self.s0_rows = self.deterministic_rows(self.basis)
+        if logical == "X":
+            self.logical_spec = geometry.logicals["Logical X"]
+        else:
+            self.logical_spec = self._frame_representative(
+                geometry.logicals["Logical Y"])
 
     def deterministic_rows(self, basis: Dict[int, str]) -> np.ndarray:
         """
@@ -147,6 +171,61 @@ class XYZ2FrameBasis:
         """
         terms = self.geometry.logicals["Logical X"].split()
         return all(self.basis[int(t[1:])] == t[0] for t in terms)
+
+    def logical_in_frame(self) -> bool:
+        """
+        Check that `logical_spec` is a product of frame Paulis.
+        """
+        return all(self.basis[int(t[1:])] == t[0]
+                   for t in self.logical_spec.split())
+
+    def _frame_representative(self, spec: str) -> str:
+        """
+        Multiply `spec` by a stabilizer so that it becomes a frame product.
+
+        Solves, over GF(2), for a generator combination whose product with
+        `spec` commutes with the frame Pauli of every qubit. Raises
+        ValueError when no such representative exists.
+        """
+        geo = self.geometry
+        n = geo.n
+        h = geo.stabilizer_matrix()
+        v = np.zeros(2 * n, dtype=np.uint8)
+        for tok in spec.split():
+            bx, bz = _PAULI_BITS[tok[0]]
+            v[int(tok[1:])] ^= bx
+            v[n + int(tok[1:])] ^= bz
+        mat = np.zeros((n, h.shape[0] + 1), dtype=np.uint8)
+        for q in range(n):
+            bx, bz = _PAULI_BITS[self.basis[q]]
+            mat[q, :-1] = (h[:, q] * bz + h[:, n + q] * bx) % 2
+            mat[q, -1] = (v[q] * bz + v[n + q] * bx) % 2
+        pivots: List[int] = []
+        r = 0
+        for col in range(h.shape[0]):
+            piv = next((i for i in range(r, n) if mat[i, col]), None)
+            if piv is None:
+                continue
+            mat[[r, piv]] = mat[[piv, r]]
+            for i in range(n):
+                if i != r and mat[i, col]:
+                    mat[i] ^= mat[r]
+            pivots.append(col)
+            r += 1
+            if r == n:
+                break
+        if mat[r:, -1].any():
+            raise ValueError(f"{spec!r} has no representative in this frame.")
+        coeff = np.zeros(h.shape[0], dtype=np.uint8)
+        for i, col in enumerate(pivots):
+            coeff[col] = mat[i, -1]
+        w = (v + coeff @ h) % 2
+        toks: List[str] = []
+        for q in range(n):
+            x, z = w[q], w[n + q]
+            if x or z:
+                toks.append(("Y" if x and z else "X" if x else "Z") + str(q))
+        return " ".join(toks)
 
     @staticmethod
     def _nullspace(a: np.ndarray) -> np.ndarray:

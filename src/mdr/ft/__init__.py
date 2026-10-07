@@ -8,7 +8,7 @@ free-energy decoding), and Pauli-frame recovery. See README section "Fault-toler
 
 from .circuit_noise import CircuitNoise
 from .coset_decoder import CosetFreeEnergyDecoder, degeneracy_moves
-from .extraction_schedule import DEPTH6_SCHEDULE, ExtractionSchedule
+from .extraction_schedule import BOTH_BASES_SCHEDULE, DEPTH6_SCHEDULE, ExtractionSchedule
 from .frame_basis import XYZ2FrameBasis
 from .ft_mdr_circuit import FTMDRCircuit
 from .s0_matching_decoder import LogicalErrorEstimate, S0MatchingDecoder
@@ -16,6 +16,7 @@ from .two_level_decoder import TwoLevelDecoder
 from .xyz2_geometry import XYZ2Geometry
 
 __all__ = [
+    "BOTH_BASES_SCHEDULE",
     "CircuitNoise",
     "CosetFreeEnergyDecoder",
     "DEPTH6_SCHEDULE",

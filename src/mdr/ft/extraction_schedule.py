@@ -154,3 +154,24 @@ DEPTH6_SCHEDULE = ExtractionSchedule(
     },
     link={0: (0, 1), 1: (0, 1)},
 )
+
+
+# Depth-6 schedule for the memory of both conjugate logical operators. With
+# DEPTH6_SCHEDULE the memory of Logical Y (FTMDRCircuit(logical="Y")) has
+# circuit-level fault distance only (d + 1) / 2 (2 at d = 3, 3 at d = 5, SD6,
+# exact CP-SAT), because its hooks line up with the Logical Y string. This
+# schedule was selected among the 8928 valid depth-6 schedules: 164 of them
+# keep fault distance d + 1 for Logical X and reach d for Logical Y at d = 3
+# (CP-SAT, SD6, r = 3, S_0 detectors; none reaches d + 1 for Logical Y), 26
+# of those were confirmed at d = 5 (Y >= 5, X >= 6), and among them this one
+# has the lowest logical error rate in the weaker basis under SD6 and MWPM at
+# p = 4e-3 (d = 7 and 9, r = d: X 3.3%/3.4%, Y 3.7%/3.3%; DEPTH6_SCHEDULE: X
+# 2.6%/2.5%, Y 6.4%/6.9%). It is index 1525 of `enumerate_depth(6)`.
+BOTH_BASES_SCHEDULE = ExtractionSchedule(
+    depth=6,
+    sigma={
+        "A": {"TL": 0, "BLu": 1, "BLl": 2, "TRu": 3, "TRl": 4, "BR": 5},
+        "B": {"TL": 0, "TRu": 1, "TRl": 2, "BLu": 3, "BR": 4, "BLl": 5},
+    },
+    link={0: (2, 3), 1: (0, 1)},
+)
