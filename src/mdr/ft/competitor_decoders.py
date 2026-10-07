@@ -110,6 +110,47 @@ def merged_mechanisms(dem: stim.DetectorErrorModel):
     return list(cols), np.array(priors), decomp
 
 
+def _merge_empty_components(dem: stim.DetectorErrorModel) -> stim.DetectorErrorModel:
+    """The decomposed model with every component that flips no detector (only observables) merged into
+    the next component of its instruction, or the previous one for the last component. Stim produces such
+    components for some honeycomb em3 faults, and PyMatching's correlated matching refuses them. The
+    observables and detectors an instruction flips are unchanged."""
+    out = stim.DetectorErrorModel()
+    for inst in dem.flattened():
+        if inst.type != "error":
+            out.append(inst)
+            continue
+        comps, cur = [], []
+        for t in inst.targets_copy():
+            if t.is_separator():
+                comps.append(cur)
+                cur = []
+            else:
+                cur.append(t)
+        comps.append(cur)
+        i = 0
+        while len(comps) > 1 and i < len(comps):
+            if not any(t.is_relative_detector_id() for t in comps[i]):
+                j = i + 1 if i + 1 < len(comps) else i - 1
+                comps[j] = comps[j] + comps[i] if j > i else comps[i] + comps[j]
+                del comps[i]
+                i = 0
+                continue
+            i += 1
+        targets = []
+        for k, c in enumerate(comps):
+            if k:
+                targets.append(stim.target_separator())
+            obs = {}
+            for t in c:
+                if t.is_logical_observable_id():
+                    obs[t.val] = obs.get(t.val, 0) ^ 1
+            targets += [t for t in c if t.is_relative_detector_id()]
+            targets += [stim.target_logical_observable_id(o) for o, v in sorted(obs.items()) if v]
+        out.append("error", inst.args_copy(), targets)
+    return out
+
+
 def _incidence(rows: List[List[int]], n_rows: int) -> sp.csr_matrix:
     """Binary matrix with a one at (r, j) for every r in rows[j] (XOR of repeats)."""
     rr, cc = [], []
@@ -176,7 +217,7 @@ class CompetitorDecoder:
     def _setup_corr(self) -> None:
         import pymatching
 
-        self.dem = self._decomposed_dem()
+        self.dem = _merge_empty_components(self._decomposed_dem())
         self._matching = pymatching.Matching.from_detector_error_model(
             self.dem, enable_correlations=True)
 
