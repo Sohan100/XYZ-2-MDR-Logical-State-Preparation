@@ -22,6 +22,8 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from dataclasses import replace  # noqa: E402
+
 from mdr.ft import CircuitNoise, FTMDRCircuit  # noqa: E402
 from mdr.ft.two_level_decoder import TwoLevelDecoder  # noqa: E402
 
@@ -42,6 +44,15 @@ NOISE = {
     "h2_p_noxt": lambda v: CircuitNoise.trapped_ion(v, "h2", crosstalk=False),
     # entangling-measurement model of Gidney et al. with pair-measurement extraction
     "em3": lambda v: CircuitNoise.em3(v),
+    # extraction variants for the fair comparison with other codes (docs/fair_comparison.md)
+    "hyb": lambda v: CircuitNoise.hybrid(v),
+    "hyb_lr2": lambda v: replace(CircuitNoise.hybrid(v), link_reps=2, name="hyb_lr2"),
+    "sd6_lr2": lambda v: replace(CircuitNoise.uniform(v), link_reps=2, name="sd6_lr2"),
+    "sd6_lr3": lambda v: replace(CircuitNoise.uniform(v), link_reps=3, name="sd6_lr3"),
+    "si1000_lr2": lambda v: replace(CircuitNoise.si1000(v), link_reps=2, name="si1000_lr2"),
+    "sd6_il": lambda v: replace(CircuitNoise.uniform(v), link_noise=False, name="sd6_il"),
+    "phen": lambda v: CircuitNoise.phenomenological(v),
+    "phen_b10": lambda v: CircuitNoise.phenomenological(v, 10),
 }
 DECODERS = {
     "mwpm": dict(mode="mwpm"),

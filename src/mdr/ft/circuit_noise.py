@@ -30,6 +30,23 @@ class CircuitNoise:
     bool Whether `p1` is added on both qubits of every entangling gate.
     p_idle_mr : float or None Depolarizing probability on data qubits that
     idle while the ancillas are reset or measured. `None` means `p_idle`.
+
+    Extraction variants (for the fair comparison with other codes, see
+    docs/fair_comparison.md); every variant keeps circuit-level noise on
+    every operation it uses:
+
+    native : str "gates" (one ancilla per check, controlled Paulis),
+    "pairs" (every check from noisy two-qubit Pauli product measurements,
+    EM3), "hybrid" (every weight-2 check is one noisy pair measurement with
+    the EM3 channel `p_mpp`; every other check uses an ancilla and gates with
+    the gate noise of this model), or "phen" (phenomenological: noiseless
+    extraction, `data_xyz` Pauli noise on every data qubit once per round, and
+    every check outcome flipped with `p_meas`). link_reps : int Each weight-2
+    link check is measured this many times per round (with the noise of its
+    extraction every time); 1 is the standard circuit. link_noise : bool
+    False makes every operation of the link checks noiseless (a diagnostic,
+    not a hardware model). data_xyz : tuple (px, py, pz) of the
+    phenomenological data noise.
     """
 
     p1: float = 0.0
@@ -48,6 +65,34 @@ class CircuitNoise:
     p_mpp: float = 0.0
     native: str = "gates"
     name: str = ""
+    link_reps: int = 1
+    link_noise: bool = True
+    data_xyz: tuple | None = None
+
+    @staticmethod
+    def hybrid(p: float) -> "CircuitNoise":
+        """
+        SD6 gates and native pair measurements on the same hardware: weight-2
+        checks are single pair measurements with the EM3 channel at `p`
+        (a random two-qubit Pauli and/or a result flip), every other check is
+        measured with an ancilla and controlled Paulis under SD6 noise at `p`.
+        A code without weight-2 checks runs exactly as under SD6.
+        """
+        return replace(CircuitNoise.uniform(p), p_mpp=p, native="hybrid", name="hyb")
+
+    @staticmethod
+    def phenomenological(p: float, eta: float = 0.5) -> "CircuitNoise":
+        """
+        Phenomenological noise (Srivastava et al., arXiv:2505.03691): before
+        every round each data qubit suffers Pauli noise of total rate `p`
+        (Z-biased with eta = p_z / (p_x + p_y); 0.5 is depolarizing) and every
+        check outcome is flipped with probability `p`; the extraction is
+        otherwise noiseless.
+        """
+        pz = p * eta / (eta + 1.0)
+        px = py = (p - pz) / 2.0
+        return CircuitNoise(p_meas=p, native="phen", data_xyz=(px, py, pz),
+                            name="phen" if eta == 0.5 else f"phen_b{eta:g}")
 
     @staticmethod
     def uniform(p: float) -> "CircuitNoise":
