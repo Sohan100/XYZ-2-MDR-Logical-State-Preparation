@@ -659,7 +659,11 @@ def _pool_writer(q, unit_of: dict, me: str) -> None:
             _, claims, done_dir = pool_dirs(pool)
             path = os.path.join(claims, str(k))
             try:
-                if mark and open(path).read().strip() == me:
+                if isinstance(mark, str):           # its small tasks are done (--max-task-mem): mark, release
+                    if open(path).read().strip() == me:
+                        open(mark, "w").close()
+                        os.unlink(path)
+                elif mark and open(path).read().strip() == me:
                     os.rename(path, os.path.join(done_dir, str(k)))
             except OSError:
                 pass
@@ -711,17 +715,21 @@ class _PoolView:
         with open(index) as fh:
             self.offsets = json.load(fh)
         self.known_done = set()
+        self.skip = set()           # units whose small tasks are done (--max-task-mem)
         self.seen = {}              # unit -> time before which its claim by another node cannot be stale
 
 
 def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: float = 0.0,
              stale: float = POOL_STALE, beat: float = POOL_BEAT, scan: float = POOL_SCAN,
-             order_file: str | None = None, refresh: float = 600.0) -> int:
+             order_file: str | None = None, refresh: float = 600.0, max_task_mem: float = 0.0) -> int:
     """Work through a pool on this node, like `run` on one chunk: claim a unit whenever every task claimed
     so far has started, and stop when no unit is free and no other node of this Slurm job holds one (its
     nodes are held until the last one ends, so they wait for units of nodes that stop). With `order_file`
     (read again every `refresh` seconds), the node takes its units from the pools listed there first, in
-    that order, then from `pool`. Returns the number of units finished here."""
+    that order, then from `pool`. With `max_task_mem` (login nodes: little memory per user), the node runs
+    only the tasks of a unit whose memory estimate is at most that many GB, then marks the unit in
+    <pool>.d/small<max_task_mem>/ and releases it unfinished; the larger tasks are left to nodes without
+    the option, which finish the unit. Returns the number of units finished here."""
     import random
     import socket
 
@@ -804,37 +812,50 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
             return True
         return False
 
+    def small_mark(v, k):
+        d = os.path.join(os.path.dirname(v.done), f"small{max_task_mem:g}")
+        os.makedirs(d, exist_ok=True)
+        return os.path.join(d, str(k))
+
     def next_unit():
         now = time.time()
         for v in order:
-            free = [k for k in range(len(v.offsets)) if k not in v.known_done and v.seen.get(k, 0.0) <= now]
+            free = [k for k in range(len(v.offsets))
+                    if k not in v.known_done and k not in v.skip and v.seen.get(k, 0.0) <= now]
             if not free:
                 continue
             start = rng.randrange(min(len(free), POOL_WINDOW))
             for k in free[start:] + free[:start]:
                 if os.path.exists(os.path.join(v.done, str(k))):
                     v.known_done.add(k)
+                elif max_task_mem and os.path.exists(small_mark(v, k)):
+                    v.skip.add(k)
                 elif try_claim(v, k):
                     return v, k
         return None
 
     def load_unit(v, k):
+        """The unfinished tasks of unit k this node runs, and the number left to others (--max-task-mem)."""
         with open(v.path, "rb") as fh:
             fh.seek(v.offsets[k])
             rec = json.loads(fh.readline())
         assert rec["unit"] == k, (rec["unit"], k)
         prog = progress([pool_unit_out(v.path, k)])
         out = []
+        deferred = 0
         for t in rec["tasks"]:
             p0 = t.pop("prev", None) or [0, 0, 0.0]
             s = prog.get(t["id"]) or [0, 0, 0.0, ""]
             tot = [p0[0] + s[0], p0[1] + s[1], p0[2] + s[2], s[3]]
             if finished(t, tot):
                 continue
+            if max_task_mem and t["mem"] > max_task_mem:
+                deferred += 1
+                continue
             if max_seconds:
                 t["budget"] = min(t["budget"], max_seconds)
             out.append((t, tot))
-        return out
+        return out, deferred
 
     def job_busy() -> bool:
         if job == "local":
@@ -873,6 +894,7 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
     running = {}                    # pid -> (process, task, memory reserved, (pool, unit))
     left = {}                       # (pool, unit) -> its tasks claimed here that have not ended
     lost = set()
+    partial = set()                 # units held here with tasks left to other nodes (--max-task-mem)
     used = 0.0
     n_done = 0
     next_beat = time.time() + beat
@@ -886,6 +908,15 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
         left[key] -= 1
         if left[key] == 0:
             del left[key]
+            if key in partial and key not in lost:  # its small tasks are done: mark it, release it unfinished
+                partial.discard(key)
+                views[key[0]].skip.add(key[1])
+                q.put(("close", key[0], key[1], small_mark(views[key[0]], key[1])))
+                log(f"{time.strftime('%H:%M:%S')} unit {key[1]} of {key[0]}: its tasks <= {max_task_mem:g} GB "
+                    f"are done, released for the larger ones")
+                lost.discard(key)
+                return
+            partial.discard(key)
             q.put(("close", key[0], key[1], key not in lost))
             if key not in lost:
                 n_done += 1
@@ -965,7 +996,7 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
                 v, k = got
                 key = (v.path, k)
                 try:
-                    tasks = load_unit(v, k)
+                    tasks, deferred = load_unit(v, k)
                 except Exception as exc:  # noqa: BLE001  (a unit this node cannot read: leave it to others)
                     log(f"{time.strftime('%H:%M:%S')} unit {k} of {v.path}: cannot load it "
                         f"({type(exc).__name__}: {exc})")
@@ -975,11 +1006,17 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
                     except OSError:
                         pass
                     continue
-                log(f"{time.strftime('%H:%M:%S')} unit {k} of {v.path}: {len(tasks)} tasks to run")
-                if not tasks:
+                log(f"{time.strftime('%H:%M:%S')} unit {k} of {v.path}: {len(tasks)} tasks to run"
+                    + (f", {deferred} larger than {max_task_mem:g} GB left to other nodes" if deferred else ""))
+                if not tasks and deferred:
+                    v.skip.add(k)
+                    q.put(("close", v.path, k, small_mark(v, k)))
+                elif not tasks:
                     q.put(("close", v.path, k, True))
                     n_done += 1
                 else:
+                    if deferred:
+                        partial.add(key)
                     left[key] = len(tasks)
                     for t, tot in tasks:
                         unit_of[t["id"]] = key
@@ -1135,6 +1172,9 @@ def main() -> None:
     pr.add_argument("--workers", type=int, default=0, help="default: number of physical cores")
     pr.add_argument("--mem-gb", type=float, default=0.0, help="default: 85%% of the node memory")
     pr.add_argument("--max-seconds", type=float, default=0.0, help="cap every task's time budget (tests)")
+    pr.add_argument("--max-task-mem", type=float, default=0.0,
+                    help="run only tasks whose memory estimate is at most this many GB and leave the rest of "
+                         "each unit to other nodes (login nodes)")
     pr.add_argument("--order", default=None,
                     help="file listing pools to work on before this one, read again every 10 minutes "
                          "(default: pool_order.txt next to the pool; an empty string turns it off)")
@@ -1187,7 +1227,7 @@ def main() -> None:
         mem = args.mem_gb or 0.85 * node_memory_gb()
         order = args.order if args.order is not None else os.path.join(os.path.dirname(args.pool), "pool_order.txt")
         pool_run(args.pool, workers, mem, log=lambda m: print(m, flush=True), max_seconds=args.max_seconds,
-                 order_file=order or None)
+                 order_file=order or None, max_task_mem=args.max_task_mem)
     elif args.cmd == "pool-status":
         st = pool_status(args.pool)
         print(" ".join(f"{k} {v}" for k, v in st.items() if k != "jobs")
