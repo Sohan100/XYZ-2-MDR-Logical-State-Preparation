@@ -1,0 +1,621 @@
+{
+ "census": {
+  "css_X": {
+   "DEPOLARIZE1|anc": [
+    80,
+    0.08000000000000006
+   ],
+   "DEPOLARIZE1|data": [
+    350,
+    0.35000000000000026
+   ],
+   "DEPOLARIZE2|pair": [
+    400,
+    0.4000000000000003
+   ],
+   "Z_ERROR|anc": [
+    120,
+    0.12000000000000009
+   ],
+   "Z_ERROR|data": [
+    25,
+    0.025000000000000015
+   ],
+   "Z_ERROR@reset|anc": [
+    120,
+    0.12000000000000009
+   ],
+   "Z_ERROR@reset|data": [
+    25,
+    0.025000000000000015
+   ]
+  },
+  "xzzx_X": {
+   "DEPOLARIZE1|anc": [
+    80,
+    0.08000000000000006
+   ],
+   "DEPOLARIZE1|data": [
+    350,
+    0.35000000000000026
+   ],
+   "DEPOLARIZE2|pair": [
+    400,
+    0.4000000000000003
+   ],
+   "X_ERROR|data": [
+    12,
+    0.012000000000000004
+   ],
+   "X_ERROR@reset|data": [
+    12,
+    0.012000000000000004
+   ],
+   "Z_ERROR|anc": [
+    120,
+    0.12000000000000009
+   ],
+   "Z_ERROR|data": [
+    13,
+    0.013000000000000005
+   ],
+   "Z_ERROR@reset|anc": [
+    120,
+    0.12000000000000009
+   ],
+   "Z_ERROR@reset|data": [
+    13,
+    0.013000000000000005
+   ]
+  },
+  "stim_X": {
+   "DEPOLARIZE1|anc": [
+    120,
+    0.12000000000000009
+   ],
+   "DEPOLARIZE1|data": [
+    125,
+    0.12500000000000008
+   ],
+   "DEPOLARIZE2|pair": [
+    400,
+    0.4000000000000003
+   ],
+   "X_ERROR|anc": [
+    120,
+    0.12000000000000009
+   ],
+   "X_ERROR@reset|anc": [
+    144,
+    0.1440000000000001
+   ],
+   "Z_ERROR|data": [
+    25,
+    0.025000000000000015
+   ],
+   "Z_ERROR@reset|data": [
+    25,
+    0.025000000000000015
+   ]
+  },
+  "css_Z": {
+   "DEPOLARIZE1|anc": [
+    80,
+    0.08000000000000006
+   ],
+   "DEPOLARIZE1|data": [
+    350,
+    0.35000000000000026
+   ],
+   "DEPOLARIZE2|pair": [
+    400,
+    0.4000000000000003
+   ],
+   "X_ERROR|data": [
+    25,
+    0.025000000000000015
+   ],
+   "X_ERROR@reset|data": [
+    25,
+    0.025000000000000015
+   ],
+   "Z_ERROR|anc": [
+    120,
+    0.12000000000000009
+   ],
+   "Z_ERROR@reset|anc": [
+    120,
+    0.12000000000000009
+   ]
+  },
+  "xzzx_Z": {
+   "DEPOLARIZE1|anc": [
+    80,
+    0.08000000000000006
+   ],
+   "DEPOLARIZE1|data": [
+    350,
+    0.35000000000000026
+   ],
+   "DEPOLARIZE2|pair": [
+    400,
+    0.4000000000000003
+   ],
+   "X_ERROR|data": [
+    13,
+    0.013000000000000005
+   ],
+   "X_ERROR@reset|data": [
+    13,
+    0.013000000000000005
+   ],
+   "Z_ERROR|anc": [
+    120,
+    0.12000000000000009
+   ],
+   "Z_ERROR|data": [
+    12,
+    0.012000000000000004
+   ],
+   "Z_ERROR@reset|anc": [
+    120,
+    0.12000000000000009
+   ],
+   "Z_ERROR@reset|data": [
+    12,
+    0.012000000000000004
+   ]
+  },
+  "stim_Z": {
+   "DEPOLARIZE1|anc": [
+    120,
+    0.12000000000000009
+   ],
+   "DEPOLARIZE1|data": [
+    125,
+    0.12500000000000008
+   ],
+   "DEPOLARIZE2|pair": [
+    400,
+    0.4000000000000003
+   ],
+   "X_ERROR|anc": [
+    120,
+    0.12000000000000009
+   ],
+   "X_ERROR|data": [
+    25,
+    0.025000000000000015
+   ],
+   "X_ERROR@reset|anc": [
+    144,
+    0.1440000000000001
+   ],
+   "X_ERROR@reset|data": [
+    25,
+    0.025000000000000015
+   ]
+  }
+ },
+ "structure": [
+  {
+   "kind": "css",
+   "d": 3,
+   "basis": "X",
+   "qubits": 17,
+   "detectors": 24,
+   "observables": 1,
+   "ticks": 19,
+   "ops": {
+    "RX": 33,
+    "TICK": 19,
+    "CX": 36,
+    "CZ": 36,
+    "MX": 33
+   },
+   "dem_errors": 300,
+   "graphlike_distance": 3,
+   "fault_distance": 3,
+   "dem_total_prob": 0.2274826701833302
+  },
+  {
+   "kind": "xzzx",
+   "d": 3,
+   "basis": "X",
+   "qubits": 17,
+   "detectors": 24,
+   "observables": 1,
+   "ticks": 19,
+   "ops": {
+    "RX": 29,
+    "R": 4,
+    "TICK": 19,
+    "CX": 36,
+    "CZ": 36,
+    "MX": 29,
+    "M": 4
+   },
+   "dem_errors": 299,
+   "graphlike_distance": 3,
+   "fault_distance": 3,
+   "dem_total_prob": 0.22748407317567726
+  },
+  {
+   "kind": "stim",
+   "d": 3,
+   "basis": "X",
+   "qubits": 26,
+   "detectors": 24,
+   "observables": 1,
+   "ticks": 21,
+   "ops": {
+    "RX": 9,
+    "R": 8,
+    "TICK": 21,
+    "H": 24,
+    "CX": 72,
+    "MR": 24,
+    "MX": 9
+   },
+   "dem_errors": 291,
+   "graphlike_distance": 3,
+   "fault_distance": 3,
+   "dem_total_prob": 0.17106866686591016
+  },
+  {
+   "kind": "css",
+   "d": 3,
+   "basis": "Z",
+   "qubits": 17,
+   "detectors": 24,
+   "observables": 1,
+   "ticks": 19,
+   "ops": {
+    "R": 9,
+    "TICK": 19,
+    "RX": 24,
+    "CX": 36,
+    "CZ": 36,
+    "MX": 24,
+    "M": 9
+   },
+   "dem_errors": 291,
+   "graphlike_distance": 3,
+   "fault_distance": 3,
+   "dem_total_prob": 0.22683117490622845
+  },
+  {
+   "kind": "xzzx",
+   "d": 3,
+   "basis": "Z",
+   "qubits": 17,
+   "detectors": 24,
+   "observables": 1,
+   "ticks": 19,
+   "ops": {
+    "RX": 28,
+    "R": 5,
+    "TICK": 19,
+    "CX": 36,
+    "CZ": 36,
+    "MX": 28,
+    "M": 5
+   },
+   "dem_errors": 294,
+   "graphlike_distance": 3,
+   "fault_distance": 3,
+   "dem_total_prob": 0.22683138832732685
+  },
+  {
+   "kind": "stim",
+   "d": 3,
+   "basis": "Z",
+   "qubits": 26,
+   "detectors": 24,
+   "observables": 1,
+   "ticks": 21,
+   "ops": {
+    "R": 17,
+    "TICK": 21,
+    "H": 24,
+    "CX": 72,
+    "MR": 24,
+    "M": 9
+   },
+   "dem_errors": 286,
+   "graphlike_distance": 3,
+   "fault_distance": 3,
+   "dem_total_prob": 0.17103581347837793
+  },
+  {
+   "kind": "css",
+   "d": 5,
+   "basis": "X",
+   "qubits": 49,
+   "detectors": 120,
+   "observables": 1,
+   "ticks": 31,
+   "ops": {
+    "RX": 145,
+    "TICK": 31,
+    "CX": 200,
+    "CZ": 200,
+    "MX": 145
+   },
+   "dem_errors": 1980,
+   "graphlike_distance": 5,
+   "fault_distance": 5,
+   "dem_total_prob": 1.0439596941731764
+  },
+  {
+   "kind": "xzzx",
+   "d": 5,
+   "basis": "X",
+   "qubits": 49,
+   "detectors": 120,
+   "observables": 1,
+   "ticks": 31,
+   "ops": {
+    "RX": 133,
+    "R": 12,
+    "TICK": 31,
+    "CX": 200,
+    "CZ": 200,
+    "MX": 133,
+    "M": 12
+   },
+   "dem_errors": 1978,
+   "graphlike_distance": 5,
+   "fault_distance": 5,
+   "dem_total_prob": 1.0439603502308423
+  },
+  {
+   "kind": "stim",
+   "d": 5,
+   "basis": "X",
+   "qubits": 64,
+   "detectors": 120,
+   "observables": 1,
+   "ticks": 35,
+   "ops": {
+    "RX": 25,
+    "R": 24,
+    "TICK": 35,
+    "H": 120,
+    "CX": 400,
+    "MR": 120,
+    "MX": 25
+   },
+   "dem_errors": 1958,
+   "graphlike_distance": 5,
+   "fault_distance": 5,
+   "dem_total_prob": 0.8597400698283137
+  },
+  {
+   "kind": "css",
+   "d": 5,
+   "basis": "Z",
+   "qubits": 49,
+   "detectors": 120,
+   "observables": 1,
+   "ticks": 31,
+   "ops": {
+    "R": 25,
+    "TICK": 31,
+    "RX": 120,
+    "CX": 200,
+    "CZ": 200,
+    "MX": 120,
+    "M": 25
+   },
+   "dem_errors": 1967,
+   "graphlike_distance": 5,
+   "fault_distance": 5,
+   "dem_total_prob": 1.0433071677911616
+  },
+  {
+   "kind": "xzzx",
+   "d": 5,
+   "basis": "Z",
+   "qubits": 49,
+   "detectors": 120,
+   "observables": 1,
+   "ticks": 31,
+   "ops": {
+    "RX": 132,
+    "R": 13,
+    "TICK": 31,
+    "CX": 200,
+    "CZ": 200,
+    "MX": 132,
+    "M": 13
+   },
+   "dem_errors": 1973,
+   "graphlike_distance": 5,
+   "fault_distance": 5,
+   "dem_total_prob": 1.0433075946333583
+  },
+  {
+   "kind": "stim",
+   "d": 5,
+   "basis": "Z",
+   "qubits": 64,
+   "detectors": 120,
+   "observables": 1,
+   "ticks": 35,
+   "ops": {
+    "R": 49,
+    "TICK": 35,
+    "H": 120,
+    "CX": 400,
+    "MR": 120,
+    "M": 25
+   },
+   "dem_errors": 1953,
+   "graphlike_distance": 5,
+   "fault_distance": 5,
+   "dem_total_prob": 0.8596737960257288
+  },
+  {
+   "kind": "css",
+   "d": 7,
+   "basis": "X",
+   "qubits": 97,
+   "detectors": 336,
+   "observables": 1,
+   "ticks": 43,
+   "ops": {
+    "RX": 385,
+    "TICK": 43,
+    "CX": 588,
+    "CZ": 588,
+    "MX": 385
+   },
+   "dem_errors": 6136,
+   "graphlike_distance": 7,
+   "dem_total_prob": 2.832487670993403
+  },
+  {
+   "kind": "xzzx",
+   "d": 7,
+   "basis": "X",
+   "qubits": 97,
+   "detectors": 336,
+   "observables": 1,
+   "ticks": 43,
+   "ops": {
+    "RX": 361,
+    "R": 24,
+    "TICK": 43,
+    "CX": 588,
+    "CZ": 588,
+    "MX": 361,
+    "M": 24
+   },
+   "dem_errors": 6133,
+   "graphlike_distance": 7,
+   "dem_total_prob": 2.832487580116388
+  },
+  {
+   "kind": "stim",
+   "d": 7,
+   "basis": "X",
+   "qubits": 118,
+   "detectors": 336,
+   "observables": 1,
+   "ticks": 49,
+   "ops": {
+    "RX": 49,
+    "R": 48,
+    "TICK": 49,
+    "H": 336,
+    "CX": 1176,
+    "MR": 336,
+    "MX": 49
+   },
+   "dem_errors": 6605,
+   "graphlike_distance": 7,
+   "dem_total_prob": 2.4303957216261276
+  },
+  {
+   "kind": "css",
+   "d": 7,
+   "basis": "Z",
+   "qubits": 97,
+   "detectors": 336,
+   "observables": 1,
+   "ticks": 43,
+   "ops": {
+    "R": 49,
+    "TICK": 43,
+    "RX": 336,
+    "CX": 588,
+    "CZ": 588,
+    "MX": 336,
+    "M": 49
+   },
+   "dem_errors": 6119,
+   "graphlike_distance": 7,
+   "dem_total_prob": 2.8318341842556087
+  },
+  {
+   "kind": "xzzx",
+   "d": 7,
+   "basis": "Z",
+   "qubits": 97,
+   "detectors": 336,
+   "observables": 1,
+   "ticks": 43,
+   "ops": {
+    "RX": 360,
+    "R": 25,
+    "TICK": 43,
+    "CX": 588,
+    "CZ": 588,
+    "MX": 360,
+    "M": 25
+   },
+   "dem_errors": 6128,
+   "graphlike_distance": 7,
+   "dem_total_prob": 2.831834824518904
+  },
+  {
+   "kind": "stim",
+   "d": 7,
+   "basis": "Z",
+   "qubits": 118,
+   "detectors": 336,
+   "observables": 1,
+   "ticks": 49,
+   "ops": {
+    "R": 97,
+    "TICK": 49,
+    "H": 336,
+    "CX": 1176,
+    "MR": 336,
+    "M": 49
+   },
+   "dem_errors": 6602,
+   "graphlike_distance": 7,
+   "dem_total_prob": 2.4303069429850415
+  }
+ ],
+ "dem_identity": [
+  {
+   "d": 3,
+   "basis": "X",
+   "identical": true,
+   "approx_equal": true
+  },
+  {
+   "d": 3,
+   "basis": "Z",
+   "identical": true,
+   "approx_equal": true
+  },
+  {
+   "d": 5,
+   "basis": "X",
+   "identical": true,
+   "approx_equal": true
+  },
+  {
+   "d": 5,
+   "basis": "Z",
+   "identical": true,
+   "approx_equal": true
+  },
+  {
+   "d": 7,
+   "basis": "X",
+   "identical": true,
+   "approx_equal": true
+  },
+  {
+   "d": 7,
+   "basis": "Z",
+   "identical": true,
+   "approx_equal": true
+  }
+ ]
+}

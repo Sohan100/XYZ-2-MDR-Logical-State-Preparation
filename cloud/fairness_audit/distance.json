@@ -1,0 +1,306 @@
+[
+ {
+  "code": "xzzx",
+  "noise": "sd6",
+  "d": 3,
+  "basis": "X",
+  "graphlike": 3,
+  "search": 3,
+  "search_limits": 6,
+  "seconds": 0.0
+ },
+ {
+  "code": "xzzx",
+  "noise": "sd6",
+  "d": 3,
+  "basis": "Z",
+  "graphlike": 3,
+  "search": 3,
+  "search_limits": 6,
+  "seconds": 0.0
+ },
+ {
+  "code": "xzzx",
+  "noise": "sd6",
+  "d": 5,
+  "basis": "X",
+  "graphlike": 5,
+  "search": 5,
+  "search_limits": 6,
+  "seconds": 4.1
+ },
+ {
+  "code": "xzzx",
+  "noise": "sd6",
+  "d": 5,
+  "basis": "Z",
+  "graphlike": 5,
+  "search": 5,
+  "search_limits": 6,
+  "seconds": 2.0
+ },
+ {
+  "code": "xzzx",
+  "noise": "sd6",
+  "d": 7,
+  "basis": "X",
+  "graphlike": 7,
+  "search": 7,
+  "search_limits": 4,
+  "seconds": 70.4
+ },
+ {
+  "code": "xzzx",
+  "noise": "sd6",
+  "d": 7,
+  "basis": "Z",
+  "graphlike": 7,
+  "search": 7,
+  "search_limits": 4,
+  "seconds": 51.6
+ },
+ {
+  "code": "xzzx",
+  "noise": "sd6",
+  "d": 9,
+  "basis": "X",
+  "graphlike": 9,
+  "seconds": 0.3
+ },
+ {
+  "code": "xzzx",
+  "noise": "sd6",
+  "d": 9,
+  "basis": "Z",
+  "graphlike": 9,
+  "seconds": 0.2
+ },
+ {
+  "code": "xzzx",
+  "noise": "biased100",
+  "d": 3,
+  "basis": "X",
+  "graphlike": 3,
+  "search": 3,
+  "search_limits": 6,
+  "seconds": 0.0
+ },
+ {
+  "code": "xzzx",
+  "noise": "biased100",
+  "d": 3,
+  "basis": "Z",
+  "graphlike": 3,
+  "search": 3,
+  "search_limits": 6,
+  "seconds": 0.1
+ },
+ {
+  "code": "xzzx",
+  "noise": "biased100",
+  "d": 5,
+  "basis": "X",
+  "graphlike": 5,
+  "search": 5,
+  "search_limits": 6,
+  "seconds": 3.8
+ },
+ {
+  "code": "xzzx",
+  "noise": "biased100",
+  "d": 5,
+  "basis": "Z",
+  "graphlike": 5,
+  "search": 5,
+  "search_limits": 6,
+  "seconds": 2.2
+ },
+ {
+  "code": "xzzx",
+  "noise": "biased100",
+  "d": 7,
+  "basis": "X",
+  "graphlike": 7,
+  "search": 7,
+  "search_limits": 4,
+  "seconds": 71.0
+ },
+ {
+  "code": "xzzx",
+  "noise": "biased100",
+  "d": 7,
+  "basis": "Z",
+  "graphlike": 7,
+  "search": 7,
+  "search_limits": 4,
+  "seconds": 50.2
+ },
+ {
+  "code": "xzzx",
+  "noise": "biased100",
+  "d": 9,
+  "basis": "X",
+  "graphlike": 9,
+  "seconds": 0.3
+ },
+ {
+  "code": "xzzx",
+  "noise": "biased100",
+  "d": 9,
+  "basis": "Z",
+  "graphlike": 9,
+  "seconds": 0.3
+ },
+ {
+  "code": "xzzx",
+  "noise": "purez",
+  "d": 3,
+  "basis": "X",
+  "graphlike": 3,
+  "search": 3,
+  "search_limits": 6,
+  "seconds": 0.1
+ },
+ {
+  "code": "xzzx",
+  "noise": "purez",
+  "d": 3,
+  "basis": "Z",
+  "graphlike": 3,
+  "search": 3,
+  "search_limits": 6,
+  "seconds": 0.0
+ },
+ {
+  "code": "xzzx",
+  "noise": "purez",
+  "d": 5,
+  "basis": "X",
+  "graphlike": 5,
+  "search": 5,
+  "search_limits": 6,
+  "seconds": 4.2
+ },
+ {
+  "code": "xzzx",
+  "noise": "purez",
+  "d": 5,
+  "basis": "Z",
+  "graphlike": 5,
+  "search": 5,
+  "search_limits": 6,
+  "seconds": 2.2
+ },
+ {
+  "code": "xzzx",
+  "noise": "purez",
+  "d": 7,
+  "basis": "X",
+  "graphlike": 7,
+  "search": 7,
+  "search_limits": 4,
+  "seconds": 72.9
+ },
+ {
+  "code": "xzzx",
+  "noise": "purez",
+  "d": 7,
+  "basis": "Z",
+  "graphlike": 7,
+  "search": 7,
+  "search_limits": 4,
+  "seconds": 51.2
+ },
+ {
+  "code": "xzzx",
+  "noise": "purez",
+  "d": 9,
+  "basis": "X",
+  "graphlike": 9,
+  "seconds": 0.2
+ },
+ {
+  "code": "xzzx",
+  "noise": "purez",
+  "d": 9,
+  "basis": "Z",
+  "graphlike": 9,
+  "seconds": 0.4
+ },
+ {
+  "code": "css",
+  "noise": "sd6",
+  "d": 3,
+  "basis": "X",
+  "graphlike": 3,
+  "search": 3,
+  "search_limits": 6,
+  "seconds": 0.0
+ },
+ {
+  "code": "css",
+  "noise": "sd6",
+  "d": 3,
+  "basis": "Z",
+  "graphlike": 3,
+  "search": 3,
+  "search_limits": 6,
+  "seconds": 0.0
+ },
+ {
+  "code": "css",
+  "noise": "sd6",
+  "d": 5,
+  "basis": "X",
+  "graphlike": 5,
+  "search": 5,
+  "search_limits": 6,
+  "seconds": 4.2
+ },
+ {
+  "code": "css",
+  "noise": "sd6",
+  "d": 5,
+  "basis": "Z",
+  "graphlike": 5,
+  "search": 5,
+  "search_limits": 6,
+  "seconds": 2.0
+ },
+ {
+  "code": "css",
+  "noise": "sd6",
+  "d": 7,
+  "basis": "X",
+  "graphlike": 7,
+  "search": 7,
+  "search_limits": 4,
+  "seconds": 74.3
+ },
+ {
+  "code": "css",
+  "noise": "sd6",
+  "d": 7,
+  "basis": "Z",
+  "graphlike": 7,
+  "search": 7,
+  "search_limits": 4,
+  "seconds": 54.3
+ },
+ {
+  "code": "css",
+  "noise": "sd6",
+  "d": 9,
+  "basis": "X",
+  "graphlike": 9,
+  "seconds": 0.3
+ },
+ {
+  "code": "css",
+  "noise": "sd6",
+  "d": 9,
+  "basis": "Z",
+  "graphlike": 9,
+  "seconds": 0.2
+ }
+]
