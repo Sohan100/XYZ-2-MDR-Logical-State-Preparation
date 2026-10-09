@@ -1228,6 +1228,10 @@ def main() -> None:
         order = args.order if args.order is not None else os.path.join(os.path.dirname(args.pool), "pool_order.txt")
         pool_run(args.pool, workers, mem, log=lambda m: print(m, flush=True), max_seconds=args.max_seconds,
                  order_file=order or None, max_task_mem=args.max_task_mem)
+        # everything is written; leave without joining workers still in a batch after a SIGTERM (one stuck
+        # in a file system call would keep the process, and its memory, forever)
+        sys.stdout.flush()
+        os._exit(0)
     elif args.cmd == "pool-status":
         st = pool_status(args.pool)
         print(" ".join(f"{k} {v}" for k, v in st.items() if k != "jobs")
