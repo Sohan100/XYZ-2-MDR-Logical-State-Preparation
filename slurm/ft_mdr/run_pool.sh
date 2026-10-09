@@ -28,6 +28,6 @@ cd "${REPO_ROOT}"
 # shellcheck disable=SC1091
 source slurm/ft_mdr/env.sh
 POOL="${POOL:-data/campaign/pool1.jsonl}"
-srun -N "${SLURM_NNODES}" --ntasks-per-node=1 -c 256 --cpu-bind=none --kill-on-bad-exit=0 \
+srun -N "${SLURM_NNODES}" --ntasks-per-node=1 -c 256 --cpu-bind=none --kill-on-bad-exit=0 --no-kill \
     --output="logs/pool_%j_%t.out" \
     python scripts/campaign.py pool-run "${POOL}" --workers "${WORKERS:-128}" --mem-gb "${MEM_GB:-0}"
