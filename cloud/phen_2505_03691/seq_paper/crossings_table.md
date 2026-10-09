@@ -1,0 +1,40 @@
+| code | variant | noise | basis | decoder | p*(3,5) % | p*(5,7) % |
+|---|---|---|---|---|---|---|
+| xyz2 | ours | phen | X | bm | 3.82 ± 0.18 | 3.70 ± 0.14 |
+| xyz2 | ours | phen | X | corr_gauge | 3.46 ± 0.10 | 3.85 ± 0.06 |
+| xyz2 | ours | phen | X | mwpm | 2.88 ± 0.06 | 3.05 ± 0.06 |
+| xyz2 | ours | phen | X | seq_soft | 3.45 ± 0.17 | 3.35 ± 0.29 |
+| xyz2 | ours | phen | Y | bm | 4.82 ± 0.07 | 4.41 ± 0.11 |
+| xyz2 | ours | phen | Y | corr_gauge | 4.54 ± 0.10 | 4.19 ± 0.05 |
+| xyz2 | ours | phen | Y | mwpm | 3.65 ± 0.03 | 3.43 ± 0.04 |
+| xyz2 | ours | phen | Y | seq_soft | 4.36 ± 0.09 | 3.91 ± 0.12 |
+| xyz2 | ours | phen_b10 | X | bm | 5.23 ± 0.09 | 5.50 ± 0.11 |
+| xyz2 | ours | phen_b10 | X | corr_gauge | 4.36 ± 0.07 | 4.21 ± 0.11 |
+| xyz2 | ours | phen_b10 | X | mwpm | 3.02 ± 0.04 | 3.10 ± 0.04 |
+| xyz2 | ours | phen_b10 | X | seq_soft | 3.84 ± 0.11 | 4.21 ± 0.07 |
+| xyz2 | ours | phen_b10 | Y | bm | 6.23 ± 0.14 | 6.00 ± 0.11 |
+| xyz2 | ours | phen_b10 | Y | corr_gauge | 4.93 ± 0.04 | 4.57 ± 0.05 |
+| xyz2 | ours | phen_b10 | Y | mwpm | 3.51 ± 0.04 | 3.28 ± 0.03 |
+| xyz2 | ours | phen_b10 | Y | seq_soft | 4.44 ± 0.09 | 4.23 ± 0.11 |
+| xyz2 | paper | phen | X | bm | 3.64 ± 0.21 | 3.98 ± 0.08 |
+| xyz2 | paper | phen | X | mwpm | 2.82 ± 0.07 | 2.91 ± 0.09 |
+| xyz2 | paper | phen | X | seq_hard | < 2.00 | 3.17 ± 0.09 |
+| xyz2 | paper | phen | Y | bm | 4.66 ± 0.07 | 4.09 ± 0.15 |
+| xyz2 | paper | phen | Y | mwpm | 3.64 ± 0.03 | 3.43 ± 0.04 |
+| xyz2 | paper | phen | Y | seq_hard | 2.97 ± 0.31 | 3.23 ± 0.10 |
+| xyz2 | paper | phen_b10 | X | bm | 5.24 ± 0.09 | 5.23 ± 0.16 |
+| xyz2 | paper | phen_b10 | X | seq_hard | 3.53 ± 0.08 | 3.55 ± 0.06 |
+| xyz2 | paper | phen_b10 | Y | bm | 5.67 ± 0.08 | 5.59 ± 0.19 |
+| xyz2 | paper | phen_b10 | Y | seq_hard | 3.42 ± 0.17 | 3.41 ± 0.13 |
+| xzzx | ours | phen | X | bm | 4.33 ± 0.14 | 4.45 ± 0.10 |
+| xzzx | ours | phen | X | corr | 3.89 ± 0.13 | 4.22 ± 0.05 |
+| xzzx | ours | phen | X | mwpm | 3.31 ± 0.09 | 3.67 ± 0.05 |
+| xzzx | ours | phen | Z | bm | 3.93 ± 0.32 | 4.60 ± 0.08 |
+| xzzx | ours | phen | Z | corr | 3.92 ± 0.07 | 4.31 ± 0.06 |
+| xzzx | ours | phen | Z | mwpm | 3.28 ± 0.06 | 3.78 ± 0.04 |
+| xzzx | ours | phen_b10 | X | bm | 6.67 ± 0.17 | 5.92 ± 0.15 |
+| xzzx | ours | phen_b10 | X | corr | 5.87 ± 0.10 | 6.01 ± 0.12 |
+| xzzx | ours | phen_b10 | X | mwpm | 5.77 ± 0.08 | 5.81 ± 0.06 |
+| xzzx | ours | phen_b10 | Z | bm | 4.56 ± 0.12 | 5.10 ± 0.21 |
+| xzzx | ours | phen_b10 | Z | corr | 4.70 ± 0.11 | 4.92 ± 0.29 |
+| xzzx | ours | phen_b10 | Z | mwpm | 4.18 ± 0.12 | 5.04 ± 0.12 |
