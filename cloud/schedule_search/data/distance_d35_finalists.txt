@@ -1,0 +1,12 @@
+d=3 r=3 k=4 s1525_5_R hyb X 3 0.1
+d=3 r=3 k=4 s1525_5_R hyb Y 3 0.1
+d=3 r=3 k=4 s7400_0_M hyb X 3 0.1
+d=3 r=3 k=4 s7400_0_M hyb Y 3 0.0
+d=3 r=3 k=4 s7402 sd6 X 4 0.0
+d=3 r=3 k=4 s7402 sd6 Y 3 0.0
+d=5 r=3 k=4 s1525_5_R hyb X 5 4.1
+d=5 r=3 k=4 s1525_5_R hyb Y 5 2.4
+d=5 r=3 k=4 s7400_0_M hyb X 5 2.3
+d=5 r=3 k=4 s7400_0_M hyb Y 5 2.2
+d=5 r=3 k=4 s7402 sd6 X 6 6.3
+d=5 r=3 k=4 s7402 sd6 Y 5 1.5

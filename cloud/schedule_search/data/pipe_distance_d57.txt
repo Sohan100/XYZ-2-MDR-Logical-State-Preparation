@@ -1,0 +1,6 @@
+d=5 r=3 k=3 y20 hyb X 5 1.1
+d=5 r=3 k=3 y20 hyb Y 5 1.0
+d=5 r=3 k=3 y12 hyb X 5 1.2
+d=5 r=3 k=3 y12 hyb Y 5 1.1
+d=7 r=3 k=3 y20 hyb X 7 17.7
+d=7 r=3 k=3 y20 hyb Y 7 17.1
