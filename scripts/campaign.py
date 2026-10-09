@@ -54,6 +54,7 @@ import json  # noqa: E402
 import math  # noqa: E402
 import multiprocessing as mp  # noqa: E402
 import queue  # noqa: E402
+import signal  # noqa: E402
 import sys  # noqa: E402
 import threading  # noqa: E402
 import time  # noqa: E402
@@ -408,8 +409,10 @@ def finished(t: dict, s) -> bool:
 
 
 # --------------------------------------------------------------------------- worker
-FLUSH = 300.0       # seconds between partial rows
+FLUSH = 120.0       # seconds between partial rows (checkpoints)
 BATCH = 8.0         # target seconds per sampled batch
+STOP_WAIT = 20.0    # seconds a stopping node waits for its workers' last rows (Slurm: SIGKILL 30-60 s
+                    # after SIGTERM, KillWait / preempt GraceTime)
 
 
 def _row(t, shots, errors, seconds, note=""):
@@ -421,6 +424,10 @@ def _row(t, shots, errors, seconds, note=""):
 
 
 def _work(t: dict, prev, q, ev=None) -> None:
+    # checkpoint on SIGTERM (preemption, the end of the job, a stopped node): finish the batch, write its
+    # counts as a partial row and end, so the task goes on from there wherever it runs next
+    stop = []
+    signal.signal(signal.SIGTERM, lambda *_: stop.append(True))
     from mdr.ft import FTMDRCircuit
     from mdr.ft.two_level_decoder import TwoLevelDecoder
     from run_decoder_threshold_sweep import DECODERS as DEC, NOISE
@@ -455,7 +462,7 @@ def _work(t: dict, prev, q, ev=None) -> None:
     shots = errors = 0
     size = 1
     try:
-        while (e_tot < t["target"] and s_tot < t["max_shots"]
+        while (not stop and e_tot < t["target"] and s_tot < t["max_shots"]
                and sec0 + time.time() - t0 < t["budget"]):
             n = int(min(size, t["max_shots"] - s_tot))
             tb = time.time()
@@ -474,7 +481,7 @@ def _work(t: dict, prev, q, ev=None) -> None:
     except Exception as exc:  # noqa: BLE001
         q.put(_row(t, shots, errors, time.time() - last, f"failed: {type(exc).__name__}: {exc}"[:300]))
         return
-    q.put(_row(t, shots, errors, time.time() - last, "done"))
+    q.put(_row(t, shots, errors, time.time() - last, "" if stop else "done"))
 
 
 def _writer(q, out: str) -> None:
@@ -886,7 +893,26 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
                     f"running {len(running)}")
             lost.discard(key)
 
+    def reap():
+        nonlocal used
+        for pid in list(running):
+            p, t, m, key = running[pid]
+            if p.is_alive():
+                continue
+            p.join()
+            used -= m
+            del running[pid]
+            if p.exitcode not in (0, -15):           # -15: the end of the job (SIGTERM)
+                q.put(_row(t, 0, 0, 0.0, f"failed: worker exit code {p.exitcode} (-9: out of memory?)"))
+            end_task(key)
+
+    # SIGTERM (preemption, the end of the job, a stopped login-node runner): checkpoint and stop, below
+    stopping = []
+    signal.signal(signal.SIGTERM, lambda *_: stopping.append(True))
+
     while True:
+        if stopping:
+            break
         now = time.time()
         while True:
             try:
@@ -898,16 +924,7 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
                 m2 = min(m, t.get("mem_run", m))
                 used -= m - m2
                 running[pid] = (p, t, m2, key)
-        for pid in list(running):
-            p, t, m, key = running[pid]
-            if p.is_alive():
-                continue
-            p.join()
-            used -= m
-            del running[pid]
-            if p.exitcode not in (0, -15):           # -15: the end of the job (SIGTERM)
-                q.put(_row(t, 0, 0, 0.0, f"failed: worker exit code {p.exitcode} (-9: out of memory?)"))
-            end_task(key)
+        reap()
         if now >= next_report:
             log(f"{time.strftime('%H:%M:%S')} running {len(running)}, waiting {len(pending)}, "
                 f"{used:.0f} of {mem_gb:.0f} GB reserved, units held {len(left)}, finished {n_done}")
@@ -983,8 +1000,34 @@ def pool_run(pool: str, workers: int, mem_gb: float, log=print, max_seconds: flo
             if not job_busy():
                 break
         time.sleep(0.5)
+    held = set(left)
+    if stopping:
+        # checkpoint: every worker writes the counts of its last batch, the units held here stay
+        # unfinished, and their claims are released at once, so another node (or this job, requeued)
+        # goes on from these counts without waiting for the claims to go stale
+        lost.update(held)
+        for p, *_ in running.values():
+            if p.is_alive():
+                try:
+                    os.kill(p.pid, signal.SIGTERM)  # a login node: the signal came to this process only
+                except OSError:
+                    pass
+        deadline = time.time() + STOP_WAIT
+        while running and time.time() < deadline:
+            reap()
+            time.sleep(0.2)
     q.put(None)
     wt.join()
+    if stopping:
+        for path, k in held:
+            if owner(views[path], k) == me:
+                try:
+                    os.unlink(claim_path(views[path], k))
+                except OSError:
+                    pass
+        log(f"{time.strftime('%H:%M:%S')} stopped (SIGTERM): counts written, {len(held)} units released, "
+            f"{len(running)} workers still in a batch")
+        return n_done
     log(f"{time.strftime('%H:%M:%S')} no unit left: {n_done} units finished here")
     return n_done
 
