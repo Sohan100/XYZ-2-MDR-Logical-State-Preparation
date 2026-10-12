@@ -30,3 +30,6 @@ python paper/analysis/campaign_report.py --workers "${REPORT_WORKERS:-64}"
 (cd scripts && python campaign_coverage.py --tasks "../data/campaign/tasks*.jsonl" --points "../data/campaign/points_*.csv" \
     --thresholds ../docs/data/campaign/thresholds.csv --merged ../docs/data/campaign/points.csv \
     --out ../docs/data/campaign/coverage)
+# XYZ^2 against the competitor codes under the fair-comparison rules (docs/fair_comparison.md)
+python paper/analysis/competitor_report.py --points docs/data/campaign/points.csv \
+    --xyz2 docs/data/campaign/thresholds.csv --out docs/data/campaign/competitors --workers "${REPORT_WORKERS:-64}"

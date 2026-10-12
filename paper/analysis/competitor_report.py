@@ -9,8 +9,11 @@ Thresholds of XYZ^2 against competitor codes under the same circuit-level noise 
 
 A competitor series is "code-basis:decoder", and its threshold is fitted like XYZ^2's (campaign_report). A
 code's threshold for a noise model and number of rounds is its best decoder's in its weaker basis, since a
-memory must protect both. The XYZ^2 value is the best of its own decoders, for its Logical-X memory.
-Thresholds flagged "drift" are left out. The same comparison is also made with MWPM alone.
+memory must protect both. XYZ^2 series are "noise@schedule-L" (L = X or Y; a bare noise name is the
+depth-6 Logical-X memory): its value is, per schedule, the weaker of its two logical bases (each with its best
+decoder), and then the best schedule (docs/fair_comparison.md). Under a variant that changes the hardware,
+each competitor gets its best compilation on that hardware (COMPETITOR_HARDWARE). Thresholds flagged "drift"
+are left out. The same comparison is also made with MWPM alone.
 
 Writes:
 - <out>.csv: every competitor series;
@@ -33,7 +36,23 @@ import campaign_report as R  # noqa: E402
 CODES = ["css", "xzzx", "xy", "honeycomb"]
 LABEL = {"xyz2": "XYZ$^2$", "css": "CSS surface", "xzzx": "XZZX surface", "xy": "XY surface",
          "honeycomb": "Honeycomb Floquet"}
-NOISES = ["sd6", "si1000", "biased10", "biased100", "purez", "em3", "helios_p_noxt", "h2_p_noxt", "helios_p", "h2_p"]
+NOISES = ["sd6", "si1000", "biased10", "biased100", "purez", "em3", "helios_p_noxt", "h2_p_noxt", "helios_p", "h2_p",
+          "hyb", "hyb_lr2", "sd6_lr2", "sd6_lr3", "si1000_lr2", "phen", "phen_b10", "sd6_il"]
+# the competitors' noise models for a variant that changes only what XYZ^2 can do (docs/fair_comparison.md §2):
+# hybrid hardware has gates and pair measurements, so a competitor takes its best of all gates (sd6) and all
+# pairs (em3); repeated links do not exist in the surface codes, which keep their best on the base hardware;
+# sd6_il is a diagnostic, shown against sd6
+COMPETITOR_HARDWARE = {"hyb": ["sd6", "em3"], "hyb_lr2": ["sd6", "em3"], "sd6_lr2": ["sd6"], "sd6_lr3": ["sd6"],
+                       "si1000_lr2": ["si1000"], "sd6_il": ["sd6"]}
+
+
+def xyz2_label(noise: str):
+    """(noise model, schedule, logical basis) of an XYZ^2 series; a bare name is depth-6 Logical X."""
+    if "@" not in noise:
+        return noise, "depth6", "X"
+    base, rest = noise.split("@", 1)
+    sched, logical = rest.rsplit("-", 1)
+    return base, sched, logical
 
 
 def split(series: str):
@@ -72,33 +91,75 @@ def code_values(th: pd.DataFrame) -> pd.DataFrame:
 
 
 def xyz2_values(th: pd.DataFrame) -> pd.DataFrame:
+    """One row per (noise model, rounds): per schedule the weaker logical basis (each with its best decoder),
+    then the best schedule. A model with only one basis measured keeps that value, marked "only"."""
     th = usable(th)
-    th = th[~th.decoder.str.contains(":")]
+    th = th[~th.decoder.str.contains(":")].copy()
+    if th.empty:
+        return pd.DataFrame(columns=["noise", "rounds", "code", "pth", "err", "decoder", "basis", "mwpm", "lx"])
+    lab = th.noise.map(xyz2_label)
+    th["base"], th["sched"], th["logical"] = [x[0] for x in lab], [x[1] for x in lab], [x[2] for x in lab]
     rows = []
-    for (noise, rk), g in th.groupby(["noise", "rounds"]):
-        b = g.sort_values("pth").iloc[-1]
-        m = g[g.decoder == "mwpm"]
-        rows.append(dict(noise=noise, rounds=str(rk), code="xyz2", pth=b.pth, err=b.err, decoder=b.decoder,
-                         basis="L_X", mwpm=float(m.pth.iloc[0]) if len(m) else np.nan))
+    for (base, rk), g in th.groupby(["base", "rounds"]):
+        both, single, mw = [], [], []
+        for sched, gs in g.groupby("sched"):
+            best = {L: gs[gs.logical == L].sort_values("pth").iloc[-1] for L in ("X", "Y") if (gs.logical == L).any()}
+            if len(best) == 2:
+                L, r = min(best.items(), key=lambda kv: kv[1].pth)
+                both.append((float(r.pth), float(r.err), sched, L, r.decoder))
+            else:
+                single += [(float(r.pth), float(r.err), sched, L, r.decoder) for L, r in best.items()]
+            m = {L: gs[(gs.logical == L) & (gs.decoder == "mwpm")] for L in ("X", "Y")}
+            if all(len(v) for v in m.values()):
+                mw.append(min(float(v.pth.iloc[0]) for v in m.values()))
+        lx = g[(g.sched == "depth6") & (g.logical == "X")]
+        row = dict(noise=base, rounds=str(rk), code="xyz2", mwpm=max(mw) if mw else np.nan,
+                   lx=float(lx.pth.max()) if len(lx) else np.nan)
+        if both:
+            p, e, s, L, d = max(both, key=lambda x: x[0])
+            row.update(pth=p, err=e, decoder=d, basis=f"{s} L_{L}")
+        elif single:
+            p, e, s, L, d = max(single, key=lambda x: x[0])
+            row.update(pth=p, err=e, decoder=d, basis=f"{s} L_{L} only")
+        rows.append(row)
     return pd.DataFrame(rows)
 
 
-def table(vals: pd.DataFrame) -> pd.DataFrame:
+def competitor_for(comp: pd.DataFrame, noise: str, rk: str) -> dict:
+    """code -> its row under `noise` at `rounds` rk: the best over the noise models of its hardware."""
+    srcs = [noise] + COMPETITOR_HARDWARE.get(noise, [])
+    g = comp[(comp.rounds == rk) & comp.noise.isin(srcs)]
+    out = {}
+    for code, gc in g.groupby("code"):
+        gc = gc[gc.pth.notna()] if "pth" in gc else gc.iloc[:0]
+        if len(gc):
+            r = gc.sort_values("pth").iloc[-1].copy()
+            if r.noise != noise:
+                r["basis"] = f"{r.basis}, as {r.noise}"
+            r["mwpm"] = gc.mwpm.max() if "mwpm" in gc else np.nan
+            out[code] = r
+    return out
+
+
+def table(xyz: pd.DataFrame, comp: pd.DataFrame) -> pd.DataFrame:
     out = []
-    for (noise, rk), g in vals.groupby(["noise", "rounds"]):
+    keys = sorted(set(zip(xyz.noise, xyz.rounds)) | set(zip(comp.noise, comp.rounds)))
+    for noise, rk in keys:
         row = dict(noise=noise, rounds=rk)
+        x = xyz[(xyz.noise == noise) & (xyz.rounds == rk)]
+        rs = {"xyz2": x.iloc[0] if len(x) else None, **competitor_for(comp, noise, rk)}
         for code in ["xyz2"] + CODES:
-            r = g[g.code == code]
-            row[code] = float(r.pth.iloc[0]) if len(r) and "pth" in r and pd.notna(r.pth.iloc[0]) else np.nan
-            row[code + "_dec"] = (f"{r.decoder.iloc[0]}" + (f", {r.basis.iloc[0]}" if code != "xyz2" else "")
-                                  if len(r) and pd.notna(row[code]) else "")
-            row[code + "_mwpm"] = float(r.mwpm.iloc[0]) if len(r) and "mwpm" in r and pd.notna(r.mwpm.iloc[0]) \
-                else np.nan
-        comp = {c: row[c] for c in CODES if np.isfinite(row[c])}
-        if comp and np.isfinite(row["xyz2"]):
-            top = max(comp, key=comp.get)
-            row.update(best_other=top, ratio=row["xyz2"] / comp[top],
-                       winner="xyz2" if row["xyz2"] >= comp[top] else top)
+            r = rs.get(code)
+            ok = r is not None and "pth" in r and pd.notna(r.get("pth"))
+            row[code] = float(r.pth) if ok else np.nan
+            row[code + "_dec"] = f"{r.decoder}, {r.basis}" if ok else ""
+            row[code + "_mwpm"] = float(r.mwpm) if r is not None and pd.notna(r.get("mwpm", np.nan)) else np.nan
+        row["xyz2_lx"] = float(x.lx.iloc[0]) if len(x) and pd.notna(x.lx.iloc[0]) else np.nan
+        others = {c: row[c] for c in CODES if np.isfinite(row[c])}
+        if others and np.isfinite(row["xyz2"]):
+            top = max(others, key=others.get)
+            row.update(best_other=top, ratio=row["xyz2"] / others[top],
+                       winner="xyz2" if row["xyz2"] >= others[top] else top)
         out.append(row)
     t = pd.DataFrame(out)
     order = {n: i for i, n in enumerate(NOISES)}
@@ -111,10 +172,13 @@ def markdown(t: pd.DataFrame) -> str:
         return "--" if not np.isfinite(x) else f"{100 * x:.2f}"
 
     lines = ["# XYZ^2 against competitor codes", "",
-             "Thresholds in % of p. A competitor's value is its best decoder in its weaker basis; XYZ^2's is its "
-             "best decoder (Logical-X memory). Ratio: XYZ^2 over the best competitor. Only finite-size fits over "
-             f"d >= 11 count: thresholds that drift, crossings of two distances only, and series that stop below "
-             f"d = {MIN_DMAX} (honeycomb: d = 12) are left out.", ""]
+             "Thresholds in % of p. A competitor's value is its best decoder in its weaker basis; under a variant "
+             "that changes the hardware, its best compilation on that hardware (\"as sd6\": all gates, \"as em3\": "
+             "all pair measurements). XYZ^2's value is, per extraction schedule, its weaker logical basis (L_X or "
+             "L_Y, each with its best decoder), then its best schedule; \"only\" marks a model with one basis "
+             "measured. Ratio: XYZ^2 over the best competitor. Only finite-size fits over d >= 11 count: "
+             f"thresholds that drift, crossings of two distances only, and series that stop below d = {MIN_DMAX} "
+             "(honeycomb: d = 12) are left out. sd6_il (noiseless link checks) is a diagnostic, not hardware.", ""]
     for rk, g in t.groupby("rounds", sort=False):
         if not g[CODES].notna().any().any():
             continue
@@ -124,7 +188,7 @@ def markdown(t: pd.DataFrame) -> str:
             cells = [f"{f(getattr(r, c))} ({getattr(r, c + '_dec')})" if np.isfinite(getattr(r, c)) else "--"
                      for c in ["xyz2"] + CODES]
             ratio = f"{r.ratio:.2f}" if hasattr(r, "ratio") and np.isfinite(getattr(r, "ratio", np.nan)) else "--"
-            lines.append(f"| {r.noise} | " + " | ".join(cells) + f" | {ratio} | {getattr(r, 'winner', '') or ''} |")
+            lines.append(f"| {r.noise} | " + " | ".join(cells) + f" | {ratio} | {r.winner if isinstance(getattr(r, 'winner', None), str) else ''} |")
         lines += ["", f"MWPM only, r = {rk}:", "", "| noise | XYZ^2 | CSS | XZZX | XY | Honeycomb |",
                   "|---|---|---|---|---|---|"]
         for r in g.itertuples():
@@ -177,8 +241,7 @@ def main() -> None:
     x = pd.read_csv(args.xyz2)
     x["rounds"] = x.rounds.astype(str)
     th["rounds"] = th.rounds.astype(str)
-    vals = pd.concat([xyz2_values(x), code_values(th)], ignore_index=True)
-    t = table(vals)
+    t = table(xyz2_values(x), code_values(th))
     t.to_csv(out.parent / (out.name + "_table.csv"), index=False)
     (out.parent / (out.name + ".md")).write_text(markdown(t))
     figure(t, out.with_suffix(".pdf"))
