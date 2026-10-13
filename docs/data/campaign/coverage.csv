@@ -5740,7 +5740,7 @@ si1000,cfe_tn,2,17,False,0,0,0,0,not planned
 si1000,cfe_tn,2,19,False,0,0,0,0,not planned
 si1000,cfe_tn,2,21,False,0,0,0,0,not planned
 si1000,cfe_tn,3,3,True,14,14,2660,912,measured
-si1000,cfe_tn,3,5,True,14,12,2825,1132,measured
+si1000,cfe_tn,3,5,True,14,12,2829,1134,measured
 si1000,cfe_tn,3,7,False,0,0,0,0,not planned
 si1000,cfe_tn,3,9,False,0,0,0,0,not planned
 si1000,cfe_tn,3,11,False,0,0,0,0,not planned
@@ -8820,7 +8820,7 @@ biased10,cfe_tn,2,17,False,0,0,0,0,not planned
 biased10,cfe_tn,2,19,False,0,0,0,0,not planned
 biased10,cfe_tn,2,21,False,0,0,0,0,not planned
 biased10,cfe_tn,3,3,True,14,12,2812,1135,measured
-biased10,cfe_tn,3,5,True,14,13,2770,1271,measured
+biased10,cfe_tn,3,5,True,14,13,2771,1271,measured
 biased10,cfe_tn,3,7,False,0,0,0,0,not planned
 biased10,cfe_tn,3,9,False,0,0,0,0,not planned
 biased10,cfe_tn,3,11,False,0,0,0,0,not planned
@@ -9040,7 +9040,7 @@ biased10,tnml,2,17,False,0,0,0,0,not planned
 biased10,tnml,2,19,False,0,0,0,0,not planned
 biased10,tnml,2,21,False,0,0,0,0,not planned
 biased10,tnml,3,3,True,14,14,3007,1211,measured
-biased10,tnml,3,5,True,14,13,2906,1284,measured
+biased10,tnml,3,5,True,14,13,2907,1285,measured
 biased10,tnml,3,7,False,0,0,0,0,not planned
 biased10,tnml,3,9,False,0,0,0,0,not planned
 biased10,tnml,3,11,False,0,0,0,0,not planned
@@ -15200,7 +15200,7 @@ purez,tnml,2,17,False,0,0,0,0,not planned
 purez,tnml,2,19,False,0,0,0,0,not planned
 purez,tnml,2,21,False,0,0,0,0,not planned
 purez,tnml,3,3,True,14,14,5140,1985,measured
-purez,tnml,3,5,True,14,14,3440,1481,measured
+purez,tnml,3,5,True,14,14,3441,1482,measured
 purez,tnml,3,7,False,0,0,0,0,not planned
 purez,tnml,3,9,False,0,0,0,0,not planned
 purez,tnml,3,11,False,0,0,0,0,not planned
@@ -18060,7 +18060,7 @@ em3,cfe_tn,2,17,False,0,0,0,0,not planned
 em3,cfe_tn,2,19,False,0,0,0,0,not planned
 em3,cfe_tn,2,21,False,0,0,0,0,not planned
 em3,cfe_tn,3,3,True,14,14,1907,515,measured
-em3,cfe_tn,3,5,True,14,12,2182,806,measured
+em3,cfe_tn,3,5,True,14,12,2185,808,measured
 em3,cfe_tn,3,7,False,0,0,0,0,not planned
 em3,cfe_tn,3,9,False,0,0,0,0,not planned
 em3,cfe_tn,3,11,False,0,0,0,0,not planned
@@ -18280,7 +18280,7 @@ em3,tnml,2,17,False,0,0,0,0,not planned
 em3,tnml,2,19,False,0,0,0,0,not planned
 em3,tnml,2,21,False,0,0,0,0,not planned
 em3,tnml,3,3,True,14,13,1805,474,measured
-em3,tnml,3,5,True,14,13,2203,791,measured
+em3,tnml,3,5,True,14,13,2207,791,measured
 em3,tnml,3,7,False,0,0,0,0,not planned
 em3,tnml,3,9,False,0,0,0,0,not planned
 em3,tnml,3,11,False,0,0,0,0,not planned
@@ -21360,7 +21360,7 @@ helios_p,tnml,2,17,False,0,0,0,0,not planned
 helios_p,tnml,2,19,False,0,0,0,0,not planned
 helios_p,tnml,2,21,False,0,0,0,0,not planned
 helios_p,tnml,3,3,True,14,6,64787,41,measured
-helios_p,tnml,3,5,True,14,2,136423,28,sparse
+helios_p,tnml,3,5,True,14,2,136424,28,sparse
 helios_p,tnml,3,7,False,0,0,0,0,not planned
 helios_p,tnml,3,9,False,0,0,0,0,not planned
 helios_p,tnml,3,11,False,0,0,0,0,not planned
@@ -24220,7 +24220,7 @@ h2_p,cfe_tn,2,17,False,0,0,0,0,not planned
 h2_p,cfe_tn,2,19,False,0,0,0,0,not planned
 h2_p,cfe_tn,2,21,False,0,0,0,0,not planned
 h2_p,cfe_tn,3,3,True,14,9,25314,75,measured
-h2_p,cfe_tn,3,5,True,14,3,21782,41,measured
+h2_p,cfe_tn,3,5,True,14,3,21787,41,measured
 h2_p,cfe_tn,3,7,False,0,0,0,0,not planned
 h2_p,cfe_tn,3,9,False,0,0,0,0,not planned
 h2_p,cfe_tn,3,11,False,0,0,0,0,not planned
@@ -27300,7 +27300,7 @@ helios_p_noxt,cfe_tn,2,17,False,0,0,0,0,not planned
 helios_p_noxt,cfe_tn,2,19,False,0,0,0,0,not planned
 helios_p_noxt,cfe_tn,2,21,False,0,0,0,0,not planned
 helios_p_noxt,cfe_tn,3,3,True,14,12,1644,259,measured
-helios_p_noxt,cfe_tn,3,5,True,14,10,1369,307,measured
+helios_p_noxt,cfe_tn,3,5,True,14,10,1370,307,measured
 helios_p_noxt,cfe_tn,3,7,False,0,0,0,0,not planned
 helios_p_noxt,cfe_tn,3,9,False,0,0,0,0,not planned
 helios_p_noxt,cfe_tn,3,11,False,0,0,0,0,not planned
@@ -27520,7 +27520,7 @@ helios_p_noxt,tnml,2,17,False,0,0,0,0,not planned
 helios_p_noxt,tnml,2,19,False,0,0,0,0,not planned
 helios_p_noxt,tnml,2,21,False,0,0,0,0,not planned
 helios_p_noxt,tnml,3,3,True,14,11,1585,261,measured
-helios_p_noxt,tnml,3,5,True,14,9,1348,270,measured
+helios_p_noxt,tnml,3,5,True,14,9,1353,272,measured
 helios_p_noxt,tnml,3,7,False,0,0,0,0,not planned
 helios_p_noxt,tnml,3,9,False,0,0,0,0,not planned
 helios_p_noxt,tnml,3,11,False,0,0,0,0,not planned
@@ -30380,7 +30380,7 @@ h2_p_noxt,cfe_tn,2,17,False,0,0,0,0,not planned
 h2_p_noxt,cfe_tn,2,19,False,0,0,0,0,not planned
 h2_p_noxt,cfe_tn,2,21,False,0,0,0,0,not planned
 h2_p_noxt,cfe_tn,3,3,True,14,11,1285,185,measured
-h2_p_noxt,cfe_tn,3,5,True,14,10,1251,267,measured
+h2_p_noxt,cfe_tn,3,5,True,14,10,1252,268,measured
 h2_p_noxt,cfe_tn,3,7,False,0,0,0,0,not planned
 h2_p_noxt,cfe_tn,3,9,False,0,0,0,0,not planned
 h2_p_noxt,cfe_tn,3,11,False,0,0,0,0,not planned

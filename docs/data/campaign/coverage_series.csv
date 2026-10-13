@@ -299,7 +299,7 @@ biased10,tnml,19,False,0,,,,,not planned
 biased10,tnml,2,True,4,pair,0.0273248050190109,,False,threshold (2 largest d)
 biased10,tnml,20,False,0,,,,,not planned
 biased10,tnml,21,False,0,,,,,not planned
-biased10,tnml,3,True,2,pair,0.0380972576767395,,False,threshold (2 largest d)
+biased10,tnml,3,True,2,pair,0.0382102575306395,,False,threshold (2 largest d)
 biased10,tnml,4,True,1,,,,,no threshold
 biased10,tnml,5,False,0,,,,,not planned
 biased10,tnml,6,False,0,,,,,not planned
@@ -1971,7 +1971,7 @@ helios_p_noxt,cfe_tn,19,False,0,,,,,not planned
 helios_p_noxt,cfe_tn,2,True,4,pair,0.0092562412880868,,False,threshold (2 largest d)
 helios_p_noxt,cfe_tn,20,False,0,,,,,not planned
 helios_p_noxt,cfe_tn,21,False,0,,,,,not planned
-helios_p_noxt,cfe_tn,3,True,2,pair,0.0087303841793844,,False,threshold (2 largest d)
+helios_p_noxt,cfe_tn,3,True,2,pair,0.0087531300406047,,False,threshold (2 largest d)
 helios_p_noxt,cfe_tn,4,True,1,,,,,no threshold
 helios_p_noxt,cfe_tn,5,False,0,,,,,not planned
 helios_p_noxt,cfe_tn,6,False,0,,,,,not planned

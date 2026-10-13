@@ -2,7 +2,7 @@
 
 **Question.** Does the XYZ² code beat the best non-CSS codes in circuit-level threshold, and under which noise models? Where it does not, why?
 
-**Status (2026-10-07).** Done. The competitors ran on Perlmutter (`data/campaign/tasks9.jsonl`, 259,720 tasks at 4× budgets, d up to 21, r = d, 1, 2, 3, 5 and 10) next to the full XYZ² matrix. The full tables, every round count and the MWPM-only comparison are in `docs/data/campaign/competitors.md`.
+**Status (2026-10-12).** Done, including the fair rerun (§4): every hardware variant the user asked for (hybrid links and plaquettes, repeated links, the phenomenological model of arXiv:2505.03691, ideal links as a diagnostic), both XYZ² logical bases and both extraction schedules, d up to 21, rules in `docs/fair_comparison.md`. The first comparison (§2–3, 2026-10-07) counted XYZ²'s Logical-X memory only; §4 supersedes it. Full tables: `docs/data/campaign/competitors.md`.
 
 ## 1. What the literature reports
 
@@ -83,3 +83,50 @@ With MWPM for every code, at r = d under sd6: XYZ² 0.43%; CSS, XZZX and XY 0.69
 - in place of the honeycomb Floquet code on gate-based hardware.
 
 **When not to use it:** for gate-based memories with native controlled-Pauli gates, where XZZX (or plain CSS) is better at every round count and noise model we simulated except h2_p.
+
+
+## 4. Fair rerun (2026-10-12)
+
+The campaign was repeated under `docs/fair_comparison.md`. Every code uses the same noise primitives. A hardware capability given to XYZ² is given to every competitor, and each code then takes its best compilation. XYZ² now counts with its **weaker** logical basis (L_X or L_Y, each with its best decoder), for its best extraction schedule (`depth6` or `both`). Thresholds are finite-size fits over d ≥ 11 without drift.
+
+Independent checks (cloud runs, branches `cloud/*`):
+- **Fairness audit (`cloud/fairness-audit`).** The competitor circuits are fair. They are slightly *harsher* than Stim's reference circuit, because data qubits idle twice per round. XYZ² is built the same way. XZZX's 0.81% under sd6 comes from correlated decoding; with MWPM it gives 0.69–0.71%, consistent with the literature's 0.66%. Test suite: 920 passed, 0 failed.
+- **Schedule search (`cloud/schedule-search`).** Of 8,928 XYZ² extraction schedules, 1,690 keep full distance in both bases. No compilation closes the gap to XZZX. A pipelined hybrid circuit lowers p_L about 3× at fixed p but barely moves the threshold.
+- **arXiv:2505.03691 check (`cloud/phen-2505-03691`).** Our sequential matching decoder reproduces the paper's matching thresholds (3.42% at η = 0.5, 3.49% at η = 10, within finite-size drift). Our belief-matching runs BP on the full detector error model, so it is stronger than the paper's (5.4–5.5% vs 4.30% at η = 10).
+
+### Thresholds at r = d (%), each code's best decoder in its weaker basis
+
+| noise | XYZ² | CSS | XZZX | XY | honeycomb | XYZ² / best |
+|---|---|---|---|---|---|---|
+| sd6 | 0.51 | 0.81 | 0.81 | 0.81 | 0.22 | 0.63 |
+| si1000 | 0.43 | 0.52 | 0.51 | 0.51 | 0.12 | 0.83 |
+| biased10 | 0.75 | 0.64 | 1.17 | 1.02 | 0.23 | 0.64 |
+| biased100 | 0.84 | 0.62 | 1.65 | 1.05 | 0.23 | 0.51 |
+| purez | 0.86 | 0.62 | 2.06 | 1.05 | 0.24 | 0.42 |
+| em3 (pair measurements) | 0.33 | 0.24 | 0.25 | 0.24 | **1.98** | 0.16 |
+| helios_p_noxt | 0.41 | 0.40 | 0.54 | 0.53 | 0.23 | 0.76 |
+| h2_p_noxt | 0.58 | 0.64 | 0.75 | 0.77 | 0.36 | 0.76 |
+| h2_p (crosstalk) | 0.31 | — | 0.41 | — | 0.17 | 0.77 |
+| hyb (links as pair measurements) | 0.59 | 0.81 ¹ | 0.81 ¹ | 0.81 ¹ | **1.98** ² | 0.30 |
+| hyb_lr2 | 0.62 | 0.81 ¹ | 0.81 ¹ | 0.81 ¹ | **1.98** ² | 0.31 |
+| sd6_lr2 / sd6_lr3 (repeated links) | 0.57 / 0.53 | 0.81 | 0.81 | 0.81 | 0.22 | 0.70 / 0.65 |
+| si1000_lr2 | 0.44 | 0.52 | 0.51 | 0.51 | 0.12 | 0.85 |
+| phen (η = 0.5) | 4.16 | 4.57 | 4.51 | 4.55 | 0.74 | 0.91 |
+| **phen_b10 (η = 10)** | **5.54** | 3.11 | **5.54 ± 0.05** | 5.37 | 0.77 | **1.00 (tie)** |
+| sd6_il (diagnostic: noiseless links) | 0.64 | 0.81 | 0.81 | 0.81 | 0.22 | 0.79 |
+
+¹ all-gate compilation (= sd6). ² native pair measurements (= em3). helios_p is left out of the table: with crosstalk, XYZ²'s weaker basis falls to ≈0.05%.
+
+### Verdict
+
+**Under fair circuit-level noise, XYZ² does not beat XZZX.** The only exception is the phenomenological model with bias η = 10, where the two **tie** (5.54% each, within error). XYZ² never wins outright against the best competitor.
+
+- **Gate-based hardware** (sd6, si1000, ion models): XYZ² reaches 0.63–0.85× the best surface code. Requiring both logical bases lowers XYZ² a little more than the Logical-X-only numbers of §3 suggested; the h2_p "win" of §3 disappears (0.31 vs 0.41).
+- **Hybrid hardware** (links as native pair measurements): XYZ² improves from 0.51% to 0.59–0.62%, but the same hardware lets XZZX keep 0.81% with gates, and lets the honeycomb reach 1.98% with pair measurements.
+- **Repeated links** raise XYZ² by at most 0.06 percentage points (sd6 0.51 → 0.57) and never close the gap.
+- **Ideal links** (diagnostic) recover only part of the gap (0.64% vs 0.81%). Noisy links cost XYZ² about 20%; the rest is the weight-6 plaquettes and the doubled qubit count.
+- **Phenomenological noise** (the setting of arXiv:2505.03691): at η = 0.5 XYZ² is 0.91× the surface codes, and at η = 10 it ties XZZX. The paper's advantage at code capacity does not survive measurement errors as an outright win.
+
+**Reasons to use XYZ²** (unchanged from §3): it beats every surface code on pair-measurement hardware (em3: 0.33 vs 0.25), but the honeycomb Floquet code is better there. It also beats the honeycomb on all gate-based hardware, and it beats the CSS surface code under bias.
+
+**Footprint.** XYZ² uses about 4d² qubits against 2d² for a rotated surface code (3d² with hybrid links), so at equal qubit count it is further behind than these thresholds show.

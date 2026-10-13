@@ -1,3 +1,60 @@
+== data/campaign/tasks10.jsonl
+decoder        tasks    done partial failed  core-h used  of at most
+bm             56792   56792       0      0       9823.9     28864.5
+bp_corr        56792   56792       0      1      13189.2     28864.5
+bp_full        56792   56792       0      1      12308.7     28864.5
+corr_gauge     52080   52080       0      1       1647.4      9459.5
+seq_erasure    56792   56792       0      1      10200.9     28864.5
+seq_match      52080   52080       0      4       2397.4      9940.8
+seq_soft       56792   56792       0      0      10127.9     28864.5
+tesseract      48546   48546       0      0      29910.5     61183.6
+cfe0          146940  146940       0      0     131099.3    223461.0
+cfe_tn         33294   33294       0      0      21005.5     49189.9
+tnml           33294   33294       0      0      42662.2     49189.9
+cfe           155248  155248       0      2     157298.9    247015.3
+corr_links     52080   52080       0      5       1015.2      6734.1
+mwpm           52080   52080       0      9        358.9      3367.1
+   failed: OSError: [Errno 5] Input/output error: '/global/common/software/nersc/pe/conda-envs/26.8.1/python-3.13/nersc-python/lib/python3.13'
+   failed: OSError: [Errno 5] Input/output error: '/global/common/software/nersc/pe/conda-envs/26.8.1/python-3.13/nersc-python/lib/python3.13/importlib/metadata/_adapters.py'
+== data/campaign/tasks11.jsonl
+decoder        tasks    done partial failed  core-h used  of at most
+css-X:bm        1832    1832       0      0         64.6       931.1
+css-X:tesseract    1566    1566       0      0         64.3      1973.7
+css-Z:bm        1832    1832       0      0        323.0       931.1
+css-Z:tesseract    1566    1566       0      0        652.2      1973.7
+xy-X:bm         1832    1832       0      0        144.7       931.1
+xy-X:tesseract    1566    1566       0      0        207.7      1973.7
+xy-Z:bm         1832    1832       0      1        145.9       931.1
+xy-Z:tesseract    1566    1566       0      0        209.0      1973.7
+xzzx-X:bm       1812    1812       0      0         69.6       927.0
+xzzx-X:tesseract    1556    1556       0      0         96.9      1970.8
+xzzx-Z:bm       1812    1812       0      0         77.1       927.0
+xzzx-Z:tesseract    1556    1556       0      1        102.0      1970.8
+css-X:bposd      956     956       0      0         13.3       577.6
+css-Z:bposd      956     956       0      0        140.7       577.6
+xy-X:bposd       956     956       0      0         32.0       577.6
+xy-Z:bposd       956     956       0      0         32.3       577.6
+xzzx-X:bposd     946     946       0      0         15.3       574.2
+xzzx-Z:bposd     946     946       0      0         17.7       574.2
+honeycomb-X:bm     916     916       0      0         61.4       461.3
+honeycomb-Z:bm     916     916       0      0         71.5       461.3
+css-X:corr      1680    1680       0      1          8.8       217.2
+css-Z:corr      1680    1680       0      0         51.9       217.2
+xy-X:corr       1680    1680       0      0         14.0       217.2
+xy-Z:corr       1680    1680       0      1         13.9       217.2
+xzzx-X:corr     1670    1670       0      1         10.6       216.5
+xzzx-Z:corr     1670    1670       0      0         12.3       216.5
+honeycomb-X:corr     840     840       0      0          4.3       107.5
+honeycomb-Z:corr     840     840       0      0          6.0       107.5
+css-X:mwpm      1680    1680       0      0          4.6       108.6
+css-Z:mwpm      1680    1680       0      0         23.0       108.6
+xy-X:mwpm       1680    1680       0      0          5.2       108.6
+xy-Z:mwpm       1680    1680       0      1          5.2       108.6
+xzzx-X:mwpm     1680    1680       0      0          5.8       108.6
+xzzx-Z:mwpm     1680    1680       0      0          6.9       108.6
+honeycomb-X:mwpm     840     840       0      0          1.5        53.7
+honeycomb-Z:mwpm     840     840       0      1          2.2        53.7
+   failed: OSError: [Errno 5] Input/output error: '/global/common/software/nersc/pe/conda-envs/26.8.1/python-3.13/nersc-python/lib/python3.13'
 == data/campaign/tasks2.jsonl
 decoder        tasks    done partial failed  core-h used  of at most
 cfe             6424    6424       0      0       5917.7      5926.5
@@ -24,8 +81,8 @@ decoder        tasks    done partial failed  core-h used  of at most
 tesseract     390212  390212       0      0     248690.7    742558.5
 == data/campaign/tasks7.jsonl
 decoder        tasks    done partial failed  core-h used  of at most
-cfe_tn         17060   17053       7      0      32979.4     31617.5
-tnml           17060   17054       6      0      32771.9     31617.5
+cfe_tn         17060   17060       0      0      32990.1     31617.5
+tnml           17060   17060       0      0      32782.3     31617.5
 == data/campaign/tasks8.jsonl
 decoder        tasks    done partial failed  core-h used  of at most
 bp_corr        37208   37208       0      0      16935.9     30839.8
