@@ -4,6 +4,30 @@ This repository implements and benchmarks a Measurement-Decoding-Recovery
 (MDR) state-preparation workflow for the $XYZ^2$ hexagonal stabilizer code.
 It is a research-code package refactor from legacy project artifacts.
 
+## Key results
+
+A full circuit-level threshold campaign (d up to 21, every decoder, finite-size fits over d >= 11) compared
+$XYZ^2$ with the CSS, XZZX and XY rotated surface codes and the honeycomb Floquet code, under the same
+noise primitives and the fairness rules in [`docs/fair_comparison.md`](docs/fair_comparison.md).
+Thresholds at r = d, each code with its best decoder in its weaker logical basis:
+
+| noise / hardware | $XYZ^2$ | XZZX | best overall |
+|---|---|---|---|
+| uniform depolarizing gates (sd6) | 0.51% | 0.81% | surface codes 0.81% |
+| SI1000 | 0.43% | 0.51% | CSS 0.52% |
+| biased, eta = 100 | 0.84% | 1.65% | XZZX |
+| native pair measurements (em3) | 0.33% | 0.25% | honeycomb 1.98% |
+| hybrid: links as pair measurements, plaquettes with gates | 0.59% | 0.81% | honeycomb 1.98% |
+| phenomenological, eta = 10 (setting of arXiv:2505.03691) | 5.54% | 5.54% | tie |
+
+**Verdict.** Under fair circuit-level noise $XYZ^2$ does not beat XZZX; it ties it only in the
+phenomenological model at bias 10. It beats every surface code on pair-measurement hardware (the honeycomb
+is better there), beats the honeycomb on all gate-based hardware, and beats the CSS surface code under bias.
+The full analysis, with every noise model, the literature comparison and the reasons, is in
+[`docs/noncss_comparison.md`](docs/noncss_comparison.md); all fitted thresholds are in
+[`docs/data/campaign/`](docs/data/campaign/) (`thresholds.md`, `competitors.md`, `coverage.md`, and the merged
+raw counts `points.csv.gz`).
+
 ## Motivation
 
 The project is motivated by two linked goals:
@@ -267,3 +291,12 @@ bash slurm/ft_mdr/setup_env.sh                       # once
 bash slurm/ft_mdr/submit_campaign.sh -A <project> -n 32
 python scripts/campaign.py status data/campaign/tasks.jsonl "data/campaign/points_*.csv"
 ```
+
+Large campaigns run as a shared **work pool**: `campaign.py pool` writes every unfinished task into units of
+128 tasks, and any number of nodes run `campaign.py pool-run` on it at once (Slurm jobs via
+`slurm/ft_mdr/run_pool.sh`, or login nodes). Nodes claim units through files next to the pool, so a node that
+stops is taken over automatically. Every run is checkpointed: counts are written every 2 minutes, and on
+SIGTERM (preemption, the end of a job) each worker writes its last batch and the node releases its units at
+once. `--max-task-mem G` lets memory-limited nodes run only the small tasks of each unit and leave the large
+ones to compute nodes. `slurm/ft_mdr/analyze_campaign.sh` merges the counts, fits every threshold and writes the
+coverage and competitor reports.
