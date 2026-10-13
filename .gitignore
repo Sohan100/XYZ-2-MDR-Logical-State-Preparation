@@ -63,3 +63,4 @@ logs/
 
 # Files delivered by Claude in the desktop app
 Claude outputs/
+docs/data/campaign/points.csv
