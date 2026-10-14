@@ -62,8 +62,25 @@ def label(series) -> pd.DataFrame:
     return out
 
 
-def series_table(th: pd.DataFrame, cr: pd.DataFrame) -> pd.DataFrame:
-    """Every series with its fit, whether it counts, and MWPM's small-d crossing."""
+def small_crossing(g: pd.DataFrame, d1: int, d2: int, guess: float):
+    """Crossing of d1 and d2 by campaign_report's estimate (crossings.refine, +-15% window, bootstrap error),
+    started from `guess`; (nan, nan) if it does not converge within a factor 2 of the guess."""
+    import crossings as X
+
+    if not np.isfinite(guess):
+        return np.nan, np.nan
+    try:
+        c, e, _ = X.refine(g, d1, d2, guess, rel=0.15, deg=1, boot=200)
+    except Exception:  # noqa: BLE001
+        return np.nan, np.nan
+    return (c, e) if np.isfinite(c) and 0.5 * guess < c < 2 * guess else (np.nan, np.nan)
+
+
+def series_table(th: pd.DataFrame, cr: pd.DataFrame, df: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Every series with its fit, whether it counts, and MWPM's small-d crossing. The crossing is that of
+    campaign_report's pair crossings; where its first guess (the first sign change of ln p_L(d2) - ln p_L(d1)
+    from small p) lands on noise at small p and the estimate fails, the same estimate is started from the
+    series' threshold instead (small_how = "from pth")."""
     th = label(th[th.noise.isin(MODELS) | th.noise.str.contains("@")])
     th = th[th.model.isin(MODELS)].copy()
     ok = CR.usable(th, CR.MIN_DMAX)
@@ -73,15 +90,22 @@ def series_table(th: pd.DataFrame, cr: pd.DataFrame) -> pd.DataFrame:
         d1, d2 = SMALL_PAIR.get(r.code, (7, 9))
         c = cr[(cr.noise == r.noise) & (cr.decoder == r.decoder) & (cr.rounds == r.rounds) & (cr.d1 == d1)
                & (cr.d2 == d2)] if len(cr) else cr
-        small.append((f"{d1}/{d2}", float(c.p.iloc[0]) if len(c) else np.nan,
-                      float(c.err.iloc[0]) if len(c) else np.nan))
-    th["small_pair"], th["cross_small"], th["cross_small_err"] = zip(*small) if small else ([], [], [])
+        if len(c):
+            small.append((f"{d1}/{d2}", float(c.p.iloc[0]), float(c.err.iloc[0]), "pair"))
+            continue
+        x, e = np.nan, np.nan
+        if df is not None:
+            g = df[(df.noise == r.noise) & (df.decoder == r.decoder) & (df.rkey == r.rounds)]
+            x, e = small_crossing(g, d1, d2, r.pth)
+        small.append((f"{d1}/{d2}", x, e, "from pth" if np.isfinite(x) else ""))
+    th["small_pair"], th["cross_small"], th["cross_small_err"], th["small_how"] = \
+        zip(*small) if small else ([], [], [], [])
     order = {(m, c, b, d): i for i, (m, c, b, d) in enumerate(
         (m, c, b, d) for m in MODELS for c in CODES for b in BASES[c] for d in DECODERS[c])}
     th["k"] = [order.get((r.model, r.code, r.basis, r.dec), 1e9) for r in th.itertuples()]
     cols = ["model", "code", "basis", "dec", "noise", "decoder", "rounds", "pth", "err", "stat", "syst", "method",
             "flag", "counts", "nu", "chi2", "npts", "dmin", "dmax", "cross_first", "cross_last", "cross_last_err",
-            "drift", "small_pair", "cross_small", "cross_small_err", "shots", "core_hours"]
+            "drift", "small_pair", "cross_small", "cross_small_err", "small_how", "shots", "core_hours"]
     return th.sort_values("k")[cols].reset_index(drop=True)
 
 
@@ -103,10 +127,11 @@ def summary(st: pd.DataFrame) -> pd.DataFrame:
                 r = min((v.iloc[0] for v in mw.values()), key=lambda r: r.pth)
                 row.update(mwpm=r.pth, mwpm_err=r.err, mwpm_basis=r.basis)
             sm = g[(g.dec == "mwpm") & g.cross_small.notna()]
-            if len(sm) == len(BASES[code]):
+            if len(sm):
                 r = sm.sort_values("cross_small").iloc[0]
+                missing = [b for b in BASES[code] if b not in set(sm.basis)]
                 row.update(cross_small=r.cross_small, cross_small_err=r.cross_small_err, small_pair=r.small_pair,
-                           small_basis=r.basis)
+                           small_basis=r.basis + (f"; no {', '.join(missing)} crossing" if missing else ""))
             rows.append(row)
     return pd.DataFrame(rows)
 
@@ -192,7 +217,7 @@ def main() -> None:
     th["rounds"] = th.rounds.astype(str)
     if len(cr):
         cr["rounds"] = cr.rounds.astype(str)
-    st = series_table(th, cr)
+    st = series_table(th, cr, df)
     sm = summary(st)
     st.to_csv(out / "thresholds.csv", index=False)
     cr.to_csv(out / "crossings.csv", index=False)

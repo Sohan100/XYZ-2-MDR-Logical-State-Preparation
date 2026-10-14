@@ -283,3 +283,22 @@ def test_hw_tr_idles_only_during_reset_and_readout():
     assert hits == 2 * ft.rounds
     for label, c in _circuits(nz):
         assert _channels(c) == {("PAULI_CHANNEL_1", tuple(round(x, 15) for x in nz.idle_mr_xyz))}, label
+
+
+@pytest.mark.parametrize("name", SWEEP.GAP_NOISES)
+def test_gap_models_have_no_idle_errors(name):
+    """sd6_noidle and sd6_il_noidle: SD6 with every idle error removed (and noiseless links for the second)."""
+    nz = NOISE[name](P)
+    assert nz.p_idle == 0.0 and nz.p_idle_mr == 0.0 and nz.idle_xyz is None
+    assert (nz.p1, nz.p2, nz.p_prep, nz.p_meas) == (P, P, P, P)
+    assert nz.link_noise == (name == "sd6_noidle")
+    for logical in ("X", "Y"):
+        c = FTMDRCircuit(3, 2, nz, schedule=BOTH_BASES_SCHEDULE, detectors="combined", logical=logical).build()
+        ch = _channels(c)
+        assert ("DEPOLARIZE2", (P,)) in ch
+        assert ch <= {("DEPOLARIZE2", (P,)), ("X_ERROR", (P,)), ("Z_ERROR", (P,))}, ch
+
+
+def test_three_d_rounds():
+    comp = _load_script("campaign")
+    assert comp.n_rounds("3d", 5) == 15 and comp.n_rounds("d", 5) == 5 and comp.n_rounds("4", 5) == 4

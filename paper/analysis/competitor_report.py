@@ -38,13 +38,13 @@ LABEL = {"xyz2": "XYZ$^2$", "css": "CSS surface", "xzzx": "XZZX surface", "xy": 
          "honeycomb": "Honeycomb Floquet"}
 NOISES = ["sd6", "si1000", "biased10", "biased100", "purez", "em3", "helios_p_noxt", "h2_p_noxt", "helios_p", "h2_p",
           "hyb", "hyb_lr2", "sd6_lr2", "sd6_lr3", "si1000_lr2", "phen", "phen_b10", "sd6_il",
-          "hw_g", "hw_g1q", "hw_t", "hw_rr"]
+          "hw_g", "hw_g1q", "hw_t", "hw_rr", "sd6_noidle", "sd6_il_noidle"]
 # the competitors' noise models for a variant that changes only what XYZ^2 can do (docs/fair_comparison.md §2):
 # hybrid hardware has gates and pair measurements, so a competitor takes its best of all gates (sd6) and all
 # pairs (em3); repeated links do not exist in the surface codes, which keep their best on the base hardware;
 # sd6_il is a diagnostic, shown against sd6
 COMPETITOR_HARDWARE = {"hyb": ["sd6", "em3"], "hyb_lr2": ["sd6", "em3"], "sd6_lr2": ["sd6"], "sd6_lr3": ["sd6"],
-                       "si1000_lr2": ["si1000"], "sd6_il": ["sd6"]}
+                       "si1000_lr2": ["si1000"], "sd6_il": ["sd6"], "sd6_il_noidle": ["sd6_noidle"]}
 
 
 def xyz2_label(noise: str):

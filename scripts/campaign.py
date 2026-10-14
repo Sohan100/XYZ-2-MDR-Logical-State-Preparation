@@ -200,7 +200,12 @@ KEYS = ["noise", "value", "d", "rounds", "final", "decoder"]
 
 # --------------------------------------------------------------------------- tasks
 def n_rounds(r: str, d: int) -> int:
-    return d if r == "d" else int(r)
+    """Rounds of a task: "d" is d rounds, "3d" (the sub-threshold runs) 3d rounds, else the number."""
+    if r == "d":
+        return d
+    if r == "3d":
+        return 3 * d
+    return int(r)
 
 
 def center(noise: str, decoder: str, r: str) -> float:

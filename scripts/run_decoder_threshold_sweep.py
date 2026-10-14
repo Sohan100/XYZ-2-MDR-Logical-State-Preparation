@@ -69,11 +69,16 @@ NOISE = {
     # diagnostic: hw_t's channel on the data qubits only while the ancillas are reset and read out (their
     # Eq. 12), half of it at each of the two steps, so about p per round; no idling in the gate layers
     "hw_tr": lambda v: CircuitNoise(idle_mr_xyz=(v / 84, v / 84, 10 * v / 21), name="hw_tr"),
-    # SD6 without idle errors: the earlier check of the gate corner, which kept reset and readout errors
+    # SD6 without idle errors (the earlier check of the gate corner, which kept reset and readout errors, and
+    # the gap diagnostic), and the same with noiseless link checks (docs/gap_diagnostic.md)
     "sd6_noidle": lambda v: replace(CircuitNoise.uniform(v), p_idle=0.0, p_idle_mr=0.0, name="sd6_noidle"),
+    "sd6_il_noidle": lambda v: replace(CircuitNoise.uniform(v), link_noise=False, p_idle=0.0, p_idle_mr=0.0,
+                                       name="sd6_il_noidle"),
 }
 # the four one-parameter models of the comparison with Hetenyi and Wootton
 HW_NOISES = ["hw_g", "hw_g1q", "hw_t", "hw_rr"]
+# the idle-free models of the gap diagnostic
+GAP_NOISES = ["sd6_noidle", "sd6_il_noidle"]
 # extraction schedules: "depth6" (the campaign's, distance d + 1 for Logical X but (d + 1) / 2 for
 # Logical Y) and "both" (distance >= d for both logical bases, see extraction_schedule.py)
 SCHEDULES = {"depth6": DEPTH6_SCHEDULE, "both": BOTH_BASES_SCHEDULE}
