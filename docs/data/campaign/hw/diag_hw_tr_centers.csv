@@ -1,0 +1,13 @@
+code,basis,noise,rounds,decoder,d_pair,crossing_p,err,lo,hi,how,note
+css,X,hw_tr,d,mwpm,5/7,0.054508,0.00289,0.005,0.3,fit,
+css,X,hw_tr,d,mwpm,7/9,0.066377,0.00207,0.005,0.3,fit,
+css,Z,hw_tr,d,mwpm,5/9,,,0.005,0.44,,"no crossing in [0.005, 0.44]: threshold above the range"
+honeycomb,X,hw_tr,d,mwpm,4/8,0.012373,0.000178,0.005,0.3,fit,
+honeycomb,Z,hw_tr,d,mwpm,4/8,0.013557,0.000296,0.005,0.3,fit,
+xzzx,X,hw_tr,d,mwpm,5/9,,,0.005,0.44,,"no crossing in [0.005, 0.44]: threshold above the range"
+xzzx,Z,hw_tr,d,mwpm,5/7,0.14258,0.01,0.005,0.3,fit,
+xzzx,Z,hw_tr,d,mwpm,7/9,0.18953,0.016,0.005,0.3,fit,
+xyz2,X,hw_tr,d,mwpm,5/7,0.095756,0.00541,0.005,0.3,fit,
+xyz2,X,hw_tr,d,mwpm,7/9,0.1049,0.00547,0.005,0.3,fit,
+xyz2,Y,hw_tr,d,mwpm,5/7,0.10273,0.00564,0.005,0.3,fit,
+xyz2,Y,hw_tr,d,mwpm,7/9,0.13994,0.0166,0.005,0.3,fit,

@@ -166,9 +166,18 @@ def markdown(st: pd.DataFrame, sm: pd.DataFrame) -> str:
     return "\n".join(lines) + "\n"
 
 
+HONEYCOMB_DISTS = [4, 8, 12, 16, 20]
+
+
 def figures(df: pd.DataFrame, st: pd.DataFrame, out: Path) -> None:
     plt = R.setup_style()
     R.PLT = plt
+    # campaign_report draws d = 3, 5, ..., 21; the honeycomb runs at d = 4, 8, ..., 20
+    R.DISTS = sorted(set(R.DISTS) | set(HONEYCOMB_DISTS))
+    for d, c, m in zip(HONEYCOMB_DISTS, ["#A3E635", "#22C55E", "#14B8A6", "#0EA5E9", "#1E3A8A"],
+                       ["<", ">", "p", "h", "X"]):
+        R.DCOL.setdefault(d, c)
+        R.DMARK.setdefault(d, m)
     df = label(df)
     for m in MODELS:
         rows = [(c, b) for c in CODES for b in BASES[c]]
@@ -195,7 +204,7 @@ def figures(df: pd.DataFrame, st: pd.DataFrame, out: Path) -> None:
                     ax.set_ylabel(r"$p_L$")
         fig.suptitle(f"{m}: {MODEL_LAB[m]}, r = d", x=0.02, ha="left", fontsize=9, color=R.INK)
         R.dist_legend(fig)
-        fig.tight_layout(w_pad=0.5, h_pad=0.6, rect=(0, 0.03, 1, 0.985))
+        fig.tight_layout(w_pad=0.5, h_pad=0.6, rect=(0, 0.045, 1, 0.985))
         fig.savefig(out / f"fig_{m}.pdf")
         fig.savefig(out / f"fig_{m}.png", dpi=110)
         plt.close(fig)

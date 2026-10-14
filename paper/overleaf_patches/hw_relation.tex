@@ -1,0 +1,30 @@
+% Patch for Results.tex, subsection "Relation to earlier \XYZ{} results" (\label{sec:hw_relation}).
+% 1. The two paragraphs below replace the first two paragraphs of the subsection, which begin
+%    "The circuits, noise models and decoders of our study ..." and "We tested this explanation in our own circuits ...".
+% 2. The table below goes right after Table IV (\label{tab:hw}).
+% Data: docs/data/campaign/hw/summary.csv, thresholds.csv and diag_hw_tr_centers.csv; docs/hetenyi_wootton_check.md.
+
+% ---------------------------------------------------------------- paragraph 1 (replaces the first paragraph)
+The circuits, noise models and decoders of our study and of that of Het\'enyi and Wootton differ (Table~\ref{tab:hw}), so we compare rankings rather than values. They fit a plane to the threshold surface of a spin-qubit model with three error rates, a gate error, an idle error with bias $\eta_T=p_Z/(p_X+p_Y)=20$ and a combined reset and readout error~\cite{hetenyi2024spin}. The intercepts of this plane are thresholds with only one kind of error switched on, so at the gate corner idle, reset and readout errors are all off. We measured the same corners in our own circuits with one error parameter $p$ each, matching, $r=d$ rounds and finite-size fits over $d=11$ to $21$ (Table~\ref{tab:hw_corners}). At the gate corner our thresholds are higher than theirs for every code, and in both studies the rotated surface code ranks above the \XYZ{} code. The ratio of the two thresholds is 0.770(17) in our circuits and 0.57 in theirs. The two studies rank the XZZX code differently. Our XZZX circuit uses native controlled Paulis and has the same detector error model as our CSS circuit at the gate corner, so the two codes reach the same threshold, 1.15(2)\%. Their XZZX circuit adds single-qubit basis changes on the data qubits, each as noisy as a two-qubit gate, and reaches 0.37\%. The honeycomb Floquet code reaches 0.88(1)\% at the gate corner, the same as the 0.89(2)\% of the \XYZ{} code, and the two codes also agree with the best of matching, correlated matching and belief-matching, 1.081(8)\% against 1.10(4)\%. Het\'enyi and Wootton place the \XYZ{} code slightly above the honeycomb code, with 0.465\% against 0.43\%.
+
+% ---------------------------------------------------------------- paragraph 2 (replaces the second paragraph)
+We then added a depolarizing error of probability $p$ on both qubits of every two-qubit gate, which models single-qubit gates as noisy as two-qubit gates. The XZZX threshold falls to 0.438(4)\%, near the 0.37\% of Het\'enyi and Wootton. Relative to our CSS threshold without these errors it falls to 0.380(6), against 0.45 for the ratio of their XZZX and CSS values. The noisy single-qubit gates therefore account for the low XZZX value of the spin-qubit study. When every code uses the same gates, the XZZX code ranks above the \XYZ{} code with and without single-qubit errors, as in the rest of our comparison. With single-qubit errors the \XYZ{} code also ranks above the honeycomb code, 0.326(8)\% against 0.293(2)\%. At the readout corner the honeycomb code has the lowest threshold in both studies, 1.007(7)\% in ours against about 10\% for the other three codes. With matching the \XYZ{} code reaches 10.6(3)\% there, against 9.8(4)\% for the CSS code, but with the best of our three decoders the \XYZ{} code and the surface codes agree within their errors. At the idle corner the \XYZ{} code ranks below the CSS code in our circuits, 0.88(1)\% against 3.6(4)\%, while it ranks above it in theirs, 4.2\% against 3.94\%. Our idle error acts on every qubit that waits in a gate layer, and the link ancillas of the \XYZ{} code wait in four of the six layers of a round. Their idle error acts only on the data qubits while the ancillas are read out and reset. With the idle error placed that way, the crossing of $d=7$ and $9$ is 10.5(6)\% for the \XYZ{} code and 6.6(2)\% for the CSS code, which restores their order.
+
+% ---------------------------------------------------------------- table (insert right after Table IV, \label{tab:hw})
+\begin{table}[t]
+  \setlength{\tabcolsep}{1.6pt}
+  \footnotesize
+  \begin{ruledtabular}
+  \begin{tabular}{lccccccc}
+    & \multicolumn{3}{c}{Gates} & \multicolumn{2}{c}{Idling} & \multicolumn{2}{c}{Readout} \\
+    Code & HW & Ours & Ours, 1q & HW & Ours & HW & Ours \\
+    \hline
+    Surface (CSS) & 0.82 & 1.15(1) & 0.433(3) & 3.94 & 3.6(4) & 14.5 & 9.8(4) \\
+    XZZX & 0.37 & 1.15(2) & 0.438(4) & 15.1 & 9.8(3) & 12.9 & 9.8(3) \\
+    \XYZ{} & 0.465 & 0.89(2) & 0.326(8) & 4.2 & 0.88(1) & 16.5 & 10.6(3) \\
+    Honeycomb & 0.43 & 0.88(1) & 0.293(2) & 1.16 & 0.392(3) & 0.99 & 1.007(7) \\
+  \end{tabular}
+  \end{ruledtabular}
+  \caption{Thresholds in percent at the corners of the threshold surface of Het\'enyi and Wootton, where only one kind of error is switched on. HW: the intercepts of their fitted plane~\cite{hetenyi2024spin}, with $\eta_T=20$, $d=11$ to $17$ and matching. Ours: matching, $r=d$ rounds, finite-size fits over $d=11$ to $21$ ($d=12$ to $20$ for the honeycomb code), weaker basis. Gates: a two-qubit depolarizing error of probability $p$ after every two-qubit gate. Ours, 1q: in addition a depolarizing error of probability $p$ on both qubits of every two-qubit gate. Idling: a Pauli error of total probability $p$ with $p_Z/(p_X+p_Y)=20$ on every qubit that waits in a gate layer and on the data qubits while the ancillas are reset and read out. Readout: every measurement outcome flipped with probability $p$.}
+  \label{tab:hw_corners}
+\end{table}
