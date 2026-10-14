@@ -1138,7 +1138,10 @@ class FTMDRCircuit:
         """
         Idle noise on data qubits while the ancillas are reset or measured.
         """
-        if self.noise.p_idle_mr is None:
+        if getattr(self.noise, "idle_mr_xyz", None) is not None:
+            if qs:
+                c.append("PAULI_CHANNEL_1", list(qs), list(self.noise.idle_mr_xyz))
+        elif self.noise.p_idle_mr is None:
             self._idle(c, qs)
         elif qs and self.noise.p_idle_mr:
             c.append("DEPOLARIZE1", list(qs), self.noise.p_idle_mr)

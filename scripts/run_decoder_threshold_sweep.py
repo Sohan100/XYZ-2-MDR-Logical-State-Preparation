@@ -66,6 +66,9 @@ NOISE = {
     "hw_g1q": lambda v: CircuitNoise(p1=v, p2=v, dress_1q=True, name="hw_g1q"),
     "hw_t": lambda v: CircuitNoise(idle_xyz=(v / 42, v / 42, 20 * v / 21), name="hw_t"),
     "hw_rr": lambda v: CircuitNoise(p_meas=v, name="hw_rr"),
+    # diagnostic: hw_t's channel on the data qubits only while the ancillas are reset and read out (their
+    # Eq. 12), half of it at each of the two steps, so about p per round; no idling in the gate layers
+    "hw_tr": lambda v: CircuitNoise(idle_mr_xyz=(v / 84, v / 84, 10 * v / 21), name="hw_tr"),
     # SD6 without idle errors: the earlier check of the gate corner, which kept reset and readout errors
     "sd6_noidle": lambda v: replace(CircuitNoise.uniform(v), p_idle=0.0, p_idle_mr=0.0, name="sd6_noidle"),
 }

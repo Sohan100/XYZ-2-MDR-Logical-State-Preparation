@@ -264,3 +264,22 @@ def test_xyz2_both_bases_graphlike_distance(d):
         dec = TwoLevelDecoder(ft, **SWEEP.DECODERS["mwpm"])
         dem = dec.s0_circuit.detector_error_model(decompose_errors=True, approximate_disjoint_errors=True)
         assert len(dem.shortest_graphlike_error()) == want, logical
+
+
+def test_hw_tr_idles_only_during_reset_and_readout():
+    """The diagnostic hw_tr: the biased channel on every data qubit at the reset and the readout of the
+    ancillas, nowhere else."""
+    p = P
+    nz = NOISE["hw_tr"](p)
+    assert nz.idle_mr_xyz[2] / (nz.idle_mr_xyz[0] + nz.idle_mr_xyz[1]) == pytest.approx(20.0)
+    assert 2 * sum(nz.idle_mr_xyz) == pytest.approx(p)
+    ft = FTMDRCircuit(3, 2, nz, schedule=BOTH_BASES_SCHEDULE, detectors="combined", logical="X")
+    data = set(range(ft.geometry.n))
+    hits = 0
+    for inst in ft.build().flattened():
+        if inst.name in NOISE_OPS:
+            assert inst.name == "PAULI_CHANNEL_1" and set(_qubits(inst)) == data, inst
+            hits += 1
+    assert hits == 2 * ft.rounds
+    for label, c in _circuits(nz):
+        assert _channels(c) == {("PAULI_CHANNEL_1", tuple(round(x, 15) for x in nz.idle_mr_xyz))}, label

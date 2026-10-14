@@ -30,6 +30,10 @@ class CircuitNoise:
     bool Whether `p1` is added on both qubits of every entangling gate.
     p_idle_mr : float or None Depolarizing probability on data qubits that
     idle while the ancillas are reset or measured. `None` means `p_idle`.
+    idle_mr_xyz : tuple or None (px, py, pz) on data qubits while the
+    ancillas are reset or measured, in place of `p_idle_mr` (biased idling
+    during readout and reset only, as in the spin-qubit model of Hetenyi and
+    Wootton).
 
     Extraction variants (for the fair comparison with other codes, see
     docs/fair_comparison.md); every variant keeps circuit-level noise on
@@ -68,6 +72,7 @@ class CircuitNoise:
     link_reps: int = 1
     link_noise: bool = True
     data_xyz: tuple | None = None
+    idle_mr_xyz: tuple | None = None
 
     @staticmethod
     def hybrid(p: float) -> "CircuitNoise":
