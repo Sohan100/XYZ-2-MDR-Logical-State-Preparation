@@ -185,8 +185,6 @@ def test_xyz2_decoders_run(name, logical):
 def test_competitor_decoders_run(name, code, d, basis):
     # the honeycomb's thresholds are lower (about 0.4%, 1.2% and 1.0% for gates, idling and readout)
     c = competitor_circuit(code, d, 3, NOISE[name](LOW[name] / (5 if code == "honeycomb" else 1)), basis)
-    if (code, name) == ("honeycomb", "hw_rr"):
-        pytest.skip("readout faults of the honeycomb are hyperedges (test_honeycomb_readout_faults_are_hyperedges)")
     dets, obs = c.compile_detector_sampler(seed=5).sample(400, separate_observables=True)
     assert dets.any()
     for dec in ("mwpm", "corr") + (("bm",) if HAS_LDPC else ()):
@@ -214,7 +212,8 @@ def test_css_and_xzzx_have_the_same_error_model(name, basis):
 @pytest.mark.parametrize("basis", ["X", "Z"])
 def test_honeycomb_readout_faults_are_hyperedges(basis):
     """Under readout errors alone a flipped edge outcome of the honeycomb code sets off three or four
-    detectors, and no other fault gives Stim the graphlike pieces to split it into."""
+    detectors, and no other fault gives Stim the graphlike pieces to split it into (the matching decoders
+    then use competitor_decoders.hinted_decomposition)."""
     c = competitor_circuit("honeycomb", 4, 3, NOISE["hw_rr"](P), basis)
     dem = c.detector_error_model(approximate_disjoint_errors=True)
     sizes = {sum(t.is_relative_detector_id() for t in inst.targets_copy())
@@ -222,6 +221,38 @@ def test_honeycomb_readout_faults_are_hyperedges(basis):
     assert max(sizes) >= 3
     with pytest.raises(ValueError, match="decompose"):
         c.detector_error_model(decompose_errors=True, approximate_disjoint_errors=True)
+
+
+@pytest.mark.parametrize("basis", ["X", "Z"])
+def test_hinted_decomposition_keeps_the_faults(basis):
+    """The fallback of the matching decoders: every fault of the circuit, with its probability, split
+    into graphlike pieces."""
+    from mdr.ft.competitor_decoders import DECOMPOSITION_HINT, _symptoms, hinted_decomposition
+
+    c = competitor_circuit("honeycomb", 8, 4, NOISE["hw_rr"](P), basis)
+    real = _symptoms(c.detector_error_model(approximate_disjoint_errors=True))
+    dem = hinted_decomposition(c)
+    got = _symptoms(dem)
+    assert got.keys() == real.keys()
+    assert max(abs(got[k] - real[k]) for k in real) < 100 * DECOMPOSITION_HINT
+    for inst in dem.flattened():
+        if inst.type == "error":
+            comps = [[]]
+            for t in inst.targets_copy():
+                if t.is_separator():
+                    comps.append([])
+                elif t.is_relative_detector_id():
+                    comps[-1].append(t.val)
+            assert all(len(x) <= 2 for x in comps)
+    assert len(dem.shortest_graphlike_error()) > 0
+
+
+@pytest.mark.parametrize("code,d,name", [("honeycomb", 4, "hw_g"), ("css", 3, "hw_rr"), ("honeycomb", 4, "sd6")])
+def test_fallback_only_where_stim_fails(code, d, name):
+    """Models that Stim decomposes keep Stim's own decomposition."""
+    c = competitor_circuit(code, d, 3, NOISE[name](P), "X")
+    dec = competitor_decoder(c, "mwpm")
+    assert dec.dem == c.detector_error_model(decompose_errors=True, approximate_disjoint_errors=True)
 
 
 @pytest.mark.parametrize("d", [5, 7])

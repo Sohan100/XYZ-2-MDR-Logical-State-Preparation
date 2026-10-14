@@ -412,7 +412,8 @@ def test_honeycomb_phenomenological_fault_distance(noise, basis, d, dist):
 def test_honeycomb_builds_with_every_noise_model(name, basis):
     noise = _noise(name)
     c = competitor_circuit("honeycomb", 4, 2, noise, basis)
-    dem = c.detector_error_model(decompose_errors=True, approximate_disjoint_errors=True)
+    # the matching decoders' graphlike model (readout errors alone need competitor_decoders.hinted_decomposition)
+    dem = competitor_decoder(c, "mwpm").dem
     assert dem.num_errors > 0
     if noise.native == "phen":  # see test_phenomenological_noise_is_data_noise_and_outcome_flips
         return

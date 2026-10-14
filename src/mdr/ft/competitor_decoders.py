@@ -39,6 +39,9 @@ Names mirror our decoders (`scripts/run_decoder_threshold_sweep.py`,
 
 All models are built with ``approximate_disjoint_errors=True``, as in
 `TwoLevelDecoder` (PAULI_CHANNEL_1/2 and the EM3 correlated errors need it).
+Where Stim cannot split a model into graphlike pieces (the honeycomb code
+under readout errors alone), the matching decoders use
+`hinted_decomposition`, which keeps every fault and its probability.
 """
 
 from __future__ import annotations
@@ -151,6 +154,62 @@ def _merge_empty_components(dem: stim.DetectorErrorModel) -> stim.DetectorErrorM
     return out
 
 
+# Probability of the hint channel of `hinted_decomposition`, and the smallest fault probability of a model
+# that it may decompose (the hint mechanisms are told apart from the real ones by their probability).
+DECOMPOSITION_HINT = 1e-9
+HINT_MIN_REAL = 1e-6
+
+
+def _symptoms(dem: stim.DetectorErrorModel) -> Dict[Key, float]:
+    """{(detectors, observables): probability} of every fault of `dem`, components summed."""
+    out: Dict[Key, float] = {}
+    for inst in dem.flattened():
+        if inst.type != "error":
+            continue
+        dets: set = set()
+        obs: set = set()
+        for t in inst.targets_copy():
+            if t.is_relative_detector_id():
+                dets ^= {t.val}
+            elif t.is_logical_observable_id():
+                obs ^= {t.val}
+        key = (tuple(sorted(dets)), tuple(sorted(obs)))
+        p = inst.args_copy()[0]
+        q = out.get(key, 0.0)
+        out[key] = q * (1 - p) + p * (1 - q)
+    return out
+
+
+def hinted_decomposition(circuit: stim.Circuit) -> stim.DetectorErrorModel:
+    """
+    Graphlike decomposition of a model that Stim cannot decompose on its own.
+
+    Stim splits a fault into pieces that other faults of the model produce alone. Under readout errors
+    only, a flipped edge outcome of the honeycomb code sets off three or four detectors and no other fault
+    gives such pieces. Here Stim decomposes the circuit with DEPOLARIZE1(DECOMPOSITION_HINT) added on every
+    qubit before every TICK, whose faults supply the pieces, and the hint faults are then dropped. The
+    result has the faults of the circuit with their probabilities (to within a few times the hint), each
+    split into graphlike pieces.
+    """
+    real = _symptoms(circuit.detector_error_model(approximate_disjoint_errors=True))
+    if min(real.values()) < HINT_MIN_REAL:
+        raise ValueError(f"a fault probability below {HINT_MIN_REAL} cannot be told apart from the hints")
+    hinted = stim.Circuit()
+    for inst in circuit.flattened():
+        if inst.name == "TICK":
+            hinted.append("DEPOLARIZE1", range(circuit.num_qubits), DECOMPOSITION_HINT)
+        hinted.append(inst)
+    dem = hinted.detector_error_model(decompose_errors=True, approximate_disjoint_errors=True)
+    out = stim.DetectorErrorModel()
+    for inst in dem.flattened():
+        if inst.type == "error" and inst.args_copy()[0] < 0.1 * HINT_MIN_REAL:
+            continue
+        out.append(inst)
+    if _symptoms(out).keys() != real.keys():
+        raise ValueError("the hinted decomposition does not keep the faults of the circuit")
+    return out
+
+
 def _incidence(rows: List[List[int]], n_rows: int) -> sp.csr_matrix:
     """Binary matrix with a one at (r, j) for every r in rows[j] (XOR of repeats)."""
     rr, cc = [], []
@@ -201,8 +260,14 @@ class CompetitorDecoder:
 
     # ------------------------------------------------------------------ setup
     def _decomposed_dem(self) -> stim.DetectorErrorModel:
-        return self.circuit.detector_error_model(
-            decompose_errors=True, approximate_disjoint_errors=True)
+        try:
+            return self.circuit.detector_error_model(
+                decompose_errors=True, approximate_disjoint_errors=True)
+        except ValueError as exc:
+            # e.g. the honeycomb code under readout errors alone (hw_rr): see hinted_decomposition
+            if "decompose" not in str(exc):
+                raise
+            return hinted_decomposition(self.circuit)
 
     def _full_dem(self) -> stim.DetectorErrorModel:
         return self.circuit.detector_error_model(
