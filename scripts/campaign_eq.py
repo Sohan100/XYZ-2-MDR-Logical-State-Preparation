@@ -126,23 +126,51 @@ def per_shot_rate(shots: int, errors: int, r: int) -> float:
     return max(errors, 1) / shots
 
 
-def predict(cal: dict, code: str, basis: str, noise: str, dec: str, p: float):
+# wall seconds per CPU second of a worker (sampling, batching and flushing around the timed decoding)
+TIMING_OVERHEAD = 1.5
+
+
+def timing_table(path: str) -> dict:
+    """{(code, dec, d, p): CPU seconds per shot of sampling and decoding, r = 3d} (scripts/eq_timing.py)."""
+    import csv as _csv
+
+    out = {}
+    with open(path, newline="") as fh:
+        for r in _csv.DictReader(fh):
+            out[(r["code"], r["dec"], int(r["d"]), round(float(r["p"]), 10))] = \
+                float(r["decode_s"]) + float(r["sample_s"])
+    return out
+
+
+def predict(cal: dict, code: str, basis: str, noise: str, dec: str, p: float, timing: dict | None = None):
     """Functions d -> predicted p_L per shot of the r = 3d memory and d -> seconds per shot."""
     pts = cal.get((code, basis, noise, dec, round(p, 10)), {})
     good = [(d, s, e, t) for d, (s, e, t) in sorted(pts.items()) if s > 0]
     if not good:
         raise SystemExit(f"no calibration for {code} {basis} {noise} {dec} {p}")
-    # seconds per shot against the circuit size, from every calibrated point of this decoder and code
-    sizes = [circuit_size(d, "3d") for d, *_ in good]
-    secs = [max(t, 1e-3) / s for _, s, _, t in good]
-    if len(good) >= 2:
-        a, b = np.polyfit(np.log(sizes), np.log(secs), 1)
-        a = max(a, 1.0)                 # at least linear in the circuit size
-    else:
-        a, b = 1.0, math.log(secs[0]) - math.log(sizes[0])
+    if timing is not None:
+        # measured CPU time per shot at r = 3d; r = d scales with the number of rounds + 1
+        tab = {d: v for (c, dd, d, pp), v in timing.items() if c == code and dd == dec and pp == round(p, 10)}
 
-    def t_shot(d, r="3d"):
-        return float(math.exp(b) * circuit_size(d, r) ** a)
+        def t_shot(d, r="3d"):
+            if d in tab:
+                base = tab[d]
+            else:                       # nearest measured distance, scaled with the circuit size
+                d0 = min(tab, key=lambda x: abs(x - d))
+                base = tab[d0] * circuit_size(d, "3d") / circuit_size(d0, "3d")
+            return float(TIMING_OVERHEAD * base * circuit_size(d, r) / circuit_size(d, "3d"))
+    else:
+        # seconds per shot against the circuit size, from the calibration's wall times
+        sizes = [circuit_size(d, "3d") for d, *_ in good]
+        secs = [max(t, 1e-3) / s for _, s, _, t in good]
+        if len(good) >= 2:
+            a, b = np.polyfit(np.log(sizes), np.log(secs), 1)
+            a = max(a, 1.0)             # at least linear in the circuit size
+        else:
+            a, b = 1.0, math.log(secs[0]) - math.log(sizes[0])
+
+        def t_shot(d, r="3d"):
+            return float(math.exp(b) * circuit_size(d, r) ** a)
 
     # error per round, fitted where there are errors; the slope is kept no steeper than the measured one
     eps = [(d, (1 - (1 - 2 * min(e, 0.49 * s) / s) ** (1 / (3 * d))) / 2) for d, s, e, _ in good if e >= 3]
@@ -156,20 +184,20 @@ def predict(cal: dict, code: str, basis: str, noise: str, dec: str, p: float):
         k, c = -0.5, math.log(1.0 / (s0 * 3 * d0)) + 0.5 * d0
 
     def p_shot(d, r="3d"):
-        e = math.exp(c + k * d)
+        e = min(math.exp(c + k * d), 0.49)
         n = C.n_rounds(r, d)
-        return float(0.5 * (1 - (1 - 2 * min(e, 0.49)) ** n))
+        return max(float(-0.5 * math.expm1(n * math.log1p(-2 * e))), 1e-300)
 
     return p_shot, t_shot
 
 
-def make_tasks(cal: dict, rep_hours: float = 2.0, safety: float = SAFETY) -> tuple:
+def make_tasks(cal: dict, rep_hours: float = 2.0, safety: float = SAFETY, timing: dict | None = None) -> tuple:
     """(tasks, report rows). Every series runs its distances in order and stops after the first one whose
     expected count at the cap is below SKIP_BELOW. bm runs only where BM_MIN_ERRORS fit in its cap."""
     tasks, rows = [], []
     for code, basis, noise, dec in every_series():
         for p in PS:
-            p_shot, t_shot = predict(cal, code, basis, noise, dec, p)
+            p_shot, t_shot = predict(cal, code, basis, noise, dec, p, timing)
             for r in ("3d", "d"):
                 for d in distances(code):
                     pair = d in PAIR_D[code]
@@ -210,13 +238,15 @@ def main() -> None:
     t.add_argument("--out", required=True)
     t.add_argument("--rep-hours", type=float, default=2.0)
     t.add_argument("--safety", type=float, default=SAFETY)
+    t.add_argument("--timing", default=None, help="CPU seconds per shot (scripts/eq_timing.py)")
     args = ap.parse_args()
     if args.cmd == "calib":
         tasks = calib_tasks()
         H._write(tasks, args.out)
         print(f"{len(tasks)} calibration tasks -> {args.out}")
         return
-    tasks, rows = make_tasks(calib_table(args.calib), args.rep_hours, args.safety)
+    tasks, rows = make_tasks(calib_table(args.calib), args.rep_hours, args.safety,
+                             timing_table(args.timing) if args.timing else None)
     H._write(tasks, args.out)
     import pandas as pd
 
