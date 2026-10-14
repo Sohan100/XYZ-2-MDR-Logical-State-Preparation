@@ -53,7 +53,24 @@ NOISE = {
     "sd6_il": lambda v: replace(CircuitNoise.uniform(v), link_noise=False, name="sd6_il"),
     "phen": lambda v: CircuitNoise.phenomenological(v),
     "phen_b10": lambda v: CircuitNoise.phenomenological(v, 10),
+    # one kind of error at a time, the corners of the threshold surface of Hetenyi and Wootton
+    # (arXiv:2306.17786, Table I; docs/hetenyi_wootton_check.md):
+    # - hw_g: gates only, two-qubit depolarizing p after every entangling gate;
+    # - hw_g1q: hw_g plus depolarizing p on both qubits of every entangling gate, for their single-qubit
+    #   basis changes, which are as noisy as their two-qubit gates;
+    # - hw_t: idling only, total probability p with their bias eta_T = p_Z / (p_X + p_Y) = 20 (their
+    #   Eqs. 3 to 5: p_X = p_Y), also on the data qubits that wait while the ancillas are reset and read out;
+    # - hw_rr: readout only, every outcome flipped with probability p, for their combined reset-and-readout
+    #   error (a faulty reset gives the same syndrome as a faulty readout, their Eq. 8).
+    "hw_g": lambda v: CircuitNoise(p1=v, p2=v, name="hw_g"),
+    "hw_g1q": lambda v: CircuitNoise(p1=v, p2=v, dress_1q=True, name="hw_g1q"),
+    "hw_t": lambda v: CircuitNoise(idle_xyz=(v / 42, v / 42, 20 * v / 21), name="hw_t"),
+    "hw_rr": lambda v: CircuitNoise(p_meas=v, name="hw_rr"),
+    # SD6 without idle errors: the earlier check of the gate corner, which kept reset and readout errors
+    "sd6_noidle": lambda v: replace(CircuitNoise.uniform(v), p_idle=0.0, p_idle_mr=0.0, name="sd6_noidle"),
 }
+# the four one-parameter models of the comparison with Hetenyi and Wootton
+HW_NOISES = ["hw_g", "hw_g1q", "hw_t", "hw_rr"]
 # extraction schedules: "depth6" (the campaign's, distance d + 1 for Logical X but (d + 1) / 2 for
 # Logical Y) and "both" (distance >= d for both logical bases, see extraction_schedule.py)
 SCHEDULES = {"depth6": DEPTH6_SCHEDULE, "both": BOTH_BASES_SCHEDULE}

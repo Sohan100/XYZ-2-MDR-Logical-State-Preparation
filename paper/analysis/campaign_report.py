@@ -55,10 +55,12 @@ import crossings as X  # noqa: E402
 DATA = ROOT / "docs" / "data"
 KEYS = ["noise", "value", "d", "rounds", "final", "decoder"]
 NOISES = ["sd6", "si1000", "biased10", "biased100", "purez", "em3",
-          "helios_p_noxt", "h2_p_noxt", "helios_p", "h2_p"]
+          "helios_p_noxt", "h2_p_noxt", "helios_p", "h2_p", "hw_g", "hw_g1q", "hw_t", "hw_rr"]
 NOISE_LAB = {"sd6": "SD6", "si1000": "SI1000", "biased10": r"Biased, $\eta=10$", "biased100": r"Biased, $\eta=100$",
              "purez": r"Pure $Z$", "em3": "EM3", "helios_p": "Helios", "h2_p": "H2",
-             "helios_p_noxt": "Helios, no crosstalk", "h2_p_noxt": "H2, no crosstalk"}
+             "helios_p_noxt": "Helios, no crosstalk", "h2_p_noxt": "H2, no crosstalk",
+             "hw_g": "Gates only", "hw_g1q": "Gates only, noisy single-qubit gates",
+             "hw_t": r"Idling only, $\eta_T=20$", "hw_rr": "Readout only"}
 DECODERS = ["mwpm", "corr_links", "corr_gauge", "seq_match", "seq_soft", "seq_erasure", "bm", "bp_full", "bp_corr",
             "tesseract", "cfe", "cfe0", "cfe_tn", "tnml"]
 DEC_LAB = {"mwpm": "MWPM", "corr_links": "HCM, links", "corr_gauge": "HCM", "seq_match": "Erasure passing",

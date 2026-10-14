@@ -46,7 +46,7 @@ SURFACE_D = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21]
 HONEYCOMB_D = [4, 8, 12, 16, 20]
 # pilot rows to centre on: the largest pair for the surface codes, the pair of equal shapes for the honeycomb
 PILOT_PAIR = {"css": "5/7", "xzzx": "5/7", "xy": "5/7", "honeycomb": "4/8"}
-PILOT_BASIS = {"H": "X", "V": "Z", "X": "X", "Z": "Z"}
+PILOT_BASIS = {"H": "X", "V": "Z", "X": "X", "Z": "Z", "Y": "Y"}      # Y: XYZ^2 rows (campaign_hw.py)
 GAIN = {"mwpm": 1.0, "corr": 1.18, "bm": 1.3, "tesseract": 1.3, "bposd": 1.3}
 
 
