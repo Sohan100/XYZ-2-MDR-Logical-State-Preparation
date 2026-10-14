@@ -228,6 +228,58 @@ def make_tasks(cal: dict, rep_hours: float = 2.0, safety: float = SAFETY, timing
     return tasks, rows
 
 
+def stage2(task_files, points, rep_hours: float = 2.0) -> tuple:
+    """Second stage from the counts of the first: (1) a point that used its predicted budget without reaching its
+    target is listed again with its cap (the same task ids: the pool continues from the counts so far); (2) a
+    series whose largest distance got at least SKIP_BELOW logical errors gets its next distance, at the cap.
+    Returns (tasks, notes)."""
+    tasks = []
+    for f in task_files:
+        tasks += [json.loads(line) for line in open(f) if line.strip()]
+    prog = C.progress(points)
+    by_point = {}
+    for t in tasks:
+        by_point.setdefault(t["id"].rsplit("|", 1)[0], []).append(t)
+    out, notes = [], []
+    last = {}
+    for key, reps in by_point.items():
+        t0 = reps[0]
+        if ":" in t0["decoder"]:
+            code, basis, dec = C.competitor(t0["decoder"])
+            noise = t0["noise"]
+        else:
+            noise, _, basis = C.split_noise(t0["noise"])
+            code, dec = "xyz2", t0["decoder"]
+        pair = t0["d"] in PAIR_D[code]
+        cap = 3600.0 * CAP_H[dec] * (2 if pair else 1)
+        target = PAIR_TARGET if pair else TARGET
+        s = [prog.get(t["id"], [0, 0, 0.0, ""]) for t in reps]
+        shots, errors, secs = sum(x[0] for x in s), sum(x[1] for x in s), sum(x[2] for x in s)
+        budget = sum(t["budget"] for t in reps)
+        if errors < target and secs >= 0.98 * budget - 1 and budget < 0.999 * cap:
+            for t in reps:
+                out.append({**t, "budget": round(cap / len(reps), 1)})
+            notes.append(f"top-up {key}: {errors} errors in {secs / 3600:.2f} h of {budget / 3600:.2f} h")
+        if t0["rounds"] == "3d":
+            k = (code, basis, noise, dec, t0["value"])
+            if t0["d"] > last.get(k, (0, 0))[0]:
+                last[k] = (t0["d"], errors, secs >= 0.98 * budget - 1)
+    for (code, basis, noise, dec, p), (d, errors, at_budget) in last.items():
+        ds = distances(code)
+        if errors >= SKIP_BELOW and d < ds[-1]:
+            nd = ds[ds.index(d) + 1]
+            pair = nd in PAIR_D[code]
+            cap = 3600.0 * CAP_H[dec] * (2 if pair else 1)
+            target = PAIR_TARGET if pair else TARGET
+            nrep = max(1, math.ceil(cap / (3600.0 * rep_hours)))
+            for r in (("3d", "d") if pair else ("3d",)):
+                for i in range(nrep):
+                    out.append(task(code, basis, noise, dec, nd, p, r, math.ceil(target / nrep),
+                                    math.ceil(MAX_SHOTS / nrep), cap / nrep, rep=i))
+            notes.append(f"extend {code} {basis} {noise} {dec} p={p:g}: d={d} had {errors} errors -> d={nd}")
+    return out, notes
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -239,7 +291,21 @@ def main() -> None:
     t.add_argument("--rep-hours", type=float, default=2.0)
     t.add_argument("--safety", type=float, default=SAFETY)
     t.add_argument("--timing", default=None, help="CPU seconds per shot (scripts/eq_timing.py)")
+    s2 = sub.add_parser("stage2", help="top-ups and next distances from the counts of the first stage")
+    s2.add_argument("--tasks", nargs="+", required=True)
+    s2.add_argument("--points", nargs="+", required=True)
+    s2.add_argument("--out", required=True)
+    s2.add_argument("--rep-hours", type=float, default=2.0)
     args = ap.parse_args()
+    if args.cmd == "stage2":
+        files = sorted({f for pat in args.points for f in glob.glob(pat)})
+        tasks, notes = stage2(args.tasks, files, args.rep_hours)
+        H._write(tasks, args.out)
+        for n in notes:
+            print(n)
+        est = sum(C.estimate(tasks).values())
+        print(f"{len(tasks)} tasks, upper bound {est:,.0f} core-hours = {est / 128:.1f} node-hours -> {args.out}")
+        return
     if args.cmd == "calib":
         tasks = calib_tasks()
         H._write(tasks, args.out)
