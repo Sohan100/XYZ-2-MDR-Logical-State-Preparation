@@ -514,12 +514,15 @@ def main() -> None:
     fits = series_fits(df)
     choice = choose_decoders(df, fits)
     pairs, interp, targets, lams, bnd = comparisons(df, fits, choice)
-    # the panel rate: 1e-3 unless another rate covers more distances with at least 30 errors
+    # the panel rate: 1e-3 when every code has at least 4 distances with at least 30 errors there, else the
+    # rate with the most such distances
     p_fig = {}
     for model in MODELS:
         g = df[(df.model == model) & (df.rkey == "3d") & (df.errors >= MIN_FIT_ERRORS)]
-        cover = {p: g[g.p == p].groupby("code").d.nunique().sum() for p in PS}
-        p_fig[model] = 1e-3 if cover.get(1e-3, 0) >= max(cover.values()) else max(cover, key=cover.get)
+        per = {p: g[g.p == p].groupby("code").d.nunique() for p in PS}
+        codes = set(df[df.model == model].code)
+        ok = len(per[1e-3]) == len(codes) and per[1e-3].min() >= 4
+        p_fig[model] = 1e-3 if ok else max(PS, key=lambda p: per[p].sum())
     df.to_csv(out / "points_eps.csv", index=False)
     fits.to_csv(out / "fits.csv", index=False)
     choice.to_csv(out / "decoders.csv", index=False)

@@ -1,0 +1,49 @@
+% Patch for Results.tex, subsection "Ranking" (\label{sec:ranking}).
+% Replace the comment line that starts "% Equal-qubit comparison" with the paragraph (and its equation) and the figure* below.
+% Data: docs/data/campaign/eq/ (pairs.csv, lambda.csv, targets.csv, boundary.csv, eq.md), docs/equal_qubit_comparison.md.
+
+% ---------------------------------------------------------------- paragraph
+We also compare the codes below threshold at equal numbers of qubits, where the original proposals place the advantage of the \XYZ{} code. We run memories with $r=3d$ rounds at $p=10^{-3}$, $2\times10^{-3}$ and $3\times10^{-3}$ and convert the logical error rate $p_L$ of each run into an error per round $\epsilon$ through
+\begin{equation}
+p_L=\tfrac{1}{2}\left[1-(1-2\epsilon)^{r}\right].
+\label{eq:eps_per_round}
+\end{equation}
+For each code and noise model we use one decoder at every point, correlated matching, which gives the lowest error at the largest distances, and the weaker logical basis. The \XYZ{} code at $d=5$, 9 and 11 has 99, 323 and 483 qubits, close to the 97, 337 and 449 qubits of the surface codes at $d=7$, 13 and 15 (Fig.~\ref{fig:equal_qubit}). Under SD6 at $p=10^{-3}$ the error per round of the \XYZ{} code is 11(1) times that of the CSS code at 99 qubits and about 700 times, within a factor of two, at about 330 qubits. At $p=2\times10^{-3}$ and $3\times10^{-3}$ the factor grows from 9 and 7 at 99 qubits to 330 and 130 at about 470 qubits. The suppression factor $\Lambda=\epsilon(d)/\epsilon(d+2)$ at $p=2\times10^{-3}$ is 4.0(2) for the \XYZ{} code against 6.6(1) for the CSS code, and each step in $d$ costs the \XYZ{} code twice as many qubits. Under biased noise the \XYZ{} code beats the CSS code at equal qubits, by a factor of 3 to 5 at 99 qubits and 8 to 60 at the larger pairs for $\eta=100$ and pure $Z$ noise. The XZZX code beats the \XYZ{} code by a factor of 10 to 17 at 99 qubits and 80 to 850 at the larger pairs. With matching alone the \XYZ{} code also falls behind the CSS code under biased noise, so its gain over the CSS code relies on a decoder that reads the gauge level. At $p=10^{-3}$ an error of $10^{-6}$ per round takes 244 qubits for the \XYZ{} code against 120 for the CSS code under SD6, and 134 against 192 for the CSS code and 82 for the XZZX code at $\eta=100$. Taking $\epsilon$ from runs with $r=d$ and $r=3d$, which removes the contribution of the time boundaries, changes it by $-46\%$ to $+17\%$ and changes none of these comparisons. Equal qubit counts therefore do not reverse the ranking of the thresholds. The \XYZ{} code gains on the CSS code under biased noise, and it stays behind the XZZX code below threshold as well as at threshold.
+
+% ---------------------------------------------------------------- figure* (place near the paragraph)
+\begin{figure*}[t]
+  \centering
+  \begin{tikzpicture}
+    \begin{groupplot}[group style={group size=3 by 1, horizontal sep=0.55cm, y descriptions at=edge left},
+      width=0.35\textwidth, height=5.2cm, ymode=log, xmin=0, xmax=520, ymin=1e-11, ymax=0.1,
+      ytick={1e-11,1e-9,1e-7,1e-5,1e-3,1e-1}, minor ytick={1e-11,1e-10,1e-9,1e-8,1e-7,1e-6,1e-5,1e-4,1e-3,1e-2,1e-1},
+      xlabel={qubits $n$}, ylabel={error per round $\epsilon$}, ymajorgrids, grid style={grid},
+      axis line style={stone}, tick style={stone}, tick label style={font=\footnotesize, text=ink},
+      label style={font=\footnotesize, text=ink}, title style={font=\footnotesize, text=ink},
+      legend style={font=\footnotesize, draw=none, fill=none, at={(0.97,0.97)}, anchor=north east},
+      error bars/error bar style={line width=0.5pt}, every axis plot/.append style={line width=0.8pt}]
+    \nextgroupplot[title={SD6, $p=1\times10^{-3}$}]
+      \addplot[xyzcode, mark=*, mark size=1.8pt, error bars/.cd, y dir=both, y explicit] coordinates {(35,0.0003417) -= (0,2.02e-05) += (0,2.14e-05) (99,2.949e-05) -= (0,1.62e-06) += (0,1.71e-06) (195,2.715e-06) -= (0,2.56e-07) += (0,2.82e-07) (323,2.487e-07) -= (0,1.39e-08) += (0,1.47e-08) (483,2.09e-08) -= (0,2.74e-09) += (0,3.15e-09)};
+      \addlegendentry{\XYZ{}}
+      \addplot[csscode, mark=square*, mark size=1.8pt, error bars/.cd, y dir=both, y explicit] coordinates {(17,0.0006185) -= (0,5.36e-05) += (0,5.86e-05) (49,3.921e-05) -= (0,3.24e-06) += (0,3.53e-06) (97,2.658e-06) -= (0,1.48e-07) += (0,1.56e-07) (161,2.495e-07) -= (0,2.36e-08) += (0,2.61e-08) (241,1.219e-08) -= (0,1.53e-09) += (0,1.75e-09) (337,3.587e-10) -= (0,1.79e-10) += (0,3.56e-10)};
+      \addlegendentry{CSS}
+    \nextgroupplot[title={$\eta=100$, $p=1\times10^{-3}$}]
+      \addplot[xyzcode, mark=*, mark size=1.8pt, error bars/.cd, y dir=both, y explicit] coordinates {(35,0.0002408) -= (0,1.68e-05) += (0,1.81e-05) (99,4.074e-06) -= (0,2.27e-07) += (0,2.4e-07) (195,1.299e-07) -= (0,1.23e-08) += (0,1.36e-08) (323,1.667e-09) -= (0,5.2e-10) += (0,7.55e-10) (483,4.09e-10) -= (0,2.52e-10) += (0,6.56e-10)};
+      \addlegendentry{\XYZ{}}
+      \addplot[csscode, mark=square*, mark size=1.8pt, error bars/.cd, y dir=both, y explicit] coordinates {(17,0.001072) -= (0,7.15e-05) += (0,7.66e-05) (49,0.000143) -= (0,1e-05) += (0,1.08e-05) (97,1.98e-05) -= (0,1.09e-06) += (0,1.15e-06) (161,2.287e-06) -= (0,2.16e-07) += (0,2.39e-07) (241,3.165e-07) -= (0,2.99e-08) += (0,3.31e-08) (337,3.509e-08) -= (0,2.26e-09) += (0,2.41e-09) (449,3.317e-09) -= (0,7.28e-10) += (0,9.33e-10)};
+      \addlegendentry{CSS}
+      \addplot[xzzxcode, mark=diamond*, mark size=1.8pt, error bars/.cd, y dir=both, y explicit] coordinates {(17,0.0002791) -= (0,1.82e-05) += (0,1.94e-05) (49,1.068e-05) -= (0,9.97e-07) += (0,1.1e-06) (97,3.921e-07) -= (0,2.19e-08) += (0,2.32e-08) (161,1.684e-08) -= (0,1.59e-09) += (0,1.76e-09) (241,5.413e-10) -= (0,2.34e-10) += (0,4.13e-10)};
+      \addlegendentry{XZZX}
+    \nextgroupplot[title={Pure $Z$, $p=1\times10^{-3}$}]
+      \addplot[xyzcode, mark=*, mark size=1.8pt, error bars/.cd, y dir=both, y explicit] coordinates {(35,0.0002178) -= (0,1.6e-05) += (0,1.72e-05) (99,4.088e-06) -= (0,2.28e-07) += (0,2.42e-07) (195,9.843e-08) -= (0,9.31e-09) += (0,1.03e-08) (323,2.405e-09) -= (0,6.76e-10) += (0,9.4e-10)};
+      \addlegendentry{\XYZ{}}
+      \addplot[csscode, mark=square*, mark size=1.8pt, error bars/.cd, y dir=both, y explicit] coordinates {(17,0.0009895) -= (0,6.86e-05) += (0,7.37e-05) (49,0.0001384) -= (0,9.86e-06) += (0,1.06e-05) (97,1.782e-05) -= (0,9.86e-07) += (0,1.04e-06) (161,2.32e-06) -= (0,2.2e-07) += (0,2.42e-07) (241,3.369e-07) -= (0,3.19e-08) += (0,3.52e-08) (337,4.041e-08) -= (0,2.47e-09) += (0,2.63e-09) (449,8.255e-09) -= (0,1.28e-09) += (0,1.51e-09)};
+      \addlegendentry{CSS}
+      \addplot[xzzxcode, mark=diamond*, mark size=1.8pt, error bars/.cd, y dir=both, y explicit] coordinates {(17,0.0002331) -= (0,1.65e-05) += (0,1.78e-05) (49,7.832e-06) -= (0,7.41e-07) += (0,8.19e-07) (97,2.369e-07) -= (0,1.32e-08) += (0,1.4e-08) (161,7.948e-09) -= (0,8.51e-10) += (0,9.53e-10) (241,3.181e-10) -= (0,1.58e-10) += (0,3.16e-10)};
+      \addlegendentry{XZZX}
+    \end{groupplot}
+  \end{tikzpicture}
+  \caption{Error per round $\epsilon$ of Eq.~\eqref{eq:eps_per_round} against the number of qubits $n$ at $p=10^{-3}$ and $r=3d$, with correlated matching and the weaker logical basis of each code, under SD6 (left), $Z$-biased noise with $\eta=100$ (middle) and pure $Z$ noise (right). Error bars are 68\% Wilson intervals. Open triangles are 95\% upper bounds where a run saw no logical error. Under SD6 the CSS circuit stands for the XZZX and XY circuits, which share its detector error model.}
+  \label{fig:equal_qubit}
+\end{figure*}
+

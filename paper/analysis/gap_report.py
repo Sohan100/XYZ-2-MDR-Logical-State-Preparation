@@ -184,7 +184,7 @@ def pgf_figure(vals: pd.DataFrame) -> str:
     n = len(rows)
     xz, xn = get.get(("xzzx", "sd6")), get.get(("xzzx", "sd6_noidle"))
     lines = [r"\begin{figure}[t]", r"  \centering", r"  \begin{tikzpicture}",
-             r"    \begin{axis}[width=0.72\columnwidth, height=5.4cm, xbar, bar width=7pt, y dir=reverse,",
+             r"    \begin{axis}[width=0.64\columnwidth, height=5.4cm, xbar, bar width=7pt, y dir=reverse,",
              rf"      xmin=0.40, xmax=1.20, ymin=-0.6, ymax={n - 0.4}, xlabel={{memory threshold (\%)}},",
              rf"      ytick={{0,...,{n - 1}}}, yticklabels={{" + ",".join("{" + PGF_LAB[m] + "}" for m in rows) + "},",
              r"      yticklabel style={font=\footnotesize, text=ink}, xticklabel style={font=\footnotesize, text=ink},",

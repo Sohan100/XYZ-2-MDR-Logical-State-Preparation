@@ -1,0 +1,9 @@
+code,model,decoder,candidates,not_complete,score_corr,score_mwpm
+css,biased100,corr,corr mwpm,,-17.335237001851965,-17.267877563715743
+css,purez,corr,corr mwpm,,-16.8099366761429,-16.601218094399016
+css,sd6,corr,corr mwpm,,-17.375313964183487,-14.890853954158418
+xyz2,biased100,corr,corr mwpm,bm,-17.911779564088658,-12.129439227610748
+xyz2,purez,corr,corr mwpm,bm,-16.830777767408485,-11.345682456112632
+xyz2,sd6,corr,corr mwpm,bm,-13.156035602518976,-11.057890442096031
+xzzx,biased100,corr,corr mwpm,bm,-20.706447661398368,-20.05636572862743
+xzzx,purez,corr,corr mwpm,bm,-21.421718319606175,-21.010454850514744
