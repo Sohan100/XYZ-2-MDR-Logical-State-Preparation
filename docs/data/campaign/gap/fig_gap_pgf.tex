@@ -1,0 +1,18 @@
+\begin{figure}[t]
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[width=0.72\columnwidth, height=5.4cm, xbar, bar width=7pt, y dir=reverse,
+      xmin=0.40, xmax=1.00, ymin=-0.6, ymax=6.6, xlabel={memory threshold (\%)},
+      ytick={0,...,6}, yticklabels={{SD6},{noiseless links},{links twice},{links three times},{hybrid},{no idle errors},{noiseless links, no idle errors}},
+      yticklabel style={font=\footnotesize, text=ink}, xticklabel style={font=\footnotesize, text=ink},
+      label style={font=\footnotesize, text=ink}, axis line style={stone}, tick style={stone},
+      xmajorgrids, grid style={grid}, clip=false]
+      \addplot[fill=xyzcode, draw=xyzcode, error bars/.cd, x dir=both, x explicit,
+        error bar style={ink}] coordinates {(0.487,0) +- (0.007,0) (0.626,1) +- (0.008,0) (0.558,2) +- (0.021,0) (0.526,3) +- (0.008,0) (0.575,4) +- (0.006,0) (0.854,5) +- (0.006,0) (1.117,6) +- (0.031,0)};
+      \draw[xzzxcode, dashed, thick] (axis cs:0.813,6.6) -- (axis cs:0.813,-0.6) node[above, font=\footnotesize, text=xzzxcode] {XZZX};
+      \draw[xzzxcode, dotted, thick] (axis cs:1.103,6.6) -- (axis cs:1.103,-0.6) node[above, font=\footnotesize, text=xzzxcode, align=center] {XZZX,\\no idle};
+    \end{axis}
+  \end{tikzpicture}
+  CAPTION
+  \label{fig:gap}
+\end{figure}

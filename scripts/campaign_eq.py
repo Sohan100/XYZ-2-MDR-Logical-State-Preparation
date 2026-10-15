@@ -228,7 +228,7 @@ def make_tasks(cal: dict, rep_hours: float = 2.0, safety: float = SAFETY, timing
     return tasks, rows
 
 
-def stage2(task_files, points, rep_hours: float = 2.0) -> tuple:
+def stage2(task_files, points, rep_hours: float = 2.0, timing: dict | None = None) -> tuple:
     """Second stage from the counts of the first: (1) a point that used its predicted budget without reaching its
     target is listed again with its cap (the same task ids: the pool continues from the counts so far); (2) a
     series whose largest distance got at least SKIP_BELOW logical errors gets its next distance, at the cap.
@@ -264,10 +264,35 @@ def stage2(task_files, points, rep_hours: float = 2.0) -> tuple:
             k = (code, basis, noise, dec, t0["value"])
             if t0["d"] > last.get(k, (0, 0))[0]:
                 last[k] = (t0["d"], errors, secs >= 0.98 * budget - 1)
+    # per-shot rates of the r = 3d points, for the belief-matching rule below
+    rate = {}
+    for key, reps in by_point.items():
+        t0 = reps[0]
+        if t0["rounds"] != "3d":
+            continue
+        s = [prog.get(t["id"], [0, 0, 0.0, ""]) for t in reps]
+        sh, er = sum(x[0] for x in s), sum(x[1] for x in s)
+        if sh:
+            rate[(t0["noise"], t0["decoder"], t0["d"], t0["value"])] = (er / sh, er)
     for (code, basis, noise, dec, p), (d, errors, at_budget) in last.items():
         ds = distances(code)
         if errors >= SKIP_BELOW and d < ds[-1]:
             nd = ds[ds.index(d) + 1]
+            if dec == "bm":
+                # bm only where BM_MIN_ERRORS fit in its cap: predict its rate at nd from its rate at d and the
+                # drop of MWPM between d and nd (at least 30 MWPM errors at both), and its time per shot
+                lab, mw = series_names(code, basis, noise, "mwpm")
+                lab, bmn = series_names(code, basis, noise, "bm")
+                r0, r1, rb = rate.get((lab, mw, d, p)), rate.get((lab, mw, nd, p)), rate.get((lab, bmn, d, p))
+                tab = timing.get((code, "bm", nd, round(p, 10))) if timing else None
+                if not (r0 and r1 and rb and tab) or min(r0[1], r1[1]) < BM_MIN_ERRORS:
+                    notes.append(f"no bm extension {code} {basis} {noise} p={p:g} d={d}: no basis for a prediction")
+                    continue
+                cap = 3600.0 * CAP_H["bm"] * (2 if nd in PAIR_D[code] else 1)
+                expect = rb[0] * (r1[0] / r0[0]) * cap / (TIMING_OVERHEAD * tab)
+                if expect < BM_MIN_ERRORS:
+                    notes.append(f"no bm extension {code} {basis} {noise} p={p:g}: {expect:.1f} errors expected at d={nd}")
+                    continue
             pair = nd in PAIR_D[code]
             cap = 3600.0 * CAP_H[dec] * (2 if pair else 1)
             target = PAIR_TARGET if pair else TARGET
@@ -296,10 +321,12 @@ def main() -> None:
     s2.add_argument("--points", nargs="+", required=True)
     s2.add_argument("--out", required=True)
     s2.add_argument("--rep-hours", type=float, default=2.0)
+    s2.add_argument("--timing", default=None, help="CPU seconds per shot (scripts/eq_timing.py), for bm")
     args = ap.parse_args()
     if args.cmd == "stage2":
         files = sorted({f for pat in args.points for f in glob.glob(pat)})
-        tasks, notes = stage2(args.tasks, files, args.rep_hours)
+        tasks, notes = stage2(args.tasks, files, args.rep_hours,
+                              timing_table(args.timing) if args.timing else None)
         H._write(tasks, args.out)
         for n in notes:
             print(n)

@@ -1,0 +1,5 @@
+code,basis,noise,rounds,decoder,d_pair,crossing_p,err,lo,hi,how,note
+xyz2,X,sd6_il_noidle,d,mwpm,5/7,0.0099599,0.000299,0.004694,0.01226,fit,
+xyz2,X,sd6_il_noidle,d,mwpm,7/9,0.0097485,0.000636,0.004694,0.01226,fit,
+xyz2,Y,sd6_il_noidle,d,mwpm,5/7,0.011568,0.000348,0.004694,0.01226,fit,
+xyz2,Y,sd6_il_noidle,d,mwpm,7/9,0.010643,0.000428,0.004694,0.01226,fit,
