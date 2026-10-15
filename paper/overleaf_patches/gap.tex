@@ -1,0 +1,36 @@
+% Patch for Results.tex, subsection "Where the gap comes from" (\label{sec:gap}).
+% Replaces the four paragraphs of the subsection and the figure fig:gap (between the first and the second paragraph).
+% The figure is a full replacement in inline pgfplots with the paper's colours; merge its styling with the live
+% figure if that differs. Data: docs/data/campaign/gap/gap.csv and fractions.csv, docs/gap_diagnostic.md.
+
+% ---------------------------------------------------------------- paragraph 1
+We locate the gap to the XZZX code under SD6 with six variants of the noise model (Fig.~\ref{fig:gap}). In the noiseless-link model, which we use only as a diagnostic, the link checks are noiseless. In the repeated-link models every link is measured twice or three times per round. In the hybrid model the links are EM3 pair measurements and the plaquettes keep SD6 gates. In the two idle-free models we remove every idle error, in the gate layers and while the ancillas are reset and read out, once with noisy and once with noiseless link checks.
+
+% ---------------------------------------------------------------- figure (replaces fig:gap)
+\begin{figure}[t]
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[width=0.72\columnwidth, height=5.4cm, xbar, bar width=7pt, y dir=reverse,
+      xmin=0.40, xmax=1.20, ymin=-0.6, ymax=6.6, xlabel={memory threshold (\%)},
+      ytick={0,...,6}, yticklabels={{SD6},{noiseless links},{links twice},{links three times},{hybrid},{no idle errors},{noiseless links, no idle errors}},
+      yticklabel style={font=\footnotesize, text=ink}, xticklabel style={font=\footnotesize, text=ink},
+      label style={font=\footnotesize, text=ink}, axis line style={stone}, tick style={stone},
+      xmajorgrids, grid style={grid}, clip=false]
+      \addplot[fill=xyzcode, draw=xyzcode, error bars/.cd, x dir=both, x explicit,
+        error bar style={ink}] coordinates {(0.487,0) +- (0.007,0) (0.626,1) +- (0.008,0) (0.558,2) +- (0.021,0) (0.526,3) +- (0.008,0) (0.575,4) +- (0.006,0) (0.854,5) +- (0.006,0) (1.117,6) +- (0.031,0)};
+      \draw[xzzxcode, dashed, thick] (axis cs:0.813,6.6) -- (axis cs:0.813,-0.6) node[above, font=\footnotesize, text=xzzxcode] {XZZX};
+      \draw[xzzxcode, dotted, thick] (axis cs:1.103,6.6) -- (axis cs:1.103,-0.6) node[above, font=\footnotesize, text=xzzxcode, align=center] {XZZX,\\no idle};
+    \end{axis}
+  \end{tikzpicture}
+  \caption{Memory thresholds of the \XYZ{} code under SD6 and six variants of it: the best of matching, correlated matching and belief-matching in the weaker logical basis, $r=d$ rounds, finite-size fits over $d=11$ to $21$. The noiseless-link variants are diagnostics, not hardware. In the idle-free variants no qubit has an idle error, in the gate layers or while the ancillas are reset and read out. The dashed line marks the XZZX code under SD6 and the dotted line the XZZX code without idle errors.}
+  \label{fig:gap}
+\end{figure}
+
+% ---------------------------------------------------------------- paragraph 2
+The first diagnostic is noise on the link checks. With noiseless link checks the \XYZ{} memory threshold rises from 0.487(7)\% to 0.626(8)\%, against 0.813(20)\% for the XZZX code, which closes 0.43(4) of the gap. Measuring every link twice per round gives 0.558(21)\%, and measuring it three times gives 0.526(8)\%, less than twice. Measuring the links as pair measurements raises the memory threshold to 0.575(6)\%, still below the 0.81\% of the surface codes. This hybrid circuit has fault distance $d$, which we checked at $d=3$, because a faulty link measurement puts a two-qubit error on one block.
+
+% ---------------------------------------------------------------- paragraph 3
+The second diagnostic is idling. Each bulk data qubit takes part in one link and three hexagons, so it is busy in four of the six gate layers and idles in the other two. Without idle errors the \XYZ{} memory threshold rises from 0.487(7)\% to 0.854(6)\%, above the 0.813(20)\% of the XZZX code under SD6. The XZZX code also gains from removing its idle errors, to 1.103(9)\%. Measured against this reference, the idle errors account for 0.60(1) of the gap and the noise on the link checks for 0.23(2). With noiseless link checks and without idle errors the \XYZ{} threshold is 1.12(3)\%, which closes 1.02(5) of the gap. Matching alone gives the same picture, with 0.691(6)\% and 0.99(1)\% for the two idle-free \XYZ{} models against 0.93(2)\% for the XZZX code without idle errors. No schedule or compilation that we tried closes the gap under SD6.
+
+% ---------------------------------------------------------------- paragraph 4
+The map of Sec.~\ref{sec:cssmap} shows the structural cost. Under depolarizing noise the \XYZ{} code is a rotated surface code concatenated with two-qubit repetition codes. It uses $4d^2-1$ qubits with gates, against $2d^2-1$ for the surface codes at the same distance, and every hexagon has weight six. Criger and Terhal found that the circuit-level threshold of the $[[4,2,2]]$-concatenated toric code depends on the schedule of its weight-eight checks, and their shortest schedule reached about 0.41\%, against about 0.6\% for the toric code~\cite{criger2016fourtwotwo}. In our circuits the combined diagnostic leaves none of the threshold gap, within its error, for the weight-six hexagons and the doubled qubit count. Their cost appears below threshold, where the \XYZ{} code needs more qubits than the surface codes for the same error per round under SD6 (Sec.~\ref{sec:ranking}).

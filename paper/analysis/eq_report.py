@@ -172,33 +172,68 @@ def series_fits(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+SKIP_BELOW = 10          # a series ends after the first distance with fewer errors than this at its cap
+CODE_D = {"xyz2": [3, 5, 7, 9, 11], "css": [3, 5, 7, 9, 11, 13, 15], "xzzx": [3, 5, 7, 9, 11, 13, 15]}
+
+
+def complete(g: pd.DataFrame, fam: str, code: str, ref_last: dict) -> bool:
+    """Whether decoder `fam` covers its series: for every basis and p of MWPM, every distance from the smallest
+    up to its last one is measured (r = 3d), and the series reaches MWPM's last distance or ended there by the
+    skip rule (fewer than SKIP_BELOW errors at the cap, an upper bound beyond)."""
+    gf = g[g.fam == fam]
+    for (basis, p), last_mw in ref_last.items():
+        s = gf[(gf.basis == basis) & (gf.p == p)].sort_values("d")
+        if s.empty:
+            return False
+        last = int(s.d.max())
+        want = [d for d in CODE_D[code] if d <= last]
+        if sorted(int(x) for x in s.d.unique()) != want:
+            return False
+        if last < last_mw and int(s[s.d == last].errors.iloc[0]) >= SKIP_BELOW:
+            return False
+    return True
+
+
 def choose_decoders(df: pd.DataFrame, fits: pd.DataFrame) -> pd.DataFrame:
-    """One decoder per code and noise model (see the module docstring)."""
+    """One decoder per code and noise model (see the module docstring): among the decoders that cover the
+    series (`complete`), the one whose fits give the lowest epsilon at the largest distance that all of them
+    measured, mean of ln epsilon over p and basis."""
     rows = []
     for (code, model), g in df[df.rkey == "3d"].groupby(["code", "model"]):
-        cover = {}
-        ref = set(zip(g[g.fam == "mwpm"].basis, g[g.fam == "mwpm"].p, g[g.fam == "mwpm"].d))
-        for fam, gf in g.groupby("fam"):
-            have = set(zip(gf.basis, gf.p, gf.d))
-            cover[fam] = ref <= have
+        mw = g[g.fam == "mwpm"]
+        ref_last = {(b, p): int(s.d.max()) for (b, p), s in mw.groupby(["basis", "p"])}
+        cover = {fam: complete(g, fam, code, ref_last) for fam in sorted(set(g.fam))}
         cands = [f for f, ok in cover.items() if ok]
         fs = fits[(fits.code == code) & (fits.model == model) & fits.a.notna()] if "a" in fits else fits.iloc[:0]
-        score = {}
-        for fam in cands:
-            vals = []
-            for (basis, p), gp in fs.groupby(["basis", "p"]):
-                if not set(cands) <= set(gp.dec):
-                    continue
-                dmax = int(gp.dmax.min())
+        score = {fam: [] for fam in cands}
+        for (basis, p), gp in fs.groupby(["basis", "p"]):
+            if not set(cands) <= set(gp.dec):
+                continue
+            meas = [set(g[(g.fam == fam) & (g.basis == basis) & (g.p == p)].d) for fam in cands]
+            d_eval = max(set.intersection(*meas)) if meas and set.intersection(*meas) else int(gp.dmax.min())
+            for fam in cands:
                 r = gp[gp.dec == fam].iloc[0]
-                vals.append(r.a + r.b * dmax)
-            if vals:
-                score[fam] = float(np.mean(vals))
+                score[fam].append(r.a + r.b * d_eval)
+        score = {k: float(np.mean(v)) for k, v in score.items() if v}
         best = min(score, key=score.get) if score else "mwpm"
         rows.append(dict(code=code, model=model, decoder=best, candidates=" ".join(sorted(cands)),
                          not_complete=" ".join(sorted(f for f, ok in cover.items() if not ok)),
                          **{f"score_{k}": v for k, v in score.items()}))
     return pd.DataFrame(rows)
+
+
+def point_or_bound(pts: pd.DataFrame, d: int) -> dict | None:
+    """The r = 3d point at distance d, or, when the series ended earlier by the skip rule, the upper bound of
+    its last point (epsilon falls with d below threshold)."""
+    a = pts[(pts.d == d) & (pts.rkey == "3d")]
+    if len(a):
+        r = a.iloc[0]
+        return dict(eps=r.eps, lo=r.eps_lo, hi=r.eps_hi, err=int(r.errors), upper=bool(r.upper), note="")
+    s = pts[(pts.rkey == "3d") & (pts.d < d)].sort_values("d")
+    if len(s) and int(s.errors.iloc[-1]) < SKIP_BELOW:
+        r = s.iloc[-1]
+        return dict(eps=np.nan, lo=0.0, hi=r.eps_hi, err=int(r.errors), upper=True, note=f"bound from d = {int(r.d)}")
+    return None
 
 
 def weaker_basis(fits: pd.DataFrame, df: pd.DataFrame, code: str, model: str, fam: str, p: float) -> str | None:
@@ -249,22 +284,20 @@ def comparisons(df, fits, choice):
                 if "xyz2" in sel:
                     fx, bx, px, fitx = sel["xyz2"]
                     for dx, ds in PAIRS:
-                        a = px[(px.d == dx) & (px.rkey == "3d")]
+                        a = point_or_bound(px, dx)
                         for code in [c for c in codes if c != "xyz2" and c in sel]:
                             fs_, bs, ps_, fits_ = sel[code]
-                            s = ps_[(ps_.d == ds) & (ps_.rkey == "3d")]
+                            s = point_or_bound(ps_, ds)
                             row = dict(model=model, p=p, mode=mode, other=code, d_xyz2=dx, d_other=ds,
                                        n_xyz2=qubits("xyz2", dx), n_other=qubits(code, ds),
                                        dec_xyz2=fx, basis_xyz2=bx, dec_other=fs_, basis_other=bs)
-                            if len(a):
-                                r = a.iloc[0]
-                                row.update(eps_xyz2=r.eps, lo_xyz2=r.eps_lo, hi_xyz2=r.eps_hi,
-                                           err_xyz2=int(r.errors), upper_xyz2=bool(r.upper))
-                            if len(s):
-                                r = s.iloc[0]
-                                row.update(eps_other=r.eps, lo_other=r.eps_lo, hi_other=r.eps_hi,
-                                           err_other=int(r.errors), upper_other=bool(r.upper))
-                            if len(a) and len(s) and not a.iloc[0].upper and not s.iloc[0].upper:
+                            if a:
+                                row.update(eps_xyz2=a["eps"], lo_xyz2=a["lo"], hi_xyz2=a["hi"], err_xyz2=a["err"],
+                                           upper_xyz2=a["upper"], note_xyz2=a["note"])
+                            if s:
+                                row.update(eps_other=s["eps"], lo_other=s["lo"], hi_other=s["hi"], err_other=s["err"],
+                                           upper_other=s["upper"], note_other=s["note"])
+                            if a and s and not a["upper"] and not s["upper"]:
                                 row.update(ratio=row["eps_xyz2"] / row["eps_other"],
                                            ratio_lo=row["lo_xyz2"] / row["hi_other"],
                                            ratio_hi=row["hi_xyz2"] / max(row["lo_other"], 1e-300))

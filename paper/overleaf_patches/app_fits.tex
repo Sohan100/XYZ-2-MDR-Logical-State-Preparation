@@ -1,0 +1,5 @@
+% Patch for the appendix that describes the campaign (\label{app:fits}): add these two sentences at the end of the
+% paragraph that describes the sampling of the campaign (or as a short paragraph of their own after it).
+% Source: scripts/campaign_eq.py, docs/equal_qubit_comparison.md.
+
+The sub-threshold runs of Sec.~\ref{sec:ranking} stop each point at 100 logical errors, 300 at the equal-qubit pairs, or at $10^9$ shots, within at most 4 core-hours for matching and correlated matching and 8 for belief-matching, twice that at the pairs, split into replicas of at most two hours. We plan these budgets from short calibration runs and measured decoding times, end a series after the first distance with fewer than 10 errors at its cap, and treat a point without errors in $N$ shots as the 95\% upper bound $3/N$ on its logical error rate per shot.
