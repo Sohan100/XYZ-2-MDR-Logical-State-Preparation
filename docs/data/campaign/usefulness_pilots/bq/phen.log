@@ -1,0 +1,14 @@
+phen xzzx Z corr d=4 r=12 nq=16 p=0.025 shots=8176 err=579 pL=7.082e-02 eps=6.323e-03 t=0s
+phen xzzx X corr d=4 r=12 nq=16 p=0.025 shots=8176 err=578 pL=7.069e-02 eps=6.311e-03 t=0s
+phen xzzx Z corr d=7 r=21 nq=49 p=0.025 shots=16368 err=458 pL=2.798e-02 eps=1.369e-03 t=2s
+phen xzzx X corr d=7 r=21 nq=49 p=0.025 shots=16368 err=468 pL=2.859e-02 eps=1.400e-03 t=2s
+phen xyz2 Y bm d=3 r=9 nq=18 p=0.025 shots=8176 err=592 pL=7.241e-02 eps=8.616e-03 t=7s
+phen xyz2 X bm d=3 r=9 nq=18 p=0.025 shots=16368 err=625 pL=3.818e-02 eps=4.394e-03 t=14s
+phen xzzx Z corr d=10 r=30 nq=100 p=0.025 shots=49136 err=508 pL=1.034e-02 eps=3.481e-04 t=14s
+phen xzzx X corr d=10 r=30 nq=100 p=0.025 shots=49136 err=518 pL=1.054e-02 eps=3.550e-04 t=15s
+phen xyz2 Y bm d=5 r=15 nq=50 p=0.025 shots=11248 err=416 pL=3.698e-02 eps=2.555e-03 t=57s
+phen xyz2 X bm d=5 r=15 nq=50 p=0.025 shots=15344 err=413 pL=2.692e-02 eps=1.841e-03 t=78s
+phen xyz2 Y bm d=7 r=21 nq=98 p=0.025 shots=6896 err=114 pL=1.653e-02 eps=7.999e-04 t=104s
+phen xyz2 X bm d=7 r=21 nq=98 p=0.025 shots=7152 err=118 pL=1.650e-02 eps=7.983e-04 t=105s
+phen xyz2 Y bm d=7 r=21 nq=98 p=0.025 shots=7152 err=129 pL=1.804e-02 eps=8.740e-04 t=106s
+phen xyz2 X bm d=7 r=21 nq=98 p=0.025 shots=7152 err=113 pL=1.580e-02 eps=7.639e-04 t=106s

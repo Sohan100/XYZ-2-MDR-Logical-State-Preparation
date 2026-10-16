@@ -1,0 +1,11 @@
+  progress shots=100 errors=0 t=1
+  progress shots=300 errors=1 t=3
+  progress shots=700 errors=2 t=6
+  progress shots=1500 errors=4 t=12
+  progress shots=3100 errors=7 t=25
+  progress shots=4989 errors=10 t=40
+  progress shots=6847 errors=15 t=56
+  progress shots=8692 errors=16 t=72
+  progress shots=10396 errors=21 t=87
+  progress shots=11635 errors=22 t=98
+xyz2 X d=5 q=50 p=0.02 phenb10 bp_full both r=15 shots=11817 errors=23 pL=1.946e-03 eps_round=1.300e-04 t=100s rssGB=0.06

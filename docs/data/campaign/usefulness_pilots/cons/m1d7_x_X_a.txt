@@ -1,0 +1,1 @@
+xyz2 X d=7 nq=195 pT=0.04 pG=0.001 pR=0.01 g1q=False bm r=21 shots=1215 errors=11 pL=9.053e-03 eps_round=4.349e-04 t=96s rssGB=0.09

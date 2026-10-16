@@ -1,0 +1,12 @@
+phen_b10 xzzx X corr d=7 r=21 nq=49 p=0.02 shots=131056 err=506 pL=3.861e-03 eps=1.845e-04 t=11s
+phen_b10 xzzx Z corr d=7 r=21 nq=49 p=0.02 shots=196592 err=527 pL=2.681e-03 eps=1.280e-04 t=16s
+phen_b10 xyz2 Y bm d=7 r=21 nq=98 p=0.02 shots=6128 err=2 pL=3.264e-04 eps=1.555e-05 t=106s
+phen_b10 xzzx Z corr d=10 r=30 nq=100 p=0.02 shots=540656 err=273 pL=5.049e-04 eps=1.684e-05 t=106s
+phen_b10 xyz2 X bm d=7 r=21 nq=98 p=0.02 shots=6128 err=1 pL=1.632e-04 eps=7.772e-06 t=106s
+phen_b10 xyz2 Y bm d=7 r=21 nq=98 p=0.02 shots=6128 err=3 pL=4.896e-04 eps=2.332e-05 t=106s
+phen_b10 xyz2 X bm d=7 r=21 nq=98 p=0.02 shots=6128 err=1 pL=1.632e-04 eps=7.772e-06 t=106s
+phen_b10 xyz2 X bm d=7 r=21 nq=98 p=0.02 shots=6128 err=5 pL=8.159e-04 eps=3.888e-05 t=106s
+phen_b10 xyz2 Y bm d=7 r=21 nq=98 p=0.02 shots=6128 err=3 pL=4.896e-04 eps=2.332e-05 t=107s
+phen_b10 xzzx X corr d=10 r=30 nq=100 p=0.02 shots=540656 err=315 pL=5.826e-04 eps=1.943e-05 t=108s
+phen_b10 xyz2 Y bm d=7 r=21 nq=98 p=0.02 shots=6640 err=0 pL=0.000e+00 eps=0.000e+00 t=111s
+phen_b10 xyz2 X bm d=7 r=21 nq=98 p=0.02 shots=6640 err=1 pL=1.506e-04 eps=7.173e-06 t=111s

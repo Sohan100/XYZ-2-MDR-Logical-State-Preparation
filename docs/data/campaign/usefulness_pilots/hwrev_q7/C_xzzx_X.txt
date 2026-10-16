@@ -1,0 +1,1 @@
+xzzx X d=7 nq=97 pT=0.04 pG=0.001 pR=0.01 fgate=0.02 corr r=21 shots=800837 errors=32049 pL=4.002e-02 eps_round=1.982e-03 t=79s rssGB=0.55

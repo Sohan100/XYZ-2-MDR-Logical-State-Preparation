@@ -1,0 +1,8 @@
+  progress shots=100 errors=2 t=4
+  progress shots=300 errors=4 t=10
+  progress shots=700 errors=5 t=20
+  progress shots=1264 errors=5 t=35
+  progress shots=1856 errors=9 t=50
+  progress shots=2435 errors=13 t=66
+  progress shots=2982 errors=15 t=89
+xyz2 Y d=5 q=99 p=0.003 biased10 bm both r=15 shots=3194 errors=16 pL=5.009e-03 eps_round=3.355e-04 t=99s rssGB=0.09

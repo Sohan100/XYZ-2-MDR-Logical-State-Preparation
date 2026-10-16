@@ -1,0 +1,1 @@
+xyz2 Y d=5 nq=99 pT=0.04 pG=0.001 pR=0.01 fgate=0.05 bm r=15 shots=3195 errors=123 pL=3.850e-02 eps_round=2.664e-03 t=79s rssGB=0.12

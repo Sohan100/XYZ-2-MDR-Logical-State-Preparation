@@ -1,0 +1,1 @@
+xyz2 Y d=5 q=50 p=0.02 phenb10 bm both r=15 shots=25400 errors=55 pL=2.165e-03 eps_round=1.446e-04 t=108s rssGB=0.13

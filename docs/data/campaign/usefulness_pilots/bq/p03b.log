@@ -1,0 +1,8 @@
+phen_b10 xyz2 X bp_full d=5 r=15 nq=50 p=0.03 shots=9200 err=112 pL=1.217e-02 eps=8.210e-04 t=102s
+phen_b10 xyz2 Y bp_full d=5 r=15 nq=50 p=0.03 shots=9200 err=106 pL=1.152e-02 eps=7.765e-04 t=102s
+phen_b10 xyz2 X bm d=7 r=21 nq=98 p=0.03 shots=6640 err=37 pL=5.572e-03 eps=2.668e-04 t=102s
+phen_b10 xyz2 X bp_full d=7 r=21 nq=98 p=0.03 shots=2800 err=14 pL=5.000e-03 eps=2.392e-04 t=103s
+phen_b10 xyz2 Y bp_full d=7 r=21 nq=98 p=0.03 shots=2800 err=13 pL=4.643e-03 eps=2.221e-04 t=103s
+phen_b10 xyz2 Y bm d=7 r=21 nq=98 p=0.03 shots=7152 err=26 pL=3.635e-03 eps=1.737e-04 t=105s
+phen_b10 xyz2 Y bm d=7 r=21 nq=98 p=0.03 shots=7152 err=21 pL=2.936e-03 eps=1.402e-04 t=106s
+phen_b10 xyz2 X bm d=7 r=21 nq=98 p=0.03 shots=7152 err=26 pL=3.635e-03 eps=1.737e-04 t=106s

@@ -1,0 +1,1 @@
+sd6 css depth6 X corr d=7 r=1 nq=97 p=0.001 shots=100663040 err=258 pL=2.563e-06+-1.6e-07 t=62s

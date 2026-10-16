@@ -1,0 +1,1 @@
+sd6 xzzx depth6 X corr d=7 r=1 nq=97 p=0.001 shots=92274432 err=251 pL=2.720e-06+-1.7e-07 t=60s

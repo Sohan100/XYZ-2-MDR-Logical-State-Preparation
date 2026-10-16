@@ -1,0 +1,1 @@
+hw_rr css Z d=7 nq=97 p=0.04 mwpm r=21 shots=3609792 errors=27170 pL=7.527e-03 eps_round=3.610e-04 t=74s rssGB=1.36

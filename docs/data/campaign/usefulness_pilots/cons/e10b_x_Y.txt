@@ -1,0 +1,1 @@
+xyz2 Y d=5 nq=99 p=0.03 hw_tr eta=10.0 bm r=15 shots=33493 errors=51 pL=1.523e-03 eps_round=1.017e-04 t=91s rssGB=0.11

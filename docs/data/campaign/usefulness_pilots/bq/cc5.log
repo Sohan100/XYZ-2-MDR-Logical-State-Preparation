@@ -1,0 +1,10 @@
+eta=10.0 q=0.0p xyz2 X corr_gauge d=5 r=15 nq=50 p=0.03 shots=131056 err=438 pL=3.342e-03 eps=2.235e-04 t=4s
+eta=10.0 q=0.0p xyz2 Y corr_gauge d=5 r=15 nq=50 p=0.03 shots=131056 err=516 pL=3.937e-03 eps=2.635e-04 t=4s
+eta=10.0 q=0.0p xzzx X bm d=7 r=21 nq=49 p=0.03 shots=20464 err=53 pL=2.590e-03 eps=1.236e-04 t=96s
+eta=10.0 q=0.0p xyz2 Y bp_corr d=5 r=15 nq=50 p=0.03 shots=10224 err=33 pL=3.228e-03 eps=2.158e-04 t=97s
+eta=10.0 q=0.0p xzzx Z bm d=7 r=21 nq=49 p=0.03 shots=20464 err=51 pL=2.492e-03 eps=1.190e-04 t=97s
+eta=10.0 q=0.0p xyz2 X cfe d=5 r=15 nq=50 p=0.03 shots=2800 err=4 pL=1.429e-03 eps=9.537e-05 t=98s
+eta=10.0 q=0.0p xyz2 X bp_corr d=5 r=15 nq=50 p=0.03 shots=10736 err=15 pL=1.397e-03 eps=9.327e-05 t=99s
+eta=10.0 q=0.0p xyz2 Y cfe d=5 r=15 nq=50 p=0.03 shots=2800 err=7 pL=2.500e-03 eps=1.671e-04 t=99s
+eta=10.0 q=0.0p xyz2 X bp_full d=5 r=15 nq=50 p=0.03 shots=25584 err=59 pL=2.306e-03 eps=1.541e-04 t=102s
+eta=10.0 q=0.0p xyz2 Y bp_full d=5 r=15 nq=50 p=0.03 shots=25584 err=73 pL=2.853e-03 eps=1.907e-04 t=102s

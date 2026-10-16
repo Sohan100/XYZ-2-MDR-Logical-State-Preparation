@@ -1,0 +1,1 @@
+xzzx Z d=7 nq=97 p=0.04 hw_tr eta=20.0 corr r=42 shots=1107657 errors=9381 pL=8.469e-03 eps_round=2.033e-04 t=94s rssGB=0.97

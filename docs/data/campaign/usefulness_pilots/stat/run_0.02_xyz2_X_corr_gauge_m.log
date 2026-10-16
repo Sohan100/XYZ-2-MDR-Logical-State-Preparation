@@ -1,0 +1,1 @@
+phen_b10 p=0.02 xyz2 X corr_gauge d=5 r=15 qubits=50 shots=992704 errors=4495 P=4.5280e-03 eps=3.0315e-04 rel=0.015 t=60s rssGB=0.13

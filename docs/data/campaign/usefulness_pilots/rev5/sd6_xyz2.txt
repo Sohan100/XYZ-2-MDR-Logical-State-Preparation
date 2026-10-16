@@ -1,0 +1,1 @@
+sd6 xyz2 depth6 X corr_gauge d=5 r=1 nq=99 p=0.001 shots=50331392 err=1048 pL=2.082e-05+-6.4e-07 t=52s

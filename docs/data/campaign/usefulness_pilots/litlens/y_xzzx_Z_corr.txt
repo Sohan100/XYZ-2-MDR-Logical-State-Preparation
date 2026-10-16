@@ -1,0 +1,1 @@
+xzzx Z d=7 nq=97 p=0.04 hw_tr_Ybias eta=20.0 corr r=21 shots=1285569 errors=65241 pL=5.075e-02 eps_round=2.542e-03 t=94s rssGB=0.58

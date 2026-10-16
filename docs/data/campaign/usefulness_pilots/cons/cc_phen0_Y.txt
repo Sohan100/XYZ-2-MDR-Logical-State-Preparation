@@ -1,0 +1,1 @@
+eta=10.0 q=0.0p xyz2 Y bm d=5 r=15 nq=50 p=0.03 shots=34800 err=112 pL=3.218e-03 eps=2.152e-04 t=93s

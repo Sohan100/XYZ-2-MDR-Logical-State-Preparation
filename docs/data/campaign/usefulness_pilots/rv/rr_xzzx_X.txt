@@ -1,0 +1,1 @@
+hw_rr xzzx X d=7 nq=97 p=0.04 mwpm r=21 shots=3629009 errors=27593 pL=7.603e-03 eps_round=3.647e-04 t=74s rssGB=1.38

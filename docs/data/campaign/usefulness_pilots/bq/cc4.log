@@ -1,0 +1,12 @@
+eta=10.0 q=0.0p xzzx X corr d=4 r=12 nq=16 p=0.03 shots=16368 err=596 pL=3.641e-02 eps=3.141e-03 t=0s
+eta=10.0 q=0.0p xzzx Z corr d=4 r=12 nq=16 p=0.03 shots=32752 err=448 pL=1.368e-02 eps=1.154e-03 t=0s
+eta=10.0 q=0.0p xzzx X corr d=7 r=21 nq=49 p=0.03 shots=262128 err=759 pL=2.896e-03 eps=1.383e-04 t=8s
+eta=10.0 q=0.0p xzzx Z corr d=7 r=21 nq=49 p=0.03 shots=262128 err=516 pL=1.969e-03 eps=9.391e-05 t=9s
+eta=10.0 q=0.0p xyz2 Y bm d=3 r=9 nq=18 p=0.03 shots=24560 err=426 pL=1.735e-02 eps=1.958e-03 t=13s
+eta=10.0 q=0.0p xyz2 X bm d=3 r=9 nq=18 p=0.03 shots=24560 err=414 pL=1.686e-02 eps=1.902e-03 t=13s
+eta=10.0 q=0.0p xyz2 X bm d=5 r=15 nq=50 p=0.03 shots=34800 err=88 pL=2.529e-03 eps=1.690e-04 t=98s
+eta=10.0 q=0.0p xyz2 Y bm d=5 r=15 nq=50 p=0.03 shots=34800 err=110 pL=3.161e-03 eps=2.114e-04 t=99s
+eta=10.0 q=0.0p xyz2 X bm d=5 r=15 nq=50 p=0.03 shots=34800 err=72 pL=2.069e-03 eps=1.382e-04 t=99s
+eta=10.0 q=0.0p xyz2 X bm d=5 r=15 nq=50 p=0.03 shots=34800 err=92 pL=2.644e-03 eps=1.767e-04 t=99s
+eta=10.0 q=0.0p xyz2 Y bm d=5 r=15 nq=50 p=0.03 shots=34800 err=99 pL=2.845e-03 eps=1.902e-04 t=100s
+eta=10.0 q=0.0p xyz2 Y bm d=5 r=15 nq=50 p=0.03 shots=34800 err=95 pL=2.730e-03 eps=1.825e-04 t=101s

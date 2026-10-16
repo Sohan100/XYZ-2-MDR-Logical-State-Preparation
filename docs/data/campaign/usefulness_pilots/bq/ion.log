@@ -1,0 +1,12 @@
+h2_p xyz2 depth6 X mwpm d=3 r=1 nq=35 p=0.001875 shots=1048320 err=1002 pL=9.558e-04+-3.0e-05 t=0s
+h2_p xyz2 depth6 X corr_gauge d=3 r=1 nq=35 p=0.001875 shots=2096896 err=1953 pL=9.314e-04+-2.1e-05 t=1s
+h2_p css depth6 X mwpm d=5 r=1 nq=49 p=0.001875 shots=8388352 err=1663 pL=1.983e-04+-4.9e-06 t=3s
+h2_p xzzx depth6 X mwpm d=5 r=1 nq=49 p=0.001875 shots=16776960 err=1598 pL=9.525e-05+-2.4e-06 t=5s
+h2_p xzzx depth6 Z mwpm d=5 r=1 nq=49 p=0.001875 shots=16776960 err=1610 pL=9.596e-05+-2.4e-06 t=6s
+h2_p css depth6 Z mwpm d=5 r=1 nq=49 p=0.001875 shots=33554176 err=1210 pL=3.606e-05+-1.0e-06 t=11s
+helios_p xyz2 depth6 X mwpm d=5 r=1 nq=99 p=0.001 shots=12582656 err=1100 pL=8.742e-05+-2.6e-06 t=13s
+helios_p css depth6 X mwpm d=7 r=1 nq=97 p=0.001 shots=33554176 err=1000 pL=2.980e-05+-9.4e-07 t=20s
+helios_p xyz2 depth6 X corr_gauge d=5 r=1 nq=99 p=0.001 shots=14679808 err=1223 pL=8.331e-05+-2.4e-06 t=21s
+helios_p xzzx depth6 X mwpm d=7 r=1 nq=97 p=0.001 shots=117440256 err=1076 pL=9.162e-06+-2.8e-07 t=61s
+helios_p xzzx depth6 Z mwpm d=7 r=1 nq=97 p=0.001 shots=109051648 err=1044 pL=9.573e-06+-3.0e-07 t=62s
+helios_p css depth6 Z mwpm d=7 r=1 nq=97 p=0.001 shots=201326336 err=472 pL=2.344e-06+-1.1e-07 t=104s

@@ -1,0 +1,8 @@
+{"label": "phen_b10@both-Y", "dec": "bm", "d": 7, "p": 0.025, "r": 21, "nq": 98, "shots": 5150, "errors": 6, "pL": 0.0011650485436893205, "eps": 5.554015287134728e-05, "build": 0.9, "sec": 96.5, "maxrss_gb": 0.053248}
+{"label": "phen_b10@both-Y", "dec": "bm", "d": 7, "p": 0.025, "r": 21, "nq": 98, "shots": 5450, "errors": 6, "pL": 0.0011009174311926607, "eps": 5.2479685329731574e-05, "build": 0.9, "sec": 101.2, "maxrss_gb": 0.0512}
+{"label": "phen_b10", "dec": "xzzx-X:bm", "d": 11, "p": 0.025, "r": 33, "nq": 121, "shots": 2450, "errors": 5, "pL": 0.0020408163265306124, "eps": 6.196563345095552e-05, "build": 1.5, "sec": 102.8, "maxrss_gb": 0.069632}
+{"label": "phen_b10", "dec": "xzzx-Z:bm", "d": 11, "p": 0.025, "r": 33, "nq": 121, "shots": 2450, "errors": 3, "pL": 0.0012244897959183673, "eps": 3.714988114050799e-05, "build": 1.3, "sec": 103.4, "maxrss_gb": 0.067584}
+{"label": "phen_b10@both-X", "dec": "bp_full", "d": 7, "p": 0.025, "r": 21, "nq": 98, "shots": 2450, "errors": 5, "pL": 0.0020408163265306124, "eps": 9.737111886087835e-05, "build": 0.8, "sec": 104.0, "maxrss_gb": 0.067584}
+{"label": "phen_b10@both-Y", "dec": "bp_full", "d": 7, "p": 0.025, "r": 21, "nq": 98, "shots": 2450, "errors": 2, "pL": 0.0008163265306122449, "eps": 3.890294580743969e-05, "build": 0.9, "sec": 104.5, "maxrss_gb": 0.067584}
+{"label": "phen_b10@both-Y", "dec": "bp_full", "d": 7, "p": 0.025, "r": 21, "nq": 98, "shots": 2450, "errors": 3, "pL": 0.0012244897959183673, "eps": 5.837714535045224e-05, "build": 0.9, "sec": 104.7, "maxrss_gb": 0.053248}
+{"label": "phen_b10@both-X", "dec": "bp_full", "d": 7, "p": 0.025, "r": 21, "nq": 98, "shots": 2450, "errors": 2, "pL": 0.0008163265306122449, "eps": 3.890294580743969e-05, "build": 0.8, "sec": 106.5, "maxrss_gb": 0.079872}
