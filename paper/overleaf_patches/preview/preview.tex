@@ -1,0 +1,79 @@
+\documentclass[aps,prx,twocolumn,superscriptaddress,nofootinbib,floatfix,longbibliography]{revtex4-2}
+
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{bm}
+\usepackage{graphicx}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage[colorlinks=true,linkcolor=LinkRose,citecolor=LinkRose,urlcolor=LinkRose]{hyperref}
+\definecolor{LinkRose}{HTML}{9F1239}
+
+\usepackage{pgfplots}
+\usepgfplotslibrary{groupplots}
+\pgfplotsset{compat=1.18}
+\definecolor{xyzcode}{HTML}{E11D48}
+\definecolor{csscode}{HTML}{A8A29E}
+\definecolor{xzzxcode}{HTML}{7C3AED}
+\definecolor{ink}{HTML}{292524}
+\definecolor{stone}{HTML}{57534E}
+\definecolor{grid}{HTML}{E7E5E4}
+\makeatletter
+\newcommand{\fakelabel}[2]{\def\@currentlabel{#2}\phantomsection\label{#1}}
+\makeatother
+
+% ---------------------------------------------------------------- notation
+\newcommand{\ket}[1]{\left|#1\right\rangle}
+\newcommand{\bra}[1]{\left\langle#1\right|}
+\newcommand{\XYZ}{\ensuremath{XYZ^2}}
+\newcommand{\Xb}{\bar{X}}
+\newcommand{\Yb}{\bar{Y}}
+\newcommand{\Zb}{\bar{Z}}
+\newcommand{\plusL}{\ket{\bar{+}}}
+\newcommand{\Sz}{S_0}
+\newcommand{\pth}{p_{\mathrm{th}}}
+\newcommand{\pL}{p_L}
+\newcommand{\eff}[1]{\tilde{#1}}
+
+\def\sectionautorefname{Sec.}
+\def\subsectionautorefname{Sec.}
+\def\figureautorefname{Fig.}
+\def\tableautorefname{Table}
+\def\equationautorefname{Eq.}
+\def\appendixautorefname{Appendix}
+
+% Start the reference list in the running column. The default APS
+% \bibsection switches to one-column mode and rebalances the page above it.
+\makeatletter
+\def\bibsection{\par\vspace{1.5\baselineskip}\noindent\hfil\rule{0.5\columnwidth}{0.4pt}\hfil\par\vspace{\baselineskip}}
+\makeatother
+
+% Let columns end short instead of stretching the space between paragraphs.
+\raggedbottom
+
+\begin{document}
+\title{Patch preview: Results and appendix changes for the \XYZ{} paper}
+\date{\today}
+\maketitle
+
+\noindent This preview typesets the four Overleaf patches in \texttt{paper/overleaf\_patches/} with the paper's preamble, macros and colours. The rest of the paper is not included, because the live Overleaf files could not be read from Perlmutter. References into those parts (Table IV, Sec.~CSS map) point to placeholders here.
+\fakelabel{tab:hw}{IV}\fakelabel{sec:cssmap}{[CSS map]}
+
+\section{Relation to earlier \XYZ{} results}
+\noindent\emph{Patch \texttt{hw\_relation.tex}: replaces the first two paragraphs of the subsection; the new table goes right after Table IV.}\par\medskip
+\input{hw_relation}
+
+\section{Ranking}\label{sec:ranking}
+\noindent\emph{Patch \texttt{ranking.tex}: replaces the comment line ``\% Equal-qubit comparison''; adds Eq.~(1) and the three-panel figure.}\par\medskip
+\input{ranking}
+
+\section{Where the gap comes from}
+\noindent\emph{Patch \texttt{gap.tex}: replaces the four paragraphs and the gap figure.}\par\medskip
+\input{gap}
+
+\section{Appendix: fits and sampling}
+\noindent\emph{Patch \texttt{app\_fits.tex}: two sentences added at the end of the paragraph on sampling.}\par\medskip
+\input{app_fits}
+
+\bibliography{preview}
+\end{document}

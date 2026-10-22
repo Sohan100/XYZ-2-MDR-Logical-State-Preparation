@@ -15,3 +15,5 @@ The live abstract, introduction and conclusion could not be read from here. Chec
 - XYZ² ranks above the honeycomb code with gates (at the pure gate corner the two tie);
 - XYZ² has an advantage below threshold or at equal qubit count (it beats the CSS code under biased noise only, and never the XZZX code);
 - part of the gap to XZZX is unexplained (noisy links and idling account for all of it within errors).
+
+`preview/preview.pdf` typesets the four patches with the paper's preamble, macros and colours (built from `preview/preview.tex` with `latexmk -pdf`). It is not the whole paper: the live Overleaf files could not be read here, so references into the rest of the paper point to placeholders, and `preview.bib` adds the two entries the patches cite (`hetenyi2024spin`, `criger2016fourtwotwo`) in case the live bibliography lacks them.
