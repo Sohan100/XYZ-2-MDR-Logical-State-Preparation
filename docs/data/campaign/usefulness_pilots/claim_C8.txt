@@ -1,0 +1,36 @@
+{
+ "id": "C8",
+ "regime": "Strong Z bias (biased100, purez), equal code distance (about twice the qubits), p = 1e-3 to 3e-3",
+ "verdict": "not_useful",
+ "statement": "Measured at points and from fits; preliminary.
+
+At equal distance, XYZ^2's worse-basis error under strong bias is below XZZX's at about 1e-3 with corr, and wherever XYZ^2 BM was run. This is the below-threshold trace of XYZ^2's large pure-Z distance. 2505.03691 itself limits that advantage to the region 'close to the threshold'.
+
+p = 1e-3, corr, worse basis. XYZ^2 is lower by:
+- biased100: 2.6x, 3.0x, 6.1x at d = 5, 7, 9 (d = 9 on 11 errors, +-30%);
+- purez: 1.9x, 2.4x, 3.3x (d = 9 on 9 errors);
+- d = 11 biased100: 0.67, unresolved (1 vs 3 errors).
+
+p = 2e-3, corr:
+- biased100: the ratio rises with d (0.73, 0.79, 0.88, 1.10);
+- purez: XYZ^2 is already worse (1.00-1.55).
+
+p = 3e-3:
+- corr: 1.50-6.9x worse;
+- XYZ^2 BM against XZZX corr: 0.41-0.73 at d = 7, 0.44-0.67 at d = 9 (X basis only, 16 errors each).
+
+The BM rows are decoder-asymmetric: XZZX was never decoded with BM at d >= 11.
+
+At 1e-3, d = 5, BM gives 0.18-0.21. XYZ^2 MWPM is 6.3-845x worse than XZZX MWPM at equal d.
+
+The benefit is small. At 1e-3 it buys at most about 10% fewer rounds per logical operation (d 5.8 vs 6.2-6.4 for 1e-6 per round) at 1.6-1.8x the qubits. Qubits x d favours XZZX by 1.48-1.65x with corr (inference: about 1.2-1.3x with BM).",
+ "evidence": "docs/data/campaign/eq/points_eps.csv, corr, worse basis, r = 3d:
+- 1e-3 d = 5/7/9: XYZ^2 biased100 4.07e-6 / 1.30e-7 / 2.76e-9; purez 4.09e-6 / 9.84e-8 / 2.40e-9. XZZX 1.07e-5 / 3.92e-7 / 1.68e-8 and 7.83e-6 / 2.37e-7 / 7.95e-9.
+- 2e-3 biased100: 6.87e-5 / 5.18e-6 / 4.41e-7 / 4.10e-8 vs 9.47e-5 / 6.55e-6 / 5.01e-7 / 3.72e-8.
+- 3e-3 BM d = 7: 1.35e-5 and 1.41e-5 vs XZZX corr 3.30e-5 and 1.92e-5.
+- BM 1e-3 d = 5: biased100 Y 1.90e-6, purez Y 1.63e-6.
+pairs.csv biased100 1e-3 d = 9 uses the Y basis (1.67e-9, 7 errors).
+targets.csv: d 5.8 vs 6.4 and 5.8 vs 6.2.
+2505.03691.txt lines 335-341.",
+ "confidence": 0.75
+}

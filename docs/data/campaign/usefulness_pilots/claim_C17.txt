@@ -1,0 +1,38 @@
+{
+ "id": "C17",
+ "regime": "Phenomenological noise with bias eta = 10 (phen_b10, model of arXiv:2505.03691; not hardware), threshold. The verdict covers r = d only; XZZX is higher at r = 1-5, and r = 10 is unresolved",
+ "verdict": "competitive",
+ "statement": "Measured. Thresholds are in % of p. Each z uses stat plus syst errors (the err column of thresholds.csv) unless it is marked stat only. The table rule is paper/analysis/competitor_report.py: each code takes its weaker basis, each basis takes its best usable fss decoder, and XYZ^2 takes its better schedule. The symmetric rule (docs/data/campaign/usefulness_pilots/fairrev/sym.py) restricts XYZ^2 to the both schedule and to the mwpm, corr_gauge and bm decoders. Competitors are treated as in the table rule.
+
+r = d: XYZ^2 ties XZZX (5.539(54) vs 5.537(55), z +0.03) and XY (5.371(77), z +1.8).
+- Under the symmetric rule it is 5.450(40), 0.984 of XZZX (z -1.3), still a tie.
+- The two XYZ^2 schedules are statistical replicates here (_build_phen ignores the schedule).
+- The tie needs BP-based decoding: MWPM gives 0.57 of XZZX, corr_gauge 0.78.
+
+Other round counts. XZZX is higher at r = 1-5, and XYZ^2 is above XZZX at no r.
+- r = 1-3: XZZX is higher by 3.4 sigma or more under either rule.
+- r = 5: under the symmetric rule both-X bm 7.257(148) is below xzzx-Z bm 9.617(496) (z -4.6). The table rule's both-X bp_full fit 7.525(630) gives only a nominal tie (z -2.6, ratio 0.78), and most of its error is syst. The depth6 schedule, a statistical replicate, gives 7.419(376) under the table rule (z -3.5).
+- r = 5 caveat: XZZX's BP-OSD d = 9/11 pair crossings are 11.68(114) (Z) and 10.76(124) (X). These are stat only, with no fss fit, and lie 1.7 and 0.8 sigma above XZZX's fss entries in the same basis. If fss fits confirm both, XZZX's weaker basis becomes X at 10.76 and the table ratio drops to 0.70 (z -2.3). The X crossing alone leaves the ratio at 0.78, because Z stays the weaker basis.
+- r = 10: unresolved.
+- XYZ^2 beats XY at r = 1 (6.0 sigma). It beats XY at r = 2-3 only under the symmetric rule (5.0 and 4.1 sigma; the table fits give 2.7 and 2.2). It beats CSS by 1.78x at r = d.
+
+The best published XYZ^2 decoder for this model (BM, 4.30%, 2505.03691) reaches 0.78 of our XZZX. 2505.03691 calls the thresholds 'competitive'.
+
+Cross-model inference. Hetenyi-Wootton's Table I gives single-channel corners: p_T 4.2% and p_R 16.5% for XYZ^2, and 15.1% and 12.9% for XZZX. Their rule 1/p_ph = 1/p_T + 1/p_RR turns these into phenomenological limits of 3.35% for XYZ^2 and 6.96% for XZZX (ratio 0.48). Their XYZ^2 differs from this model in four confounded ways:
+- ZZ links;
+- two readout windows per cycle (doubling p_T alone gives 5.57 against 6.96, i.e. 0.80);
+- a matching decoder;
+- eta_T = 20 and readout-pair two-qubit error.
+Link orientation is one of four confounds, not the established cause. Under ZZ links, Z bias is the Hadamard image of 2112.06036's X-bias case. That study assumes perfect stabilizer measurements (code capacity). There the thresholds are 'similar' to XZZX, but the logical failure rates are 'significantly higher' for XYZ^2.
+
+Below threshold at equal qubits: see C31.",
+ "evidence": "/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/thresholds.csv, phen_b10 (err = stat and syst in quadrature):
+- r = d: both-X bp_full 5.539(54), bm 5.450(40), mwpm 3.135(39), corr_gauge 4.336(69); depth6 weaker basis bp_corr 5.500(71); xzzx-Z corr 5.537(55); xzzx-X mwpm 5.499(48); xy-Z bm 5.371(77); css-X bm 3.105(52).
+- r = 1: both-Y tnml 15.465(797), both-X mwpm 14.566(274) vs xzzx-Z mwpm 25.769(817) and xy-Z corr 10.490(229). Table z vs XZZX -9.0, -7.8, -3.4 at r = 1, 2, 3; symmetric -13.0, -11.8, -4.3.
+- r = 2-3, symmetric: both-Y bm 9.776(276) and both-X bm 8.200(248) vs xy-Z bm 8.097(190) and 7.048(137). Table fits: depth6-X bm 9.822(605) and both-X bp_full 8.508(641). At r = 2-3, xzzx-Z corr 15.409(389) and bm 12.477(959).
+- r = 5: both-X bp_full 7.525(630) (stat 0.171, syst 0.606), both-X bm 7.257(148); depth6-Y bp_corr 7.419(376); xzzx-Z bm 9.617(496), xzzx-X mwpm 9.819(207). Pair crossings d = 9/11, not usable under competitor_report.py usable(): xzzx-X bposd 10.764(1.239), xzzx-Z bposd 11.677(1.139). Replaying code_values(): X crossing only gives 9.617 and 0.782; both give 10.764 and 0.699, z (7.525 - 10.764)/hypot(0.630, 1.239) = -2.33.
+- r = 10: depth6-X bp_corr 6.844(332), both-X bm 6.484(180); xy-Z bm 6.245(379); every xzzx-X entry is a drift-flagged pair crossing.
+Rules: /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/paper/analysis/competitor_report.py (usable, code_values, xyz2_values) and /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/usefulness_pilots/fairrev/sym.py (symmetric rule; its output reproduces r = d 0.984 and z -1.28, r = 5 ratio 0.755). /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/competitors_table.csv (phen_b10 rows; r = 5 ratio 0.782). /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/competitors_crossings.csv (phen_b10 xzzx bposd r = 5 d = 9/11). _build_phen: /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/src/mdr/ft/ft_mdr_circuit.py line 551 (no use of the schedule).
+Papers in /pscratch/sd/s/sohan100/ftmdr_tools/noncss/papers/: 2505.03691.txt lines 26-29, 333, 865-873; 2306.17786.txt Table I (lines 395-440), lines 570-577 (p_ph rule), 1080 (ZZ links), 1274-1277 (XZZX p_ph 6.9% stated), 2042 (two idling phases); 2112.06036.txt lines 20-22, 132, 657 (perfect stabilizer measurements) and 1105-1110 (X bias: 'similar thresholds', failure rates 'significantly higher' for XYZ2).",
+ "confidence": 0.82
+}

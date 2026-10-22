@@ -1,0 +1,30 @@
+{
+ "id": "C7",
+ "regime": "Strong Z bias (biased10/100, purez), XYZ^2 vs the square, untailored rotated CSS code only",
+ "verdict": "not_useful",
+ "statement": "Measured. This is a relative win over CSS only.
+
+Threshold (weaker basis, best decoder per code; z uses stat plus syst errors for fss fits and stat errors only for pair crossings, which have no syst estimate):
+- r = d: XYZ^2 beats CSS by 1.16-1.38x (6.7-17 sigma). The win needs BP-based decoding of XYZ^2 (bp_corr, bp_full or belief-matching). It holds with belief-matching on both codes (1.19 / 1.33 / 1.44x, 8.8 / 6.9 / 21.2 sigma). With MWPM on both codes XYZ^2 is lower at every r (0.72-0.90x), by 16.5-25 sigma at r = d (0.73-0.76x).
+- r = 1, 2, 3, 5 and 10: ties. XYZ^2 is at most 2.9 sigma ahead (purez r = 10) and CSS at most 1.5 sigma ahead (purez r = 1).
+- Check outside the rules (docs/fair_comparison.md line 25 counts only fss fits): CSS's BP-OSD and Tesseract decoders have pair crossings only. Admitting their d = 9/11 crossings raises CSS in 8 of the 9 rows at r = 2-5 and under purez at r = d (0.630(32)%). Every row at r = 1-10 stays a tie (CSS at most 2.1 sigma ahead, biased10 r = 3). The biased100 and purez r = d rows stay wins (8.7 and 6.9 sigma). Under biased10 at r = d the Tesseract crossing 0.6448(804)% matches the fss value 0.6447(97)% to 0.0001 percentage points, and its 8x larger error alone cuts z to 1.3.
+
+Equal qubits (biased100 and purez only; brackets are 68% intervals):
+- With matched corr decoding XYZ^2 is 3.5-58x better and needs 0.50-0.70 of CSS's qubits. One pair rests on 1 XYZ^2 error. The CSS targets at 2e-3 and 3e-3 and the XYZ^2 targets at 3e-3 are extrapolated.
+- With MWPM it is 1.7-9.3x worse, so the equal-qubit gain depends on the gauge-aware decoder.
+
+Not a use case. XZZX runs on a subset of the same gate types and dominates XYZ^2 (C5, C6).
+
+Rectangular or tailored CSS patches are the usual biased-noise baseline in the literature and were not run (inference: they would likely remove this relative win). The repo's own rules fix the competitor set as CSS, XZZX, XY and the honeycomb, with XZZX and XY as its bias-tailored codes. Their absence is therefore a literature-standard gap, not a rule violation.",
+ "evidence": "/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/thresholds.csv, recomputed with usable(), code_values() and xyz2_values() of /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/paper/analysis/competitor_report.py; weaker basis; err = stat plus syst; order biased10 / biased100 / purez:
+- r = d: XYZ^2 0.748(12) / 0.836(5) / 0.857(7)% (bp_corr / bp_full / bp_full) vs CSS 0.645(10) / 0.615(25) / 0.620(13)%; ratio 1.160 / 1.360 / 1.382; z 6.7 / 8.7 / 16.6.
+- r = 10 z 0.8 / 1.8 / 2.9; r = 5 z 0.0 / 2.0 / 2.3; r = 3 z -0.9 / 0.4 / 0.8; r = 2 z -1.3 / -0.7 / -0.5; r = 1 z -1.4 / -0.9 / -1.5.
+- Stat errors only: purez r = 1 z -3.25; biased100 r = 5 3.6; purez r = 5 3.6; purez r = 10 4.95.
+- Matched decoders at r = d (fss rows, stat plus syst): MWPM 0.444(4) / 0.450(6) / 0.452(5)% vs 0.610(5) / 0.592(6) / 0.604(6)%, ratio 0.728 / 0.759 / 0.748, z -25.2 / -16.5 / -19.2; MWPM at r = 1-10 ratio 0.716-0.899, z -2.3 (biased100 r = 1) to -11.7. XYZ^2 corr_gauge vs CSS corr 0.625(6) / 0.656(6) / 0.663(14)% vs 0.645(10) / 0.615(8) / 0.620(13)%, ratio 0.97 / 1.07 / 1.07, z -1.7 / 4.2 / 2.3. Belief-matching on both: ratio 1.19 / 1.33 / 1.44, z 8.8 / 6.9 / 21.2. MWPM ratios also in /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/competitors_table.csv (xyz2_mwpm / css_mwpm).
+- css-X d = 9/11 non-drift pair crossings (stat only) above the fss entry: Tesseract 1.575(141)% (biased10 r = 2), 1.546(128)% (biased100 r = 2), 1.403(94)% (biased100 r = 3), 1.426(162)% (purez r = 3), 1.120(163)% (biased10 r = 5), 1.056(136)% (biased100 r = 5), 0.6299(324)% (purez r = d), 0.6448(804)% (biased10 r = d, vs css-X:corr fss 0.6447(97)%); BP-OSD 1.554(150)% (biased10 r = 3), 1.056(122)% (purez r = 5). Resulting z: r = 2 -1.1 / -0.6; r = 3 -2.1 / -0.8 / -0.6; r = 5 -0.2 / 0.8 / 0.8; r = d 1.3 (biased10) and 6.9 (purez). No r = 1 or r = 10 d = 9/11 crossing exceeds the fss entry; the biased100 r = 1 css-X Tesseract crossing 2.170(113)% exceeds the bm fss 2.140(149)% but uses d = 7/9.
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/eq/pairs.csv XYZ^2/CSS, r = 3d, biased100 and purez rows only, 68% (Wilson-based) intervals: corr 0.0173 [0.0137, 0.0218] (purez, p = 2e-3, 483/449) to 0.287 [0.263, 0.314] (biased100, 3e-3, 99/97); biased100 1e-3 483/449 is 0.123 [0.037, 0.41] with err_xyz2 = 1 vs 16; MWPM 1.67 [1.55, 1.80] (purez 3e-3, 99/97) to 9.27 [8.27, 10.40] (purez 1e-3, 323/337).
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/eq/targets.csv, corr, 1e-6 per round, XYZ^2/CSS qubit ratios at p = 1e-3 / 2e-3 / 3e-3: biased100 0.700 / 0.571 / 0.504, purez 0.678 / 0.552 / 0.499. extrapolated = True for CSS at 2e-3 and 3e-3 (3e-3: d = 23.7 and 23.4 from d_last = 15) and for XYZ^2 at 3e-3 (n = 566.3 and 546.6, d = 11.91 and 11.70 from d_last = 11).
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/equal_qubit_comparison.md lines 28 and 40 (68% intervals) and 87 and 90 ('566 extrap.', '1,124 extrap.', '547 extrap.', '1,096 extrap.').
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/fair_comparison.md lines 3 and 13-29 (line 17: biased* models use gates for every code; line 25: only fss fits over d >= 11 count, crossings of two distances do not).",
+ "confidence": 0.85
+}

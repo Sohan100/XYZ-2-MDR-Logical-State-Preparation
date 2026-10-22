@@ -1,0 +1,92 @@
+{
+ "id": "C37",
+ "regime": "Device-like variants of the hw_tr corner: gate-layer dephasing (fraction f of p_T on every gate-layer idle site), gate and readout error, readout duration, two readout windows, bias. 99/97 qubits, r = 3d, eta = 20 unless stated; pilots in docs/data/campaign/usefulness_pilots/{hwrev_q7,cons,litrev,c37}",
+ "verdict": "not_useful",
+ "statement": "Measured in pilots, except where marked as inference or untested.
+
+Statistics. R is the XYZ^2/XZZX error per round, weaker basis against weaker basis (XYZ^2 BM against square XZZX corr), with its Poisson error. Above 1 means XYZ^2 is worse. Significance follows C33 and is stat only: z = |ln R|/sigma, the same form for leads and losses, quoted as (a) / (b) / (c). (a) is Poisson. (b) scales XYZ^2's count by its own replicate scatter, f = max(1, sqrt(chi2/dof)), or f = 1.7 for a single run, and is read as Student t when f > 1 is estimated. (c) adds a log-rate variance delta^2 per XYZ^2 BM run, quoted at delta = 0.15 and 0.25. A lead or loss counts only at 3 sigma or more under all three.
+
+Scope of the verdict. Here not_useful means that no device-like variant establishes an XYZ^2 advantage, and that at the example device's surface-code QEC-optimal readout XYZ^2 has a measured loss. The verdict rests on four things:
+1. Measured: no variant gives a lead that holds under all three error models. The f = 0 mixtures give nominal leads only (m1 not established, run A a tie). At f = 0.02 and f = 0.05 there is no edge.
+2. Measured: at the QEC-optimal readout (run E, f = 0) XYZ^2 loses, for run offsets up to delta 0.22.
+3. Measured, mapped to the device with inference (C38): XZZX at E (6.60e-4 per round) is 1.72x below XYZ^2's best tested value (1.13e-3, at E) and 2.0x below XYZ^2 at m1 (1.34e-3, f = 0). Gate-layer dephasing raises XYZ^2's error further (measured at m1). XYZ^2 at the exact maximum-fidelity point is untested (C38).
+4. Inference: Hetenyi-Wootton's XYZ^2 layout has two readout windows per cycle. These mixtures omit the second one, which adds idling to XYZ^2 only.
+The verdict does not assume that the device's f is 0.02 or more. At the maximum-fidelity readout the inferred f lies inside the untested window 0 < f < 0.02 (below), so whether the m1 nominal lead survives there is untested. Item 3 still holds unless XYZ^2's error at its own optimal readout, which is untested, is at least 1.72x below its value at E. Whether BM can decode in real time is also untested. This repository's Python BM takes 1.1-1.7 ms per round at d = 5 (sd6 timing), about 90-190x a spin cycle of roughly 9-13 us.
+
+The f = 0 mixtures are C35's idealized hw_tr edge with small gate and readout errors added.
+
+Gate and readout error, f = 0:
+- m1 (p_T 4%, 0.1% gates, 1% readout; four runs, 258 errors): R 0.70(4); z 5.7 / 2.0 (t = 3.44 on 3 dof) / 3.65, 2.55. A nominal lead, not established.
+- Run A (0.3% gates, otherwise as m1; one run, 174 errors): R 0.75(6); z 3.75 / 2.2 / 1.7, 1.1. A tie.
+- m1's 0.1% gate error is the example device's value. Hetenyi-Wootton cite demonstrated spin gate fidelities above 99% (lines 33-36).
+
+Gate-layer dephasing added to m1 (q = f p_T on every gate-layer idle site):
+- f = 0.02 (two runs, 191 errors): R 1.02(7); z 0.3 / 0.1 / 0.2, 0.1. A tie with no edge.
+- f = 0.05 (one run, 123 errors in L_Y): R 1.27(12); z 2.65 / 1.6 / 1.4, 0.9. A tie, nominally worse.
+- ln R moves from m1 by 3.9 sigma (Poisson) at f = 0.02 and 5.4 at f = 0.05. Under (c) the shifts are 2.3 and 2.97 at delta 0.15, and 1.6 and 2.0 at delta 0.25. The loss of the m1 lead is therefore a trend, not an established change.
+- XYZ^2's L_X rises 51% at f = 0.02 and 96% at f = 0.05. XZZX's rises 3.4% and 9.4%. XYZ^2 d = 5 has 254 gate-layer idle sites per round against 52 for XZZX d = 7 (4.9x). Their readout-window sites are 100 and 98.
+- f between 0 and 0.02 is untested.
+
+Device f (inference). Neither the repository nor Hetenyi-Wootton give gate durations, so a 100 ns gate layer is assumed. Their dephasing model is Gaussian decay from low-frequency noise (Eqs. 4 and 12, T2 = 50 us). Under it, an unechoed layer next to the readout-and-reset window gives f = 0.015 at the maximum-fidelity readout (12.8 us window) and 0.022 at the QEC-optimal readout (8.8 us window). Dephasing linear in time gives 0.008 and 0.011. At the maximum-fidelity readout, which m1 approximates, the device's f therefore lies inside the untested window. Hetenyi-Wootton suggest dynamical decoupling during idling to lengthen T2 (lines 338-341). Under Eq. 4, f is about twice the layer time over the window time whatever T2 is. So f is near 0 only if the gate-layer idles themselves are echoed.
+
+Readout duration:
+- Run E uses the rotated surface code's QEC-optimal readout time for the example device (5.8 us): p_T 1.5%, p_R 2.7%, pG 0.1%, f = 0. It has two runs (56 and 56 errors, chi2 0.01 on 1 dof). XYZ^2 L_Y 1.13e-3 against XZZX L_X 6.60e-4 gives R 1.72(16); z 5.7 / 5.7 / 3.8, 2.7. A loss for run offsets up to delta 0.22.
+- In the better bases (XYZ^2 L_X, one run, 43 errors, against XZZX L_Z 5.77e-4), R is 1.49(23); z 2.6 / 1.5 / 1.85, 1.4. A tie, nominally worse.
+- Their Eqs. 6, 8 and 12 give p_T2 1.53% (p_T about 1.6% at eta = 20) and p_RR 3.1% with their 0.5% reset error. Run E's p_T and readout flip are both slightly below the device's.
+- p_T is lower at E than in m1, and the phen_b10 edge also shrinks at low p (C31). The effects of readout and p_T are therefore confounded.
+- Each code's own optimum is untested. Eq. 14 with the repository's thresholds puts it at about 7.3 us for XYZ^2 and 7.9 us for XZZX.
+
+Not established:
+- Bias, measured at p_T 3% only. eta = 10 gives R 0.81(8) (z 2.1 Poisson), eta = 20 gives 0.68(8) (3.3 / 3.3 / 2.45, 1.8, not established) and eta = 100 gives 1.14(19) (0.8 Poisson). The eta = 10 and eta = 100 values differ from eta = 20 by 1.1 and 2.5 sigma (Poisson). Whether eta = 10 shows an edge at p_T 4-6%, where the eta = 20 ratio is 0.61, is untested. Hetenyi-Wootton expect eta of order 10 (line 342). For the example device, eta = 20 needs a data T1 of about 2-3 ms (Eq. 5), and T1 = 10 ms would give eta of about 70-100 (inference).
+- Two readout windows per cycle (inference from hw_tr runs, an estimate rather than a measurement):
+  - Crude model at the repository's 2:1 qubit ratio: XYZ^2 at p_T 6% against XZZX d = 7 at 3%. XYZ^2 is 6.3x worse.
+  - Hetenyi-Wootton's layout (4d^2 vs 3d^2 qubits): XYZ^2 d = 5 (100 qubits) at 6% is about 0.96x XZZX d = 5 (75 qubits) at 3%. It is about 2.0x worse than XZZX at 100 qubits (log-interpolated in d) and about 2.5x worse than XZZX d = 6 (108 qubits).
+  - Quasi-static dephasing without an echo between the two windows would make XYZ^2 worse.
+- SWAPs. Hetenyi-Wootton's layouts need 1 or 3 SWAPs per plaquette type for both codes and none for XYZ^2's links. SWAPs are therefore not clearly an XYZ^2 penalty.
+
+Not modelled in these mixtures:
+- a separate reset error (their p_res is 0.5%, which Eq. 8 adds to the readout flip);
+- single-qubit gate error (g1q = False);
+- readout-pair two-qubit error;
+- quasi-static (time-correlated) dephasing.",
+ "evidence": "All pilot paths are under /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/usefulness_pilots/.
+
+hwrev_q7 (mixg.py: hw_tr readout-window dephasing plus q = f*pT on every gate-layer idle site; XYZ^2 d = 5 BM, both schedule, 99 qubits, r = 15; XZZX d = 7 corr, 97 qubits, r = 21; eta = 20; no single-qubit or reset error):
+- A (pG 0.3%, f = 0): A_xyz2_X 3.850e-3 (174/3179), A_xyz2_Y 3.144e-3 (143/3168); A_xzzx_X 5.116e-3 (57,973 errors).
+- m1 (f = 0): D0_xyz2_X 64/3269, cons/m1_x_X_a 69/3187, cons/m1_x_X_b 45/3201, litrev/m1_xyz2_X 80/3401 (litrev/mix.py, same noise, g1q False). Pooled 258/13,058, 1.342e-3, replicate chi2 8.29 on 3 dof. XZZX cons/m1_z_X 1.916e-3 (34,217).
+- f = 0.02: C_xyz2_X 108/3237 and D2_xyz2_X 83/3238, pooled 2.023e-3 (chi2 3.28 on 1); C_xzzx_X 1.982e-3 (32,049).
+- f = 0.05: B_xyz2_Y 2.664e-3 (123/3195), B_xyz2_X 2.633e-3 (122/3205); B_xzzx_X 2.096e-3 (33,367), B_xzzx_Z 1.588e-3.
+- E (pT 1.5%, pR 2.7%, pG 0.1%, f = 0): E_xyz2_Y 56/3379 and E2_xyz2_Y 56/3308, pooled 1.134e-3 (chi2 0.01 on 1); E_xyz2_X 8.576e-4 (43/3383); E_xzzx_X 6.603e-4 (11,601), E_xzzx_Z 5.765e-4 (9941).
+
+Ratios with Poisson errors (cons2/pool.py): m1 0.700 +- 0.044; A 0.752 +- 0.057; f = 0.02 1.021 +- 0.074; f = 0.05 Y 1.271 +- 0.115, X 1.256 +- 0.114; E 1.718 +- 0.163; hw_tr p = 3%: eta 10 0.807 +- 0.082, eta 20 0.679 +- 0.080, eta 100 1.141 +- 0.191.
+
+Log-form z, (a) / (b) / (c) at delta 0.15, 0.25, stat only:
+- From r6om/z.py: m1 5.71 / 3.44 Gaussian (2.0 as t on 3 dof) / 3.65, 2.55; A 3.75 / 2.21 / 1.70, 1.09; E 5.70 / 5.70 / 3.80, 2.70, largest delta for 3 sigma 0.217; hw_tr 3% eta 20 3.30 / 3.30 / 2.45, 1.83; eta 10 2.12.
+- Same formulas on the counts above: f = 0.02 0.28 / 0.12 (t on 1 dof) / 0.16, 0.11; f = 0.05 Y 2.65 / 1.56 / 1.37, 0.90; E better bases 1.488 +- 0.227, 2.60 / 1.53 / 1.85, 1.36; eta 100 0.79.
+- Shift of ln R from m1: f = 0.02 0.377 (3.93 Poisson; 2.33, 1.59 under (c)); f = 0.05 Y 0.596 (5.43; 2.97, 1.98).
+- Differences between bias values (Poisson, log form): eta 10 vs 20 1.11; eta 100 vs 20 2.53.
+
+L_X rises from m1 X 1.342e-3: 2.023e-3 (+51%) and 2.633e-3 (+96%). XZZX X 1.916e-3 to 1.982e-3 (+3.4%) and 2.096e-3 (+9.4%).
+Best tested points: XZZX E_xzzx_X 6.603e-4; XYZ^2 E pooled Y 1.134e-3 (1.72x) and m1 X 1.342e-3 (2.03x, ln ratio 11.3 sigma Poisson).
+
+Idle sites per round: c37/cnt_idle2.py (FTMDRCircuit d = 5, both schedule, and competitor_circuit('xzzx', 7), counted at r and r + 1) prints XYZ^2 254 gate-layer and 100 readout-window sites, XZZX 52 and 98.
+
+hw_tr (cons/hwtr.py): cons/x3_* and cons/z3_* (p = 0.03, eta 20); cons/e10_*, cons/e10b_*, cons/e100_* (p = 0.03); litrev/hwtr4_xyz2_X (p = 0.04); litrev/hwtr_xyz2_Y 6.678e-4 (218 errors, p = 0.06); cons/z3_X 1.054e-4 (6166 errors). XZZX d = 5 X at p = 0.03, corr, r = 15: 6.920e-4 to 6.983e-4 in independent runs (66,466 to 99,843 errors), from python cons/hwtr.py xzzx X 5 0.03 corr 70 with the sample batch capped at 20,000 shots. Not archived. Lambda(5 to 7) at 3% is 6.6.
+
+Decoder timing: /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/eq/timing.csv, rows xyz2,X,sd6,bm,5 at p = 1e-3, 2e-3, 3e-3: 0.0170, 0.0223, 0.0248 s per 15-round shot (1.13-1.65 ms per round). hwrev_q7/E_xyz2_Y ran 3379 shots in 79 s including the build.
+
+Hetenyi-Wootton, /pscratch/sd/s/sohan100/ftmdr_tools/noncss/papers/2306.17786.txt:
+- lines 33-36 (demonstrated spin fidelities above 99%);
+- Eq. 4, lines 306-325 (dephasing from low-frequency noise, Gaussian decay); Eq. 5, lines 326-334;
+- lines 338-342 (dynamical decoupling lengthens T2; eta of order 10);
+- Eqs. 6 and 8, lines 478-510; Eq. 12, lines 624-628; Eq. 14, lines 657-670;
+- Table I, lines 400-460 (qubits per d^2: XZZX 1 + 2, XYZ^2 2 + 2);
+- line 693 (example device); lines 900-905 (9.8 and 5.8 us);
+- Fig. 1 caption line 394, lines 1886-1893 and 1967 (SWAPs);
+- line 2042 (two idling phases per cycle).
+
+Device f for a 0.1 us layer: the Gaussian marginal (t/T2^2) e^{-t^2/T2^2} x 0.1 divided by p_T2(t) gives 4.80e-4/0.0317 = 0.015 at t = 12.8 us and 3.41e-4/0.0153 = 0.022 at t = 8.8 us. Linear in time: 0.1/12.8 = 0.0078 and 0.1/8.8 = 0.011. A Markovian T2 of 50 us would give p_T = (1 - e^{-12.8/50})/2 = 11% per window, not Eq. 12's 3.2%.
+
+Eq. 14 iterated from tau*_R = 9.76 us, with p_th_R from /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/hw/thresholds.csv (hw_rr: XYZ^2 X corr_gauge 10.63%, XZZX X BM 10.32%) and p_th_T from /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/hetenyi_wootton_check.md section 4 (hw_tr crossings: XYZ^2 X 10.49 +- 0.55%, XZZX Z 18.95 +- 1.60%): 7.28 us and 7.92 us. Eq. 12 at 5.8 + 3 us gives p_T2 1.525%. Eqs. 6 and 8 give p_R 2.66% and p_RR 3.13%. Eq. 5 with eta = 20 gives a data T1 of 2.05 ms (12.8 us window) and 2.98 ms (8.8 us); T1 = 10 ms gives eta 101 and 69.",
+ "confidence": 0.65
+}

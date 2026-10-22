@@ -1,0 +1,82 @@
+{
+ "id": "C11",
+ "regime": "r = 1 preparation at fixed footprint or fixed device, MWPM/corr/corr_gauge/BM pilots, against square and rectangular surface-code patches: SI1000 at p = 1e-3 on footprints of 35-322 qubits (XYZ^2 d = 3, 5, 7), SD6 at p = 1e-3 at 35/31 and 99/97 qubits, and the trapped-ion device points with crosstalk (Helios 98 qubits, H2 56)",
+ "verdict": "not_useful",
+ "statement": "Measured in pilots. Archived outputs are in /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/usefulness_pilots/bq, ovc and rev5. Rectangular patches were built with the archived script usefulness_pilots/r6rev4/rect.py. The rectangle outputs, the SD6 35/31-qubit runs, the XYZ^2 both-schedule L_Y runs and the ion timing runs are not archived. On every footprint and device in this regime, a surface-code patch that fits prepares the state better than XYZ^2 does in the basis MDR protects (L_X), with the best XYZ^2 decoder run at each point. No tested fixed footprint remains where XYZ^2 leads. Significances use Poisson errors on the log ratio, stat only (C33 model a). XYZ^2 BM comparisons also give C33's single-run inflation f = 1.7 (model b) and run offset delta = 0.25 (model c).
+
+SI1000, r = 1, p = 1e-3:
+- At 35-98 qubits XYZ^2 fits only d = 3 (35 qubits, L_X), with 1.139(33)e-3 (corr_gauge), 1.201(34)e-3 (MWPM) and 1.170(58)e-3 (BM). A CSS 6x3 rectangle on 35 qubits (fault distance 6 in the X basis) gives 6.35(16)e-5 for |+>. The 3x6 orientation gives 6.23(16)e-5 for |0>, and XZZX 6x3 gives 6.28(16)e-5. XYZ^2 is 18-19x worse, at more than 11 sigma under all three error models.
+- Square patches alone would leave XYZ^2 ahead below 49 qubits. CSS D = 4 on 31 qubits (1.72-1.81e-3) and XZZX D = 4 (1.78-1.89e-3) are 1.43-1.66x above XYZ^2 d = 3 (MWPM and corr_gauge, at least 9.7 sigma). From 49 qubits, square CSS D = 5 (3.09-3.26e-4) is 3.5-3.9x below XYZ^2 d = 3.
+- In its other basis the 6x3 patch has fault distance 3 and gives 5.15(10)e-3. That is worse than XYZ^2's L_Y: 2.77(7)e-3 with the both schedule (corr_gauge) and 3.4498(35)e-3 with depth6 (MWPM). For |0>, one uses the 3x6 orientation instead. If one fixed layout must serve both bases, square CSS D = 4 on 31 qubits beats XYZ^2's L_Y by 1.53-2.01x (at least 12.5 sigma, stat only). So XYZ^2 loses at 35 qubits in either framing.
+- Against square CSS patches only, log-interpolated, XYZ^2 needs 0.98-0.99x, 1.23-1.24x and 1.33x the qubits of a CSS patch with the same error, at 35, 99 and 195 qubits. The 1.33 uses CSS's D = 9 Z basis, the only one run.
+- At 99/97, XYZ^2 corr_gauge d = 5 (1.184(34)e-4) is 2.5-2.7x worse than square CSS d = 7 with corr (22.6-24.0 sigma). XYZ^2 BM (1.01(16)e-4, 38 errors) is 2.1-2.3x worse. That is 4.6-5.0 sigma under model a but 2.5-3.0 sigma under models b and c, so the square patch alone does not establish this loss. A CSS 8x6 rectangle on 95 qubits (fault distance 8) gives 1.430(39)e-5. That is 7.1x below XYZ^2 BM (6.5-11.9 sigma across the three models) and 8.3x below corr_gauge.
+- At 195/161, XYZ^2 d = 7 is 1.74x worse than CSS D = 9 Z (7.3 sigma). This covers footprints up to 322 qubits, where XYZ^2 fits at most d = 7. Only corr_gauge was run for XYZ^2 at d = 7. Inference: at d = 5 BM is 1.17x below corr_gauge, and the same gain at d = 7 would still leave XYZ^2 1.49x worse.
+- Footprints of 323 qubits and more (XYZ^2 d = 9 and up) were not run. Inference: XYZ^2 loses there too, since its qubit ratio against square CSS grows from 0.98 to 1.33 between 35 and 195 qubits.
+- SI1000 does not charge the degree-6 couplings of XYZ^2's circuit (four qubits at d = 3, sixteen at d = 5, against maximum degree 4 for the surface codes). This favours XYZ^2.
+
+SD6, r = 1, p = 1e-3:
+- At 35/31, XYZ^2 d = 3 L_X (corr_gauge 4.14(10)e-4, MWPM 4.13(10)e-4) ties square CSS D = 4 (X 3.95(10)e-4, Z 3.85(10)e-4) and XZZX D = 4 (X 3.97(10)e-4). The ratios are 1.04-1.07x, at most 2.1 sigma. A CSS 6x3 rectangle on 35 qubits gives 7.25(19)e-6, 57x below XYZ^2.
+- At 99/97, XYZ^2 corr_gauge d = 5 (2.082(64)e-5) is 8.1x worse than CSS-X d = 7 and 7.7x worse than XZZX-X d = 7 (29-30 sigma).
+
+Untested: no other campaign noise model was run at a fixed footprint of 35-48 qubits. This covers helios_p and h2_p away from their device points, and helios_p_noxt, h2_p_noxt, biased10, biased100, purez, hyb, hyb_lr2, em3, phen, phen_b10, sd6_il, sd6_lr2, sd6_lr3 and si1000_lr2. Inference: under the SD6 and SI1000 variants, a 6x3 rectangle (fault distance 6, against 4 for XYZ^2's L_X at d = 3) would likely win as it does under SI1000 and SD6. No inference is drawn for the biased, ion, pair-measurement and phenomenological models.
+
+Helios, |+> preparation, p = 1e-3: XYZ^2 d = 5 is 2.8-2.9x worse than CSS-X d = 7, 8.7-9.5x worse than XZZX d = 7, and 35.5-37.3x worse than CSS-Z |0>.
+- The pilot uses the standard 99-qubit circuit, one qubit more than the device. Its error matches the manuscript's value for the 95-qubit ancilla-reuse variant (8.4e-5).
+- The reuse variant's mid-round step has crosstalk but no memory dephasing, which slightly favours XYZ^2.
+
+H2 (56 qubits, p = 1.875e-3): XYZ^2 d = 3 (35 qubits) is 4.7-4.8x worse than CSS-X d = 5 (49 qubits), 9.7-10.0x worse than XZZX d = 5, and 25.8-26.5x worse than CSS-Z.
+
+Ion timing. The ion models charge memory dephasing per gate layer. At r = 1 a data qubit gets 8 memory steps in XYZ^2 d = 5 against 6 in CSS and XZZX d = 7. The two-qubit gate counts are nearly equal (170 vs 168). This comes from the archived script usefulness_pilots/r8/memcount.py. As a proxy for a timing model based on gate count, an unarchived pilot scaled XYZ^2's memory dephasing by 6/8. That lowers its Helios corr_gauge error from 8.64(11)e-5 to 5.70(9)e-5, a factor of 1.52(3). XYZ^2 then stays 1.91(7)x worse than CSS-X d = 7 (18.5 sigma) and 5.95-6.22x worse than XZZX d = 7.",
+ "evidence": "Root R = /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation; P = R/docs/data/campaign/usefulness_pilots. Quoted errors are binomial standard errors, stat only. Significances: z = |ln R| / sqrt(f1^2/N1 + 1/N2 + delta^2) over the error counts N (C33 item 4). Model a has f1 = 1 and delta = 0, model b has f1 = 1.7 on XYZ^2 BM, and model c has delta = 0.25 (0.15 also given).
+
+P/bq/si.log (SI1000, p = 1e-3, r = 1):
+- XYZ^2 depth6 L_X: corr_gauge d = 3/5/7 1.139(33)e-3 (1194 errors), 1.184(34)e-4 (1242), 1.125(60)e-5 (354); MWPM d = 3 1.201(34)e-3 (1259); BM d = 5 1.01(16)e-4 (38). No other XYZ^2 decoder was run at d = 7.
+- CSS D = 4 (31 qubits): X/Z corr 1.794(41)e-3 (1881) / 1.715(40)e-3 (1798), MWPM 1.784(41)e-3 (1870) / 1.723(41)e-3 (1806). XZZX D = 4 corr: X 1.887(42)e-3, Z 1.784(41)e-3.
+- CSS D = 5 (49) 3.085(86)e-4 to 3.255(88)e-4. D = 7 (97): X 4.73(14)e-5 (1189), Z 4.40(13)e-5 (1107). D = 9 Z (161) 6.47(34)e-6 (353).
+- Ratios and z (model a): d = 3 vs D = 5 3.50-3.89x (at least 31.6 sigma); corr_gauge d = 5 vs D = 7 2.51-2.69x (22.6-24.0); d = 7 vs D = 9 Z 1.74x (7.3).
+- BM d = 5 vs D = 7: 2.14-2.29x, z 4.6-5.0 (a), 2.7-3.0 (b), 2.5-2.8 (c; 3.4-3.7 at delta 0.15). A Wald difference test gives 3.3-3.5.
+- d = 7 BM inference: corr_gauge/BM at d = 5 is 1.184e-4/1.009e-4 = 1.17; 1.125e-5/1.17 = 9.6e-6, which is 1.49x the CSS D = 9 Z value.
+- Log-interpolated qubit ratios against square CSS: 0.98-0.99, 1.23-1.24, 1.33.
+- Footprint coverage: XYZ^2 takes 4d^2-1 qubits and FTMDRCircuit requires odd d, so d = 3 covers 35-98 qubits, d = 5 99-194 and d = 7 195-322. d = 9 (323 qubits) was not run.
+
+P/ovc/resr1.jsonl:
+- XYZ^2 d = 3: MWPM 1.1698(21)e-3 (313,454 errors), BM 1.170(58)e-3 (411), depth6-Y MWPM 3.4498(35)e-3 (985,268).
+- CSS D = 4: CSS-Z MWPM 1.7192(23)e-3 (556,163), corr 1.7227(31)e-3 (313,329); CSS-X corr 1.8117(29)e-3 (391,658), MWPM 1.8115(22)e-3 (694,246).
+- Square-patch lead of XYZ^2 at 35/31: 1.43x (MWPM vs CSS-Z corr, 9.7 sigma) to 1.59x (corr_gauge vs CSS-X corr, 16.0 sigma); against XZZX 1.49-1.66x (at least 10.8 sigma).
+
+Rectangles, script P/r6rev4/rect.py:
+- The script subclasses mdr.ft.competitor_circuits.RotatedSurfaceLayout to dx x dy inside CompetitorCircuit at run time. It uses the same SCHEDULE, frame and noise, takes the logical as column x = 0 for X and row y = 0 for Z, and gets the fault distance (fd) from stim search_for_undetectable_logical_errors. The repository is not modified.
+- Run on login30 with the batch cap lowered from 524,288 to 262,144 shots (line 51, the only difference), which affects memory only. Outputs are not archived: /tmp/claude-108819/-pscratch-sd-s-sohan100/b9bb5492-172d-4149-9bf3-b4e9300d223c/scratchpad/c11r7/rect.txt. Peak RSS 0.12-0.15 GB, at most 95 s per run.
+- SI1000, p = 1e-3, r = 1, corr: CSS 6x3 X (35 qubits, fd 6) 6.35(16)e-5 (1514 errors in 23.85M shots); CSS 3x6 Z (fd 6) 6.23(16)e-5 (1518); XZZX 6x3 X (fd 6) 6.28(16)e-5 (1514); CSS 6x3 Z (fd 3) 5.145(99)e-3 (2696); CSS 8x6 X (95 qubits, fd 8) 1.430(39)e-5 (1327 in 92.8M).
+- Check: CSS 4x4 X (fd 4) gives 1.741(41)e-3, within 0.9 sigma of the bq/si.log square D = 4 X corr.
+- z: XYZ^2 d = 3 (corr_gauge, MWPM) vs 6x3, 3x6 and XZZX 6x3 is 17.9-19.3x, z 74.6-77.6. BM 1.170(58)e-3 vs CSS 6x3 is 18.4x, z 52.4 (a), 33.2 (b), 11.4 (c). XYZ^2 BM d = 5 vs 8x6 is 7.06x, z 11.9 (a), 7.1 (b), 6.5 (c). corr_gauge d = 5 vs 8x6 is 8.28x, z 53.5.
+
+XYZ^2 both schedule, SI1000 d = 3, r = 1 (P/bq/r1.py, output c11r7/both.txt, not archived):
+- L_Y corr_gauge 2.773(73)e-3 (1453 errors), MWPM 2.809(73)e-3 (1472). L_X corr_gauge 1.257(35)e-3.
+- Both-schedule L_Y vs CSS D = 4 (bq/si.log and ovc/resr1.jsonl values): 1.53-1.64x, 12.5-18.8 sigma. The minimum, 12.5 sigma, is corr_gauge vs si.log CSS-X corr 1.794(41)e-3 (1.55x). depth6-Y MWPM vs CSS D = 4: 1.90-2.01x, at least 28.3 sigma.
+
+SD6, 35/31 qubits, r = 1, p = 1e-3 (P/bq/r1.py and rect.py; c11r7/sd6sq.txt, not archived; peak RSS at most 0.39 GB):
+- XYZ^2 d = 3 depth6 L_X: corr_gauge 4.137(99)e-4 (1735 errors), MWPM 4.127(99)e-4 (1731).
+- CSS D = 4 corr: X 3.951(97)e-4 (1657), Z 3.853(96)e-4 (1616). XZZX D = 4 X corr 3.970(97)e-4 (1665).
+- CSS 6x3 X corr (fd 6) 7.25(19)e-6 (1501 in 207.1M).
+- XYZ^2 vs square patches: 1.04-1.07x, 1.1-2.1 sigma (minimum MWPM vs XZZX-X, maximum corr_gauge vs CSS-Z). vs 6x3: 57x, 115 sigma.
+
+SD6, 99/97: P/rev5/sd6_xyz2.txt, sd6_cssX.txt, sd6_xzzxX.txt. XYZ^2 corr_gauge d = 5 2.082(64)e-5 (1048 errors) vs CSS-X d = 7 2.56(16)e-6 (258): 8.12x, 30.1 sigma. vs XZZX-X 2.72(17)e-6 (251): 7.65x, 29.0 sigma.
+
+Model list for the untested sentence: the noise column of R/docs/data/campaign/competitors_table.csv holds biased10, biased100, em3, h2_p, h2_p_noxt, helios_p, helios_p_noxt, hyb, hyb_lr2, phen, phen_b10, purez, sd6, sd6_il, sd6_lr2, sd6_lr3, si1000 and si1000_lr2. Fixed-footprint pilots exist only for si1000 (P/bq/si.log, ovc, c11r7), sd6 (c11r7/sd6sq.txt, P/rev5) and helios_p and h2_p at their device points (P/bq/ion.log).
+
+P/bq/ion.log:
+- Helios (p = 1e-3): XYZ^2 d = 5 corr_gauge 8.33(24)e-5, MWPM 8.74(26)e-5; CSS d = 7 X 2.980(94)e-5, Z 2.34(11)e-6; XZZX d = 7 X 9.16(28)e-6, Z 9.57(30)e-6.
+- H2 (p = 1.875e-3): XYZ^2 d = 3 corr_gauge 9.31(21)e-4, MWPM 9.56(30)e-4; CSS d = 5 X 1.983(49)e-4, Z 3.61(10)e-5; XZZX d = 5 X 9.53(24)e-5, Z 9.60(24)e-5.
+
+P/hwlens5/deg.py: XYZ^2 degree histogram d = 3 {2:13, 3:14, 4:4, 6:4}; d = 5 {2:29, 3:30, 4:24, 6:16}, 170 couplings. CSS and XZZX d = 3-7 have maximum degree 4; d = 7 has 168 couplings.
+
+Ion timing:
+- P/r8/memcount.py, rerun on login30 (c11r7/memcount.txt), helios_p, r = 1. XYZ^2 d = 5 (99 qubits, 170 two-qubit gates): 50 qubits with 8 memory steps, 49 with 7. CSS and XZZX d = 7 (97 qubits, 168 gates): 49 with 6, 48 with 5.
+- Scaling pilot c11r7/memscale_c.py, outputs in c11r7/memscale.txt, not archived. helios_p at p = 1e-3, p_mem_z multiplied by the scale via dataclasses.replace, XYZ^2 d = 5 depth6 L_X corr_gauge, r = 1. 96 s and 0.35 GB per point.
+- x1.0: 8.64(11)e-5 (5886 errors in 68.2M shots). x0.75: 5.700(86)e-5 (4363 in 76.5M). Factor 1.52(3).
+- x0.75 vs CSS-X d = 7 MWPM 2.980(94)e-5: 1.91(7)x, 18.5 sigma. vs XZZX d = 7 (9.16-9.57e-6): 5.95-6.22x.
+
+R/paper/manuscript/Hardware.tex: line 20 (95-qubit ancilla reuse, no change in logical error within statistics), line 72 (seven memory steps per round), line 101 (HCM 8.4e-5 at d = 5). R/src/mdr/ft/ft_mdr_circuit.py lines 510-522 (mid-round MX/RX step with _xtalk and no _memory). FTMDRCircuit rejects even d ('Distance d must be odd and >= 3'), so d = 3 is the only XYZ^2 size from 35 to 98 qubits.",
+ "confidence": 0.85
+}

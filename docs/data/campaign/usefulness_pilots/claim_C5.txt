@@ -1,0 +1,50 @@
+{
+ "id": "C5",
+ "regime": "Z-biased circuit noise (biased10, biased100, purez): bias-preserving Z-type channels after every CX/CY/CZ, measurement and reset flips at p. Threshold at all r, against XZZX and XY",
+ "verdict": "not_useful",
+ "statement": "Measured. Table entries are finite-size fits with dmax >= 11, and drift-flagged series are excluded. Their z values use stat plus syst errors.
+
+XZZX's table entry beats XYZ^2 at r = 1, 2, 3, 5, 10 and d (|z| >= 6.9):
+- At r = d the ratios are 0.64, 0.51 and 0.42 at eta = 10, 100 and infinity (z -23.9, -40.2, -18.2), so the gap widens with bias.
+- Under symmetric rules the r = d ratios are 0.62, 0.49 and 0.41.
+- XZZX with plain MWPM already beats XYZ^2's best decoder at every r (|z| >= 7.3).
+
+XY's table entry is its best usable mwpm, corr or bm fit in its weaker basis:
+- It beats XYZ^2 at r = d (z 8.6-14.6), at r = 5 (3.3-5.7) and for biased10 at r = 2 (3.5).
+- At the other rows except biased100 r = 10 it leads by 0.9-2.8 sigma, a tie.
+- At biased100 r = 10 the table shows a nominal 3.9 sigma XYZ^2 lead. That compares XYZ^2's BM fit, 1.029(45)%, with XY's MWPM fit, 0.843(16)%, because XY's BM and corr crossings in that basis are drift-flagged and have no finite-size fit. With matched MWPM, XY leads: 0.843(16)% against XYZ^2's 0.626(10)%. XY's d = 19/21 BM and corr crossings, 1.192(122)% and 0.940(124)% (stat only, still falling with d), lie within 1.3 sigma of XYZ^2's 1.029(45)% on either side. Inference: this point is a tie, not an XYZ^2 lead.
+- XY's BP-OSD and Tesseract runs reach at most d = 11 and give only pair crossings, so its ranking is decoder-limited.
+
+Pair crossings (measured, as a variant of the table rules; pair crossings carry stat errors only):
+- The table excludes pair crossings for every code.
+- Admitting non-drift pair crossings with dmax >= 11 for the competitors only lowers XYZ^2's ratio to XZZX (biased100 r = 1 to 0.545 and r = 10 to 0.443; purez r = 3 to 0.476 and r = 10 to 0.264) and leaves |z| >= 3.7.
+- Admitting them for XYZ^2 as well keeps XYZ^2 below XZZX in all 18 rows (ratio <= 0.78), but biased10 r = 2 and purez r = 5 become ties (z -1.9 and -2.7). In those two rows XYZ^2's entry is a Tesseract d = 9/11 crossing, 1.94(29)% and 1.92(24)%, far above its fits of 1.41(5)% and 1.17(6)%. XYZ^2's Tesseract crossings jump between distance pairs (biased10 depth6-Y 4.21(46)% at d = 3/5; purez both-Y 4.16(72)% at d = 9/11).
+- Neither variant puts XYZ^2 ahead of XZZX in any row.
+
+The code-capacity similarity in 2112.06036 (about 28% at eta = 10) does not carry over to circuit-level gates. Even XYZ^2's stronger basis is below XZZX.
+
+Hardware (inference from the literature notes):
+- Kerr-cat CX bias maps to eta of about 3-59 in this repo's units. purez is a limit, not a device.
+- XYZ^2 loses at all three biases.
+- The Kerr-cat route that 2112.06036 names cites Darmawan et al., an XZZX study, so XZZX is that route's benchmark.
+- Cat hardware actually deploys repetition codes, which were not run.",
+ "evidence": "/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/thresholds.csv and /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/competitors_table.csv.
+r = d (%), biased10 / biased100 / purez:
+- XYZ^2 0.748(12) / 0.836(5) / 0.857(7); both schedule 0.740(13) / 0.833(9) / 0.853(7).
+- XZZX 1.175(13) / 1.655(20) / 2.061(66); XZZX MWPM 1.102(30) / 1.615(14) / 2.046(39).
+Ratios to XZZX by r (biased10 / biased100 / purez): r = 1 0.619 / 0.573 / 0.564; r = 2 0.564 / 0.508 / 0.503; r = 3 0.546 / 0.489 / 0.500; r = 5 0.579 / 0.498 / 0.458; r = 10 0.603 / 0.472 / 0.465; r = d 0.636 / 0.505 / 0.416. Minimum |z| vs XZZX: 6.85 at biased10 r = 10 (XYZ^2 0.976(66) vs XZZX 1.619(67)).
+z vs XY (biased10 / biased100 / purez), stat plus syst:
+- r = 1: 1.7 / 1.1 / 0.9
+- r = 2: 3.5 / 2.3 / 2.2
+- r = 3: 2.3 / 2.1 / 2.5
+- r = 5: 5.7 / 3.4 / 3.3
+- r = 10: 2.5 / -3.9 (decoder mismatch) / 2.8
+- r = d: 14.6 / 8.6 / 11.1
+XY table decoders: mwpm at biased10 r = 1 and biased100 r = 10; corr at biased10 r = 3 and purez r = 1; bm elsewhere.
+biased100 r = 10 (thresholds.csv): xy-X:mwpm fss 0.843(16); xy-Z:mwpm fss 0.846(20); xy-X:bm pair d = 19/21 1.192(122), drift 0.736, flag drift; xy-X:corr pair d = 19/21 0.940(124), drift 0.633, flag drift; biased100@both-X bm fss 1.029(45) (XYZ^2 table entry); biased100@both-X mwpm fss 0.626(10) (competitors_table.csv xyz2_mwpm 0.006257). Drift flag and fit skip: /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/paper/analysis/campaign_report.py lines 210-216.
+Pair-crossing variants: recomputed with code_values() and xyz2_values() of /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/paper/analysis/competitor_report.py, admitting thresholds.csv rows with method pair, dmax >= 11 and no drift flag. Script: /tmp/claude-108819/-pscratch-sd-s-sohan100/b9bb5492-172d-4149-9bf3-b4e9300d223c/scratchpad/sympair.py. With pairs for both codes: biased10 r = 2 XYZ^2 1.942(288) (biased10@depth6-Y tesseract d = 9/11) vs XZZX 2.493(46), z -1.9; purez r = 5 XYZ^2 1.917(245) (purez@both-X tesseract d = 9/11) vs XZZX 2.584(53), z -2.7; biased100 r = 10 XYZ^2 1.384(146) (tesseract d = 13/15) vs XZZX 2.324(200), z -3.8. Tesseract crossings: biased10@depth6-Y r = 2 4.21(46) at d = 3/5; purez@both-Y r = 5 1.36(10) at d = 3/5, 3.90(65) at d = 5/7, 4.16(72) at d = 9/11 (crossings.csv).
+Symmetric rules (both schedule; mwpm/corr_gauge/bm): /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/usefulness_pilots/fairrev/sym.py.
+/pscratch/sd/s/sohan100/ftmdr_tools/noncss/papers/2112.06036.txt lines 1095-1100, 1318-1323, reference [66] lines 1835-1839.
+/pscratch/sd/s/sohan100/ftmdr_tools/noncss/lit_hardware.md lines 7 and 17-18 (table A); /pscratch/sd/s/sohan100/ftmdr_tools/noncss/papers/2409.13025.txt lines 36-41.",
+ "confidence": 0.92
+}

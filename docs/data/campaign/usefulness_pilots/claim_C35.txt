@@ -1,0 +1,87 @@
+{
+ "id": "C35",
+ "regime": "hw_tr: noiseless gates, readout and reset (perfect syndromes); Z-biased Pauli dephasing (eta = 20) on data qubits only while ancillas are reset and read out (p_T per round). This is Hetenyi-Wootton's idling placement, with no gate-layer idling. XX links; both-basis memory; MDR time boundaries; equal total qubits (4d^2-1 vs 2d^2-1); r = 3d plus one r = 6d point; XYZ^2 BM vs square XZZX corr. Pilots in docs/data/campaign/usefulness_pilots/{litrev,cons,hwrev_q7,litlens}",
+ "verdict": "competitive",
+ "statement": "Measured in pilots, for memory. Ratios are XYZ^2's error per round over XZZX's, with Poisson errors. All errors are stat only. Significance follows C33: z = |ln R|/sigma under three error models, the same whichever code leads. (a) Poisson. (b) Shot-level scaling: f = max(1, sqrt(chi2/dof)) from the pool's own replicates, f = 1.7 for a single run, and a Student t conversion when f > 1 is estimated. (c) An extra log-rate variance delta^2 per XYZ^2 BM run, quoted at delta = 0.15/0.25. A lead or loss counts only at 3 sigma or more under all three. Below, z is listed as (a), (b), (c).
+
+With BM decoding, XYZ^2 has a nominally lower error per round than square XZZX in its distance-d frame at every eta = 20 point in this regime. One lead meets C33's rule. It is r = 6d at 99/97 qubits and p_T 4%, worse basis 0.384(39): z 9.5, 9.5, 6.5/4.7. It stays at 3 sigma or more under (c) up to delta 0.43. Every r = 3d lead falls short under (b) or (c). Together with phen_b10 (C31), this is one of two idealized edges that do not model a device.
+
+It is not a use case, for four reasons:
+- It holds for memory only. For r = 1 MDR preparation, the paper's subject, in the same model (p_T 4%, eta 20, 99/97 qubits), XYZ^2 is 17-23x worse. That is a loss under all three models (z 11 or more under (c) at delta 0.25). Unarchived runs of docs/data/campaign/usefulness_pilots/bq/r1.py give XYZ^2 d = 5 depth6 L_X 9.52(51)e-4 with BM and 9.15(21)e-4 with corr_gauge. With the both schedule, BM gives L_X 8.95(52)e-4 and L_Y 1.245(60)e-3. XZZX d = 7 corr gives L_X 5.32(16)e-5 and L_Z 3.62(13)e-5. A second pair of runs gives 9.50(73)e-4 (BM, depth6 L_X) against 5.47(16)e-5.
+- Of the decoders run under hw_tr, only BM gives the memory lead. With corr_gauge and MWPM it is a loss at the one point probed (below). The repository's other decoders (cfe, bp_corr, tesseract, the TN decoders) were not run under hw_tr, so whether they widen or remove the edge is untested.
+- The model leaves out gate-layer idling. There XYZ^2 has 4.9x the exposure (254 vs 52 sites per round). In the m1 mixture, putting back 2% of that idling gives 1.02(7), so no edge is seen (C37).
+- At the readout time that Hetenyi-Wootton find QEC-optimal for the rotated surface code on their example device (5.8 us; run E of C37, C38), XYZ^2 is 1.72(16)x worse: z 5.7, 5.7, 3.8/2.7. That is a loss for delta up to 0.22. XYZ^2's own optimal readout time is untested.
+
+Weaker basis, XYZ^2 BM against XZZX corr. XZZX BM equals XZZX corr within errors where both were run: 0.99(6) at p_T 6% and 1.08(12) in m1. Elsewhere only XZZX corr exists.
+- 99/97 qubits, r = 3d:
+  - p_T 6%: 0.613(42); 7.2, 4.2, 3.0/1.9. Not established, because (c) reaches 3 only for delta up to 0.148.
+  - p_T 4%: 0.608(77); 3.9, 2.3, 2.5/1.8. A tie.
+  - p_T 3%: 0.679(80); 3.3, 3.3, 2.45/1.8. Not established.
+- 195 qubits, p_T 6%: 0.538(100) against XZZX log-interpolated between d = 9 and 11; 3.3, 3.3, 2.9/2.4. Not established. XZZX d = 11, with 24% more qubits, ties (1.06(20)). XYZ^2 at 195 qubits matches XZZX interpolated to 237(13) qubits, so it needs 0.82(4) of XZZX's qubit count.
+- r = 6d (99/97, p_T 4%): 0.384(39), the lead above. L_Y alone is 0.40(6) at r = 3d and 0.38(4) at r = 6d. The worse-basis gain at r = 6d comes from L_X's time-boundary term (C9).
+- Size trend: Lambda is 6.5(13) against the break-even 5.5-5.8. The difference is 0.5-0.8 sigma, so it is unresolved.
+- m1 mixture (p_T 4% plus 0.1% gate and 1% readout error; no reset, single-qubit or gate-layer idle noise): at 99/97 the ratio is 0.700(44); 5.7, 2.0 (f = 1.66 from four replicates, t 3.4 on 3 dof), 3.65/2.55. Not established. At 195 it is 0.81(17), a tie. The erosion projection, Lambda 2.95(64) against 3.3-3.4, differs by 0.5-0.7 sigma and is unresolved.
+
+Boundary sensitivity (C9). phen q = 0 at eta = 10, p = 3%, 50/49 data qubits also has perfect syndromes, but it puts a full noise layer before the first round. There XYZ^2's L_Y is 2.00e-4 (416 errors), 2.05x its hw_tr eta = 10 value, while XZZX rises 14.5%. The hw_tr tie 0.81(8) becomes 1.445(88); 6.0, 6.0, 3.8/2.6. That is a loss for delta up to 0.21. No such check exists at eta = 20, so whether the eta = 20 edge survives a harsher preparation boundary is untested.
+
+Decoder dependence. An unarchived probe at p_T 4%, 99/97, r = 3d gave:
+- XYZ^2 corr_gauge, worse basis, 6.92e-4 against XZZX corr 3.05e-4: 2.3x worse;
+- XYZ^2 MWPM 4.58e-3 against the same XZZX corr value: 15x worse.
+This repository's Python BM takes 0.33-0.36 s per shot for XYZ^2 at d = 11. At d = 5, r = 15 it takes 0.017-0.025 s per shot, about 1.1-1.7 ms per round. These times were measured on SD6 graphs and are indicative for hw_tr. Whether an optimized BP-class decoder can run in real time is untested.
+
+Bias, worse basis, at p_T 3%, the only p_T run at eta = 10 and 100. eta = 10 gives 0.807(82) (z 2.1, a tie). eta = 20 gives 0.679(80) (not established, above). eta = 100 gives 1.14(19) (a tie). The differences from eta = 20 are 1.1 and 2.5 sigma (Poisson), so the bias window is not established. In the better basis at eta = 100, XYZ^2 X is 4.19e-5 against XZZX Z 1.74e-5. The ratio is 2.41(45); 4.7, 2.8, 3.7/2.8. That nominal reversal is not established. No growth of the edge with bias is seen, although the 2d^2 pure-Z distance would predict one. BM may limit it (inference).
+
+Competitors:
+- XY (BM, 6%) is 5.2(4)-5.5(4)x worse than XYZ^2, and square XZZX under Y-biased idling (BM, 4%) is 4.9(7)x worse. Each is the d^2-frame code for its bias, yet each comes out worse than d-frame XZZX: XY by 3.2(1)-3.4(1)x at 6%, and Y-biased XZZX by 3.0(2)x with BM and 8.5(1)x with corr at 4%. 2112.06036 finds the opposite at code level (XZZX failure suppressed under Y bias), so these runs measure decoder failure, not the frame (inference). The edge against a d^2-frame competitor, with a decoder that exploits that frame, is untested.
+- CSS and the honeycomb were never run at equal qubits. CSS-Z (|0>) is immune to the Z part of the channel, so for preparing |0> a CSS patch would likely win (inference).
+- Rectangular, co-prime or ML-decoded surface patches were not run. Syndromes are perfect, so per-round code-capacity decoding applies, and 2112.06036 Fig. 7c shows near parity against the d^2 frame.
+
+Single-basis comparison, XYZ^2's better basis against XZZX's better basis (Z):
+- 6%: 0.90(6), a tie;
+- 4%: 0.61(9); 3.3, 1.95, 2.35/1.7, a tie;
+- 3%: 0.91(12), a tie;
+- eta 10: 1.02(11), a tie;
+- m1: 0.74(6), three Y replicates; 3.7, 3.7, 2.5/1.8, not established;
+- r = 6d: XYZ^2's better basis is X (1.146e-4 against Y 1.213e-4), giving 0.564(59); 5.5, 5.5, 3.9/2.8, a lead for delta up to 0.23;
+- eta 100: 2.41(45), not established (above).
+Only r = 6d reaches 3 sigma under all three models, and in this basis only for delta up to 0.23.
+
+hw_tr is the closest analogue in the repo of the 2112.06036 code-capacity regime. That paper's bias, eta = 10, was run under hw_tr only at p_T 3%. That is the lowest p_T tested, and there the eta = 20 lead is also weakest. The ratio there is 0.81(8), a tie. The paper reports a 1.7-2.7x d-frame lead with EWD decoding at p = 0.16-0.22, near its threshold (C34), and 2505.03691 also places the advantage close to threshold. Whether eta = 10 shows a lead at p_T 4-6%, where the eta = 20 ratio is 0.61, is untested.",
+ "evidence": "All pilot paths are under docs/data/campaign/usefulness_pilots/. eps = (1 - (1 - 2 pL)^(1/r))/2 from the run files. Errors are stat only.
+litrev:
+- hwtr_xyz2_Y 6.678e-4 (218/21,968), hwtr_xyz2_X 5.943e-4 (210) vs hwtr_xzzx_X 1.089e-3 (29,621), Z 6.635e-4 (18,322).
+- hwtr_xzzx_X_bm 1.078e-3 (238).
+- hwtr4_xyz2_X 1.855e-4 (62), Y 1.221e-4 (44/24,063) vs hwtr4_xzzx_X 3.050e-4 (11,782), Z 2.016e-4 (7847).
+- d = 7: Y 12/5410 + 17/8059 vs XZZX d = 9 3.150e-4 (4486), d = 11 9.715e-5 (999).
+- XY d = 7 BM: X 3.505e-3 (992), Z 3.692e-3 (1035).
+- m1_xzzx_X BM 2.074e-3 (87).
+cons:
+- x3_* (p = 0.03): Y 36/33,978 + 37/34,130 (chi2 0.01/1), X 40/33,432 and 22/33,653 vs z3_X 1.054e-4 (6166), Z 6.775e-5 (3985).
+- b_* (r = 30): b_x_Y_a 52/13,687 + b_x_Y_b 47/13,611 (1.213e-4, chi2 0.23/1); b_x_X_a 46/13,542 + b_x_X_b 47/13,601 (1.146e-4, chi2 0.01/1) vs b_z_X 3.163e-4 (14,848/1,132,209, r = 42), b_z_Z 2.033e-4 (9381).
+- e10*: Y 99/67,777 (9.751e-5) vs e10_z_X 1.208e-4 (7370). Every hw_tr eta = 10 run in the archive (cons/e10_*, cons/e10b_*) is at p = 0.03.
+- e100_x_Y 5.138e-5 (36) vs e100_z_X 4.502e-5 (2922); e100_x_X 4.192e-5 (29/46,148) vs e100_z_Z 1.740e-5 (1152/3,153,633).
+m1 (pT 0.04, pG 0.001, pR 0.01, g1q False; litrev/mix.py): litrev/m1_xyz2_X/Y, cons/m1_*, hwrev_q7/D0. X 258/13,058 (four runs, chi2 8.29/3) vs cons/m1_z_X 1.916e-3 (34,217); Y 156/9786 (chi2 1.55/2) vs m1_z_Z 1.452e-3 (25,634). 195 qubits: cons/m1d7_x_X_a/b 23 errors vs XZZX log-interpolated from cons/m1d9_z_X (7709) and m1d11_z_X (2025).
+z values recomputed from these counts with C33's three models (z = |ln R|/sigma; (a) sigma^2 = 1/N1 + 1/N2; (b) f1^2/N1 + 1/N2 with f from own replicates, 1.7 for one run, Student t when f > 1; (c) 1/N1 + 1/N2 + delta^2/k for k XYZ^2 BM runs). R(Poisson); (a), (b), (c) at 0.15/0.25:
+- 6%: 0.613(42); 7.19, 4.24, 2.97/1.89; (c) = 3 at delta 0.148.
+- 4% r = 3d: 0.608(77); 3.91, 2.30, 2.53/1.77.
+- 3% Y: 0.679(80); 3.29, 3.29, 2.45/1.83.
+- 195 Y vs interp: 0.538(100); 3.33, 3.33, 2.89/2.42. vs d = 11: 1.058(199).
+- r = 6d Y vs X: 0.384(39); 9.50, 9.50, 6.55/4.71; (c) = 3 at delta 0.43.
+- r = 6d X vs Z: 0.564(59); 5.50, 5.50, 3.86/2.79; (c) = 3 at delta 0.227.
+- m1 X: 0.700(44); 5.70, 2.04 (t 3.44 on 3 dof), 3.65/2.55. m1 195: 0.811(169); 1.01.
+- 4% Y vs Z: 0.606(92); 3.32, 1.95, 2.35/1.72. m1 Y vs Z: 0.743(60); 3.70, 3.70, 2.51/1.80. 6% X vs Z 0.896(62), 1.59; 3% X vs Z 0.910(116); eta10 X vs Z 1.024(108).
+- eta10 Y: 0.807(82); 2.12. eta100 Y: 1.141(191); 0.79. eta100 X vs Z: 2.409(453); 4.68, 2.77, 3.66/2.81.
+- Bias differences in ln R from eta = 20: 1.11 (eta 10) and 2.53 (eta 100) sigma, Poisson.
+- Run E (hwrev_q7/E_xyz2_Y 56/3379 + hwrev_q7/E2_xyz2_Y 56/3308, chi2 0.01/1, vs hwrev_q7/E_xzzx_X 6.603e-4, 11,601): 1.718(163); 5.70, 5.70, 3.80/2.70; (c) = 3 at delta 0.217.
+- Gate-layer idling f = 0.02: hwrev_q7/C_xyz2_X 108/3237 + D2_xyz2_X 83/3238 vs C_xzzx_X 1.982e-3 (32,049): 1.021(74). Exposure: circuits with idle_xyz set give 354 (XYZ^2 d = 5) and 150 (XZZX d = 7) idle sites per round, of which 100 and 98 are data-qubit readout and reset sites.
+- Qubit equivalence: XZZX interpolated linearly in ln(eps) versus qubit count between 161 and 241 qubits reaches 1.027e-4 (29 errors) at 237.2(126) qubits; 195/237.2 = 0.822(44). Lambda 6.678e-4/1.027e-4 = 6.50(128) vs XZZX 1.089e-3/1.911e-4 = 5.70.
+Boundary sensitivity: bq/cc4.log (XYZ^2 Y 110, 99 and 95 of 34,800; XZZX corr X d = 7 1.383e-4, 759 errors) and cons/cc_phen0_Y (112/34,800). Pooled Y 1.998e-4 (416, chi2 1.98/3): 1.445(88); 6.03, 6.03, 3.80/2.64; (c) = 3 at delta 0.213.
+litlens: y_xzzx_X_bm 9.029e-4 (306), y_xzzx_X_corr 2.581e-3 (66,033) (hwtr_ybias.py).
+r = 1 MDR preparation (hw_tr, p = 0.04, eta 20, 99/97 qubits): bq/r1.py with schedule depth6 or both, r = 1; outputs unarchived. xzzx X corr 1116/20,971,264, Z 760/20,971,264; xyz2 both X bm 293/327,424, Y bm 428/343,808; depth6 X bm 343/360,192, corr_gauge 1919/2,096,896. Second pair: 'hw_tr xyz2 depth6 X bm d=5 r=1 nq=99 p=0.04 shots=179968 err=171 pL=9.502e-04' (48 s, 0.10 GB) and 'hw_tr xzzx both X corr d=7 r=1 nq=97 p=0.04 shots=20971264 err=1146 pL=5.465e-05' (26 s, 0.85 GB). Ratios 16.8(11)-17.9(11) in L_X, 23.4(13) weaker basis against weaker basis. Depth6 BM vs XZZX X: z 46.7, 29.9, 11.2 at delta 0.25.
+Decoders run under hw_tr: BM in every usefulness_pilots XYZ^2 hw_tr memory run; corr_gauge only in the r = 1 runs and the probe. docs/data/campaign/hw/diag_hw_tr_centers.csv lists MWPM only. The decoder list is in scripts/run_decoder_threshold_sweep.py lines 85-105; hw_tr is defined at lines 69-71.
+Unarchived probe: corr_gauge X 5.789e-4, Y 6.921e-4; MWPM X 3.451e-3, Y 4.580e-3 (script rv/eqprobe.py). Reruns give corr_gauge Y 6.958e-4 to 7.10e-4 and MWPM Y 4.595e-3 to 4.61e-3.
+docs/data/campaign/eq/timing.csv: xyz2 sd6 bm decode_s 0.334-0.364 (d = 11), 0.017-0.025 (d = 5).
+docs/hetenyi_wootton_check.md lines 31, 37; docs/fair_comparison.md line 31.
+/pscratch/sd/s/sohan100/ftmdr_tools/noncss/papers/2112.06036.txt lines 26-37, 155-159, 1085-1119, 1161-1244 (Fig. 7 at eta = 10, p axis 0.16-0.22). 2505.03691.txt lines 335-341 ('close to the threshold'). 2306.17786.txt lines 342, 685-692, 900-905.",
+ "confidence": 0.7
+}

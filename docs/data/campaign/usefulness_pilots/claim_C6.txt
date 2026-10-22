@@ -1,0 +1,51 @@
+{
+ "id": "C6",
+ "regime": "Equal qubit count below threshold under strong Z bias (biased100, purez), p = 1e-3 to 3e-3, r = 3d, against XZZX; d = 3 points included",
+ "verdict": "not_useful",
+ "statement": "Measured. XZZX beats XYZ^2 at every resolved pair, rate and decoder, each by more than 3 sigma (stat only). Ratios are XYZ^2/XZZX error per round, so above 1 means XYZ^2 is worse. Brackets on single points are 68% Wilson intervals. Brackets on ratios combine the opposite endpoints of the two intervals, the method docs/data/campaign/eq/pairs.csv uses.
+
+Correlated matching on both sides (docs/data/campaign/eq/pairs.csv):
+- 10-17x at 99/97 qubits, flat in p within errors (biased100 10.4/10.5/10.7; purez 17.3/16.1/17.4).
+- At p = 2e-3 and 3e-3: 154-367x at 323/337 and 82-850x at 483/449 (three pairs). Biased100 483/449 at 2e-3 is only a bound (> 37), because XZZX had 0 errors.
+- At p = 1e-3 the only resolved pair is 99/97. At 323/337 the XZZX entry is the 68% upper limit of its d = 11 point, so the ratios are lower bounds: > 1.7 (biased100) and > 3.8 (purez), using the XYZ^2 central values. Both 483/449 pairs at 1e-3 are unresolved: biased100 gives only > 0.43, and purez has upper limits on both sides. At 1e-3 the loss at large n therefore rests on these bounds and on extrapolation.
+- The 82x and 850x pairs rest on 1 and 3 XZZX errors. Exact Poisson 3-sigma limits on both counts (stat only) give lower bounds of 5.1x and 168x.
+- The r = 3d ratios include the MDR time boundaries. Runs at r = d and r = 3d put XYZ^2's bulk error per round at d = 5 20-46% lower. The bulk-only 99/97 ratio is 6.2-14.9x (docs/data/campaign/eq/boundary.csv), still a loss.
+- XYZ^2 needs 1.6-2.9x XZZX's qubits to reach 1e-6 per round (docs/data/campaign/eq/targets.csv). The upper values use XYZ^2 targets flagged as extrapolated.
+
+XYZ^2 on BM, its lowest-error measured decoder, against XZZX corr in XZZX's weaker basis, X. In X, XZZX's BM error is 1.11-1.19x its corr error at the four d = 7 points where both decoders ran.
+- 3.4-6.9x worse at 99/97.
+- 28x [20, 39] and 51x [35, 73] at 323/337 (p = 3e-3, XYZ^2 X basis only, 16 XYZ^2 errors each).
+- BM against BM, weaker basis on both sides: 2.8-4.6x at 2e-3 and 3e-3. At 1e-3 XZZX has BM at d = 7 only in its stronger basis, Z, so a matched BM comparison there is untested. Against XZZX corr X, the 1e-3 ratios are 4.85x and 6.90x.
+- At 35 qubits (XYZ^2 d = 3): 2.2-3.7x worse than the XZZX corr fit in docs/data/campaign/eq/interp.csv, and 1.9-3.0x worse than the raw XZZX corr points at 17 and 49 qubits, log-interpolated linearly in qubit count. The fit is extrapolated to d = 4.24, below its d >= 5 range. The two ratios are at least 6.2 and 5.6 sigma (stat only).
+
+Decoder headroom is untested at r = 3d and p <= 3e-3. The equal-qubit campaign ran neither CFE nor Tesseract, for either code. Under biased100 at r = d, CFE fails on 11%, 21% and 28% fewer shots than BM at d = 3, 5 and 7, but those sweeps cover p = 7e-3 to 11e-3, around XYZ^2's r = d BM threshold of 8.31e-3 +- 0.05e-3. The point closest to this regime (d = 5, r = 5, p = 5e-3, the same 3000 shots for every decoder) has 12 CFE, 15 Tesseract and 30 BM failures, a factor of 2.0-2.5. A gain of that size would leave about 1.4-3.5x at 99/97 and 11-25x at 323/337 (inference). It would narrow the gap but not close it, unless the gain grows well beyond 2.5x at lower p or larger d.
+
+Lower p is untested, and the extrapolation is unconstrained. The 1e-3 XYZ^2 Lambdas in docs/data/campaign/eq/lambda.csv (Y basis: 31.4 +- 3.6 for biased100, 41.5 +- 4.8 for purez) are 2-point fits (d = 5, 7; dof 0). The measured d = 7 to 9 steps at 1e-3 are:
+- XYZ^2 biased100 X: 29.5 [19.8, 44.0] (11 errors at d = 9).
+- XYZ^2 biased100 Y: 77.9 [48.5, 125] (7 errors).
+- XYZ^2 purez Y: 40.9 [26.6, 62.9] (9 errors).
+- XZZX X: 23.3 [19.9, 27.2] (biased100) and 29.8 [25.1, 35.4] (purez).
+In biased100 the worse XYZ^2 basis switches from Y at d = 7 to X at d = 9, and X has the smaller step. The exponent fraction ln Lambda_XYZ2 / (sqrt2 ln Lambda_XZZX) is 0.76 (biased100 X), 0.98 (biased100 Y) and 0.77 (purez Y) at 1e-3, against 0.63-0.70 at 2e-3. Extrapolating ln Lambda linearly in ln p from 2e-3 to 1e-3, the fraction reaches 1 at:
+- about 4e-9 (biased100) and 4e-6 (purez) with the lambda.csv values;
+- about 2e-11 (biased100 X), 9e-4 (biased100 Y) and 7e-5 (purez Y) with the d = 7 to 9 steps;
+- about 3e-4 and 5e-4 at the 68% upper ends of the biased100 X and purez Y steps.
+So an exponent crossover just below 1e-3 is not excluded (inference). A crossover in absolute error at practical sizes would still need large d, because the 99/97 gap is 10-17x at r = 3d (6-15x in the bulk), with no significant trend in p.",
+ "evidence": "docs/data/campaign/eq/pairs.csv (chosen decoder corr; ratio brackets combine opposite 68% Wilson endpoints), XYZ^2/XZZX:
+- 99/97: biased100 10.39 [9.26, 11.65], 10.49 [9.36, 11.76], 10.65 [9.61, 11.81]; purez 17.26 [15.39, 19.36], 16.09 [14.37, 18.01], 17.39 [15.68, 19.29].
+- 323/337 at 2e-3 and 3e-3: 154.1 [107.9, 220.0] to 367.2 [309.1, 436.2].
+- 483/449: 308.8 [219.0, 435.4]; 82.2 [26.5, 255.2] (32 vs 1 errors); 849.9 [455.4, 1586.0] (301 vs 3). Exact one-sided Poisson 3-sigma limits: lower 17.65 of 32 and 251.6 of 301, upper 8.90 of 1 and 12.68 of 3, giving 5.1x and 168x.
+- Bounds (upper_other = True): biased100 1e-3 323/337, XYZ^2 Y 1.667e-9 [1.147e-9, 2.423e-9] (7 errors) vs XZZX < 9.539e-10 ('bound from d = 11'), ratio > 1.75. purez 1e-3 323/337: 2.405e-9 (9) vs < 6.338e-10, ratio > 3.79. biased100 1e-3 483/449: 4.090e-10 (1 error) vs < 9.539e-10, ratio > 0.43. purez 1e-3 483/449: XYZ^2 < 3.345e-9 ('bound from d = 9') and XZZX < 6.338e-10. biased100 2e-3 483/449: 4.100e-8 (46) vs < 1.111e-9 (0 errors), ratio > 36.9.
+docs/data/campaign/eq/boundary.csv: XYZ^2 d = 5 change -0.40/-0.24/-0.20 (biased100) and -0.46/-0.36/-0.23 (purez). Two-length eps: XYZ^2 2.44e-6/5.20e-5/2.80e-4 and 2.21e-6/3.77e-5/2.57e-4; XZZX d = 7 3.92e-7/6.48e-6/3.11e-5 and 2.08e-7/3.22e-6/1.72e-5. Ratios 6.22/8.02/9.00 and 10.64/11.72/14.88.
+docs/data/campaign/eq/targets.csv (1e-6): XYZ^2 134/279/566 vs XZZX 82/142/214 (biased100); 132/272/547 vs 75/127/189 (purez); 566 and 547 extrapolated = True.
+docs/data/campaign/eq/points_eps.csv (r = 3d; XYZ^2 corr is listed as corr_gauge):
+- XYZ^2 BM d = 5 worse basis: 1.900e-6 (Y, 125 errors) / 2.224e-5 / 1.219e-4 and 1.634e-6 (Y, 122) / 1.553e-5 / 1.058e-4. XZZX corr X d = 7: 3.921e-7 / 6.546e-6 / 3.299e-5 and 2.369e-7 / 3.684e-6 / 1.922e-5. Ratios 4.85/3.40/3.69 and 6.90/4.21/5.50.
+- XZZX BM X d = 7: 7.817e-6 and 3.886e-5 (biased100 2e-3, 3e-3); 4.104e-6 and 2.294e-5 (purez). BM/corr 1.19, 1.18, 1.11, 1.19. BM/BM 2.85, 3.14, 3.78, 4.61. At 1e-3, XZZX BM at d = 7 exists only in Z (3.401e-7, 22 errors; 1.139e-7, 7).
+- XYZ^2 BM X d = 9 at 3e-3: 1.812e-6 [1.414e-6, 2.322e-6] (16 errors) vs XZZX d = 13 corr X 6.410e-8 [5.921e-8, 6.940e-8], ratio 28.3 [20.4, 39.2]; purez 1.505e-6 [1.175e-6, 1.929e-6] (16) vs 2.974e-8 [2.651e-8, 3.335e-8], ratio 50.6 [35.2, 72.8]. Y-basis BM at d = 9, 3e-3 was not run.
+- XYZ^2 BM d = 3 worse basis (Y): 1.187e-4/5.26e-4/1.403e-3 and 1.051e-4/4.204e-4/1.346e-3 (100-110 errors). docs/data/campaign/eq/interp.csv XZZX at n = 35, d_other = 4.243, other_interpolated = False: 3.46e-5/2.44e-4/5.49e-4 and 2.81e-5/1.56e-4/4.40e-4. Ratios 3.43/2.15/2.56 and 3.74/2.70/3.06. A weighted refit of the docs/data/campaign/eq/fits.csv XZZX X corr fits (ds from 5; a and b reproduced) gives a fit error in ln eps of 0.05-0.11 at d = 4.24, so the minimum is 6.2 sigma. Raw XZZX corr X at d = 3 and d = 5, log-linear in n: 2.67/1.87/2.19 and 3.04/2.01/2.37. The minimum, 5.6 sigma, is biased100 2e-3 (110 vs 222 and 124 errors).
+- 1e-3 XYZ^2 corr_gauge: biased100 d = 7 X 8.141e-8 [7.37e-8, 8.991e-8], Y 1.299e-7 [1.176e-7, 1.435e-7] (100 errors each); d = 9 X 2.757e-9 [2.045e-9, 3.717e-9] (11), Y 1.667e-9 [1.147e-9, 2.423e-9] (7). purez d = 7 Y 9.843e-8 [8.911e-8, 1.087e-7]; d = 9 Y 2.405e-9 [1.729e-9, 3.345e-9] (9). XZZX corr X d = 7/9: 3.921e-7/1.684e-8 and 2.369e-7/7.948e-9.
+- 2e-3 d = 7 to 9 steps: XYZ^2 biased100 X 4.731e-6/3.783e-7 = 12.51, Y 5.175e-6/4.411e-7 = 11.73; purez Y 4.289e-6/4.102e-7 = 10.46. XZZX X 13.06 and 13.88.
+docs/data/campaign/eq/lambda.csv: xyz2 1e-3 corr Y Lambda 31.36 +- 3.60 and 41.54 +- 4.77, ds '5 7' (fits.csv dof 0); xzzx 25.20 +- 1.76 and 31.53 +- 2.36 (ds 5 7 9); 2e-3 xyz2 12.26 and 12.20, xzzx 13.56 and 14.71.
+docs/data/campaign/eq/decoders.csv: chosen decoder corr for both codes; candidates corr and mwpm, with BM not complete. No CFE or Tesseract.
+docs/data/cfe/cfe_summary.csv: b100 sweeps at p = 0.007-0.011 (d = 3, 5) and 0.008-0.010 (d = 7, 600 shots per point). docs/data/campaign/thresholds.csv: biased100, bm, r = d, pth 8.315e-3 +- 0.048e-3. paper/manuscript/Results.tex lines 217-239 (tab:cfe: d = 5, r = 5, p = 5e-3, 3000 shots, biased eta = 100: CFE 12, Tesseract 15, BM 30; CFE/BM summed over p 0.89/0.79/0.72); docs/ft_mdr_decoders.md lines 65-90.",
+ "confidence": 0.88
+}

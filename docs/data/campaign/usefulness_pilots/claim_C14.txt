@@ -1,0 +1,35 @@
+{
+ "id": "C14",
+ "regime": "Native pair-measurement hardware (em3), threshold at all r",
+ "verdict": "not_useful",
+ "statement": "Measured. XYZ^2 beats this repo's cat-state compilations of CSS, XZZX and XY by 1.29-1.36x at every r:
+- 15.2 sigma vs XZZX and 5.8 sigma vs XY at r = d;
+- 1.13x with MWPM;
+- 1.27-1.30x under matched decoders and the both schedule.
+
+It is not a use case:
+1. On the same hardware the honeycomb Floquet code is 6.1x higher at r = d, and 3.1x (weaker basis) to 4.75x (best basis) higher at r = 1.
+2. The cat-state circuits are not the best pair-measurement surface codes. The published 3aux code reaches 0.66% under the harsher Chao et al. model (honeycomb 1.3% there, against 1.98% here). Relative to the honeycomb, 3aux reaches 0.33-0.51 and XYZ^2 0.165. This is a cross-model inference; 3aux was not re-simulated.
+3. Qubits at d = 5: XYZ^2's em3 build declares 355 qubits (331 used), against CSS and XZZX 209 and 3aux 81 (4d^2-4d+1). So XYZ^2 needs 4.1-4.4x 3aux.
+4. Platforms:
+   - direct two-body parity measurements have been demonstrated in small circuit-QED devices;
+   - they are the expected native operation of Majorana tetron arrays, the target of em3-type Floquet studies;
+   - spin parity readout is destructive;
+   - no device runs pair-measurement QEC at scale and at em3 rates.
+   On the platform em3 targets, the honeycomb is the native design and leads by 6x.
+
+Doc fixes needed in noncss_comparison.md lines 70, 82 and 130:
+- 'beats every surface code' should say 'the cat-state compilations';
+- 'beats the honeycomb on all gate-based hardware' is contradicted by the hw_g tie (C16).",
+ "evidence": "thresholds.csv em3:
+- r = d: XYZ^2 depth6-Y seq_soft 0.3254(45) vs xzzx-X corr 0.2483(23), z 15.2; xy 0.244(13), z 5.8; honeycomb 1.976(21) (BM X 1.946(47), Z 1.948(36)).
+- Matched: both-X corr_gauge 0.316(5).
+- r = 1: depth6-X 1.066(41); honeycomb-Z 3.497, -X 5.068(338).
+competitors_table.csv cat-state ratios 1.29-1.36.
+Stim builds (two reviewers): XYZ^2 em3 d = 5 355 declared, 331 used; CSS 209.
+papers/2310.12981.txt lines 1047-1049, 1761, 2370-2393, Table 1.
+2108.10457.txt lines 111-114. 2202.11829.txt.
+2306.17786.txt lines 1423-1425.
+2112.06036.txt refs [39]-[42] (lines 1663-1688).",
+ "confidence": 0.86
+}

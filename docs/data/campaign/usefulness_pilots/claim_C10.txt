@@ -1,0 +1,114 @@
+{
+ "id": "C10",
+ "regime": "Single-round MDR state preparation (r = 1), threshold, the basis MDR protects (depth6 L_X, fault distance d+1 with gates), against each competitor's weaker and best single basis; plus equal-qubit r = 1 pilots in the idealized hw_tr and phen_b10 models",
+ "verdict": "not_useful",
+ "statement": "Measured. Thirteen hardware-motivated models have usable r = 1 fits for the MDR basis: sd6, si1000, biased10, biased100, purez, helios_p_noxt, h2_p_noxt, em3, hyb, hyb_lr2, sd6_lr2, sd6_lr3 and si1000_lr2. On these, XYZ^2's MDR basis (depth6 L_X) with its best decoder loses on ten models, meaning it is at least 3 sigma below some competitor basis with stat plus syst errors. It ties on the other three and wins on none.
+
+The ties:
+- SI1000.
+- si1000_lr2, the same hardware with links measured twice. Its bp_corr fit, 1.074(52)%, is within 0.35 sigma of every CSS, XZZX and XY basis. The honeycomb bases are lower.
+- sd6_lr3, with links measured three times. This is a tie only through its TN ML fit, 1.975(151)%, which is 2.5-2.8 sigma below the XZZX-Z, XZZX-X, CSS-X and XY-X bases with stat plus syst errors. With stat errors alone it is 3.0-3.1 sigma below XZZX-Z and XZZX-X. With matched decoders it loses: bm 1.755(34)% is 11.5 sigma below XZZX-Z.
+
+Not covered:
+- The four Hetenyi-Wootton spin-qubit corners (hw_g, hw_g1q, hw_t, hw_rr) were run at r = d only, with the both schedule, so their r = 1 thresholds are untested. The hw_tr corner has an r = 1 pilot at equal qubits (below).
+- The ion models with crosstalk (helios_p, h2_p) put XYZ^2 nominally lower. Their r = 1 fits sit at or near the nu bound of 0.3 (nu 0.30-0.49) with collapsed stat errors, so they do not count.
+
+The comparison uses XYZ^2's MDR basis alone, without its other basis. Preparing L_Y instead would turn sd6_lr2 into a nominal tie, through a low-nu fit (depth6 L_Y tnml 2.398(159)%, nu 0.59).
+
+Against XZZX's weaker basis:
+- SD6: 0.81 (5.3 sigma).
+- Ions without crosstalk: 0.65 and 0.74.
+- Bias: XYZ^2 is flat at 1.97-1.99%, while XZZX reaches 3.2-3.5%.
+
+Against the highest competitor basis (preparing one state):
+- SD6: 0.79 (3.9 sigma, XZZX-X).
+- Ions: 0.40 (Helios, against drifting CSS-Z fits) and 0.58 (H2, CSS-Z).
+- Bias: CSS-Z reaches 4.9-5.9%.
+
+The CSS and XY bases sit closer. Under SD6, XY-Z and CSS-Z are within 2.2 sigma of XYZ^2. Under the two ion models without crosstalk, CSS-X and both XY bases are within 1.2 sigma.
+
+These XYZ^2 entries use TN ML or CFE-TN, except purez, which uses BM. With matched decoders SD6 falls to 1.82%, 0.73-0.75 of XZZX.
+
+SI1000: a tie. The CFE-TN fit is within 0.38 sigma of every CSS, XZZX and XY basis (0.92 sigma with stat errors alone). With matched decoders XYZ^2 is 0.92 of CSS-Z at 2.3 sigma (C3) and ties the other CSS, XZZX and XY bases with stat plus syst errors. With stat errors alone the matched fit is 4.2 sigma below XZZX-X corr, a loss.
+
+em3: XYZ^2 is 1.22x the best cat-state surface basis (4.0 sigma), but 0.21x the honeycomb's best basis. A loss to the best competitor.
+
+hyb_lr2: 0.45 of the honeycomb's best basis (X, 7.0 sigma) and 0.66 of its weaker basis (Z, 5.5 sigma). The honeycomb is the rule's comparator. A loss.
+
+Idealized models (not hardware). XYZ^2's competitive results under phen_b10 (C17, C31) and hw_tr (C35) are memory results: an r = d threshold tie under phen_b10, and equal-qubit memory at r = 3d and 6d. For r = 1 preparation it loses in both:
+- phen_b10 threshold: the depth6 L_X TN ML fit, 15.18(51)%, is 0.59 of XZZX's weaker basis (Z, 25.77(82)%), 11 sigma below. No XYZ^2 r = 1 series exceeds 15.7%.
+- phen_b10 at p = 3%, XYZ^2 d = 5 against XZZX d = 7 (50/49 data qubits), pilot, stat errors only: XYZ^2 L_X with BM errs 1.61(7)e-3 to 1.70(7)e-3. XZZX with corr errs 1.51(4)e-4 to 1.64(4)e-4 in X and 1.20(4)e-4 to 1.26(4)e-4 in Z. XYZ^2 with BM is 10 to 14 times worse. TN ML, XYZ^2's best decoder for the phen_b10 r = 1 threshold, was not run in this pilot. p = 3% is a fifth of that threshold, so a better decoder is unlikely to close a factor of 10 (inference).
+- hw_tr at p_T = 4%, eta = 20, XYZ^2 d = 5 against XZZX d = 7 (99/97 qubits), pilot, stat errors only: XYZ^2 L_X with BM or corr_gauge errs 8.95(52)e-4 to 9.57(30)e-4 (depth6 and both schedules). XZZX with corr errs 5.16(16)e-5 to 5.32(16)e-5 in X and 3.62(13)e-5 to 3.87(11)e-5 in Z. XYZ^2 is 17 to 26 times worse with these decoders.
+
+Two other non-hardware r = 1 thresholds are ties, not advantages. Under phen (eta 0.5, C18), depth6 L_X cfe_tn 16.74(90)% is nominally the highest and within 1.3 sigma of every CSS, XZZX and XY basis. Under the diagnostic sd6_il with noiseless links (C22), bp_corr 2.324(151)% is within 0.9 sigma of every sd6 CSS, XZZX and XY basis.
+
+With gates, the extra fault distance d+1 buys no distance per qubit. Under em3 the fault distance is d. Square rotated patches of distance 4 and 6 need 31 and 71 qubits, against 35 and 99 for XYZ^2. A rectangular CSS patch of 6 by 3 data qubits uses 35 qubits, and the shortest logical error Stim finds for it in the prepared basis has 6 faults. A 10 by 5 patch would put distance 10 on 99 qubits; it is untested.
+
+The measured error at fixed footprint is C11's subject. Under SI1000 at p = 1e-3, r = 1 (pilots, stat errors only):
+- XYZ^2 d = 3 on 35 qubits errs about 1.5x less in L_X than square CSS D = 4 on 31 qubits.
+- The 6 by 3 CSS patch on the same 35 qubits prepares |+> with 6.10(16)e-5 to 6.36(16)e-5 in four independent runs. This is 18 to 19 times below XYZ^2 d = 3 (corr_gauge 1.139(33)e-3).
+- CSS D = 5 on 49 qubits beats XYZ^2 d = 3, and CSS D = 7 on 97 qubits beats XYZ^2 d = 5 on 99 qubits.
+
+At r = d, depth6 L_X is the stronger memory basis under SD6, SI1000, helios_p_noxt, h2_p_noxt, sd6_il and hyb_lr2. Under biased10, em3, biased100 and purez the two bases are level within 1 sigma.",
+ "evidence": "Threshold fits: /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/thresholds.csv, r = 1, fits passing usable() in /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/paper/analysis/competitor_report.py (line 68: method fss, no drift flag, dmax >= 11). A bare noise name is XYZ^2 depth6 L_X (xyz2_label in the same file). z uses the err column (stat and syst in quadrature) unless marked stat only. Competitors on lr, hyb and sd6_il hardware follow /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/fair_comparison.md section 2 and COMPETITOR_HARDWARE in competitor_report.py: lr variants and sd6_il against the base hardware; hyb is the best of sd6 and em3.
+
+Losses (depth6-X best decoder):
+- sd6: cfe_tn 1.960(73) against XZZX-Z corr 2.417(47): 0.811, z -5.26. Against XZZX-X bm 2.489(116), the highest competitor basis: 0.788, z -3.85. Other bases: xy-Z bm 2.381(192) z -2.05; css-Z bm 2.441(206) z -2.20; xy-X bm 2.389(63) z -4.45; css-X bm 2.408(70) z -4.42. Matched: bm 1.822(47) (mwpm 1.809(19)), 0.732-0.754.
+- Bias, depth6-X: biased10 cfe_tn 1.966(107), biased100 tnml 1.974(110), purez bm 1.989(75).
+  - XZZX weaker basis: Z mwpm 3.176(83), Z mwpm 3.447(64), Z corr 3.482(85); z -8.9, -11.6, -13.1.
+  - CSS-Z, the highest basis in each model: bm 4.921(234), bm 5.869(471), corr 5.636(207); z -11.50, -8.06, -16.55.
+- helios_p_noxt: tnml 1.539(101) against XZZX-Z mwpm 2.371(57): 0.649, z -7.2. Against CSS-Z mwpm 3.836(60) (drift 1.99): 0.401, z -19.5. CSS-X mwpm 1.606(29) z -0.64, xy-X mwpm 1.607(47) z -0.61, xy-Z mwpm 1.622(29) z -0.79.
+- h2_p_noxt: tnml 2.236(155) against XZZX-X bm 3.031(109): 0.738, z -4.2. Against CSS-Z bm 3.841(91): 0.582, z -8.92. xy-X mwpm 2.399(37) z -1.03, xy-Z bm 2.404(69) z -0.99, css-X mwpm 2.438(85) z -1.15.
+- em3: cfe_tn 1.066(41).
+  - Against xy-Z bm 0.875(23), the highest CSS, XZZX or XY basis: 1.218, z +4.04.
+  - Against honeycomb-X bm 5.068(338): 0.210. Against honeycomb-Z mwpm 3.497(73): 0.305, z -28.9.
+  - XYZ^2's other em3 series: both-X tnml 1.118(43), both-Y tnml 1.136(64), depth6-Y tnml 1.121(90).
+- hyb: bm 1.981(73) against em3 honeycomb-Z mwpm 3.497(73): 0.566, z -14.7.
+- hyb_lr2: tnml 2.299(206) (nu 1.87, not pinned). Against em3 honeycomb-X bm 5.068(338), the honeycomb's best basis: 0.454, z -7.00 (stat only -7.72). Against honeycomb-Z mwpm 3.497(73): 0.658, z -5.48.
+- sd6_lr2: tnml 1.948(88) against sd6 XZZX-Z corr 2.417(47): 0.806, z -4.69. Its depth6-Y series reaches tnml 2.398(159) (nu 0.59), z -0.46 to +0.07 against every sd6 CSS, XZZX and XY basis.
+
+Ties:
+- si1000: cfe_tn 1.061(46) is within 0.38 sigma of every CSS, XZZX and XY basis (0.92 sigma with stat only). The si1000 honeycomb bases are bm 0.580(38) (X) and bm 0.398(28) (Z). Matched corr_gauge 0.995(14) (stat 0.012), z with stat plus syst / stat only:
+  - against css-Z bm 1.083(35): -2.33 / -2.77;
+  - against xzzx-X corr 1.078(28): -2.63 / -4.18;
+  - against xzzx-Z bm 1.055(23): -2.20 / -2.76;
+  - against xy-Z bm 1.094(74): -1.31 / -3.14.
+- si1000_lr2: bp_corr 1.074(52), |z| <= 0.34 against every si1000 CSS, XZZX and XY basis. bm 1.054(31), |z| <= 0.63 (against css-Z bm 1.083(35)).
+- sd6_lr3: tnml 1.975(151) (nu 3.11).
+  - Against XZZX-Z corr 2.417(47), XZZX-X bm 2.489(116), CSS-X bm 2.408(70) and XY-X bm 2.389(63): z -2.80, -2.70, -2.60, -2.53 (stat only: -3.07, -3.04, -2.93, -2.82). Against css-Z bm 2.441(206) and xy-Z bm 2.381(192): -1.82 and -1.66.
+  - The other decoders reach at most seq_soft 1.826(75). bm 1.755(34) against XZZX-Z: z -11.47.
+
+Not covered:
+- HW corners: /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/hw/thresholds.csv has rounds = d in all 96 rows, and XYZ^2 bases X and Y of the both schedule only (hw_g, hw_g1q, hw_t, hw_rr). /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/hetenyi_wootton_check.md line 76: 'r = d, d = 3 to 21'.
+- Crosstalk ion models:
+  - helios_p depth6-X: cfe 0.333% (err 0.0001%, stat 1.6e-17, nu 0.49); seq_soft and cfe0 at nu 0.30.
+  - h2_p depth6-X: cfe_tn 1.157(111)% at nu 0.30, stat 1e-13.
+  - All 13 usable helios_p competitor fits are at nu 0.30, for example css-X mwpm 1.054(89). The 17 usable h2_p competitor fits span nu 0.30-0.99 (median about 0.5): for example xzzx-X corr 2.800(329) at nu 0.30, xy-Z bm 1.272(78) at nu 0.73, and css-X bm 1.132(70) at nu 0.985 with stat 0.024%. The exclusion rests on XYZ^2's own fits.
+  - The nu lower bound of 0.3 is set in /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/paper/analysis/campaign_report.py line 137.
+
+Idealized models at r = 1:
+- Memory results these refer to: phen_b10 r = d threshold tie, XYZ^2 5.54 against XZZX 5.54 +- 0.05 (/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/noncss_comparison.md line 115); equal-qubit memory at r = 3d and 6d (C31, C35).
+- phen_b10 thresholds (thresholds.csv, r = 1, usable()): depth6-X tnml 15.18(51)%. The 51 usable XYZ^2 fits (depth6 and both, X and Y, all decoders) lie at 12.2-15.6%: lowest seq_match 12.18(49)% (depth6-X) and 12.18(63)% (both-X), highest both-X cfe0 15.62(92)%. XZZX-X mwpm 28.58(77)%, corr 28.11(49)%; XZZX-Z mwpm 25.77(82)%. 15.18/25.77 = 0.589, z -11.0.
+- Pilots: /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/usefulness_pilots/bq/r1.py (arguments: code, basis, decoder, d, p, budget, model, schedule, r; r = 1; outputs not archived). Stat errors only. Repeat runs are independent. XYZ^2 is decoded with BM and corr_gauge only.
+  - hw_tr, p = 0.04 (NOISE['hw_tr'] in /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/scripts/run_decoder_threshold_sweep.py line 71: idle_mr_xyz = (p/84, p/84, 10p/21), eta 20). XYZ^2 d = 5, 99 qubits: depth6 X corr_gauge 9.15(21)e-4, 9.01(21)e-4, 9.39(21)e-4, 9.46(21)e-4 and 9.57(30)e-4 (1,048,320 shots, 1,003 errors); depth6 X bm 9.52(51)e-4; both X bm 8.95(52)e-4. XZZX d = 7 corr, 97 qubits: X 5.32(16)e-5, 5.19(16)e-5 and 5.16(16)e-5 (20,971,264 shots, 1,081 errors); Z 3.62(13)e-5, 3.62(11)e-5 (29,359,872 shots, 1,063 errors), 3.79(11)e-5 and 3.87(11)e-5 (29,359,872 shots, 1,135 errors). Ratios 8.95/0.532 = 16.8 to 9.57/0.362 = 26.4.
+  - phen_b10, p = 0.03. XYZ^2 d = 5 depth6 X bm, 50 data qubits: 1.605(74)e-3, 1.624(67)e-3 (585 errors), 1.674(68)e-3 and 1.696(70)e-3 (343,808 shots, 583 errors). XZZX d = 7 corr, 49 data qubits: X 1.632(44)e-4, 1.643(44)e-4 and 1.512(42)e-4 (8,388,352 shots, 1,268 errors); Z 1.200(38)e-4, 1.215(38)e-4 and 1.264(39)e-4 (8,388,352 shots, 1,060 errors). Ratios 1.605/0.1643 = 9.8 to 1.696/0.1200 = 14.1. p/threshold = 3/15.18 = 0.20.
+- Non-hardware ties at r = 1 (thresholds.csv, usable()):
+  - phen: depth6-X cfe_tn 16.74(90)% (nu 1.98) against css-Z bm 16.28(72), xy-X bm 15.83(37), xzzx-X bm 15.79(78), xzzx-Z bm 15.72(38), css-X bm 15.68(75), xy-Z bm 15.45(44): z +0.40 to +1.29. The other XYZ^2 series also tie: depth6-Y cfe_tn 18.21(231)% (z +0.80 to +1.17), both-Y cfe 17.27(223)%, both-X cfe 16.95(112)%. The honeycomb bases are 2.98% and 4.02%.
+  - sd6_il: depth6-X bp_corr 2.324(151)% (nu 2.60) against the sd6 CSS, XZZX and XY bases: z -0.23 (xy-Z) to -0.86 (xzzx-X).
+
+r = d, best depth6 fit per basis (same file, usable()):
+- L_X: sd6 0.543(7), si1000 0.466(5), helios 0.434(5), h2 0.621(7), sd6_il 0.721(11), hyb_lr2 0.693(12), biased10 0.757(6), em3 0.327(4), biased100 0.836(5), purez 0.857(7).
+- L_Y: sd6 0.490(9), si1000 0.416(7), helios 0.390(7), h2 0.534(12), sd6_il 0.644(6), hyb_lr2 0.619(6), biased10 0.748(12), em3 0.325(5), biased100 0.847(14), purez 0.883(29).
+- z (L_X minus L_Y): 4.7, 5.9, 5.0, 6.4, 5.8, 5.6 for the first six; biased10 0.7, em3 0.2, biased100 -0.7, purez -0.9.
+
+Fault distance: d+1 with gates (/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/ft_mdr_protocol.md lines 103-117); d under em3 (same file, line 248). The paper and this implementation use odd d only: /pscratch/sd/s/sohan100/ftmdr_tools/noncss/papers/2112.06036.txt lines 307-309 consider only odd d >= 3 because even d has different properties; /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/src/mdr/mdr_table.py line 82 raises 'Distance d must be odd and >= 3' (same check in src/xyz2/stabilizer_generator.py line 49).
+
+Fixed footprint (SI1000, p = 1e-3, r = 1): /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/usefulness_pilots/bq/si.log.
+- XYZ^2 d = 3 (35 qubits), L_X: corr_gauge 1.139(33)e-3, mwpm 1.201(34)e-3.
+- CSS D = 4 (31 qubits), corr: Z 1.715(40)e-3, X 1.794(41)e-3. XZZX D = 4, corr: 1.784(41)e-3 to 1.887(42)e-3.
+- CSS D = 5 (49 qubits), corr: Z 3.085(86)e-4, X 3.255(88)e-4.
+- XYZ^2 d = 5 (99 qubits): corr_gauge 1.184(34)e-4, bm 1.01(16)e-4.
+- CSS D = 7 (97 qubits), corr: Z 4.40(13)e-5, X 4.73(14)e-5.
+- Rectangle: /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/usefulness_pilots/r6rev4/rect.py (the repository's CompetitorCircuit with only the layout replaced; outputs not archived). With a 4 by 4 layout it builds a circuit identical to the square CSS D = 4 circuit in both bases. Arguments css X corr 6 3 0.001 <budget> si1000 1: 35 qubits. Stim's shortest_graphlike_error and its undetectable-error search (line 41, restricted to detection-event sets and edge degrees up to 4) both return 6; these searches bound the fault distance from above and find no shorter logical error. pL 6.10(16)e-5 (25,165,568 shots, 1,536 errors), 6.10(16)e-5 (24,641,280 shots, 1,504 errors, 172 MB, 13 s), 6.14(16)e-5 and 6.36(16)e-5 (24,116,992 shots, 1,534 errors) in independent runs. 1.139e-3/6.36e-5 = 17.9 to 1.139e-3/6.10e-5 = 18.7.",
+ "confidence": 0.9
+}

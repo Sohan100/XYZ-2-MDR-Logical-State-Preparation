@@ -1,0 +1,1 @@
+hw_tr xyz2 X d=5 nq=99 p=0.04 corr_gauge r=15 shots=1095054 errors=9503 pL=8.678e-03 eps_round=5.833e-04 t=54s rssGB=0.58

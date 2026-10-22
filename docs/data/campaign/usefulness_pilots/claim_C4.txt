@@ -1,0 +1,36 @@
+{
+ "id": "C4",
+ "regime": "Equal qubit count below threshold, SD6, p = 1e-3 to 3e-3, r = 3d. CSS stands in for XZZX and XY (isomorphic under SD6). Measured 35/17-qubit points included",
+ "verdict": "not_useful",
+ "statement": "Measured, far outside the error bars.
+
+At equal qubits XYZ^2's error per round is 6.5-693x the CSS code's, and the gap grows with size.
+- The 693x pair rests on 2 CSS errors. Its magnitude is poorly known, but the one-sided 3-sigma Poisson bound still gives at least 107x.
+- The 1e-3 pair at 483/449 is only a lower bound on the ratio.
+- pairs.csv fixes XYZ^2's X basis, which is its better basis at d = 5. Taking the worse basis per point gives 7.5-15.2x at 99/97. The fixed-basis choice is conservative for this verdict.
+- Per tick (8 vs 6 ticks) the ratios shrink by at most 1.33x.
+- The pairs are not exactly equal in size: CSS has 4% more qubits at 323/337, XYZ^2 7.6% more at 483/449.
+
+Smallest size, measured (d = 3):
+- XYZ^2 at 35 qubits has 0.81, 1.00 and 1.55x the error of a 17-qubit CSS patch at p = 1, 2 and 3e-3.
+- Against CSS log-interpolated between its measured 17- and 49-qubit points it is 3.3-4.2x worse (linear in qubit count) or 3.7-5.0x (linear in d).
+
+Inference:
+- At equal qubits XYZ^2 has 1/sqrt2 of the distance, so to win it needs Lambda_XYZ2 > Lambda_CSS^sqrt2. It reaches 0.27-0.33 of that.
+- The exponent fraction rises as p falls, from 0.435 to 0.645(43). Under depolarizing noise it is expected to approach 1/sqrt2, below the 1 needed to break even. This matches 2112.06036's low-p statement that failure tracks distance.
+
+Every pair is corr against corr. CSS was never run with BM. Under SD6 XYZ^2's BM is not better than its corr (measured to d = 11).",
+ "evidence": "data/campaign/eq/interim_report/pairs.csv (corr, 68% Wilson), XYZ^2/CSS at p = 1e-3 / 2e-3 / 3e-3:
+- 99/97: 11.09 [9.90, 12.43], 8.54, 6.53.
+- 323/337: 693 [329, 1463] (2 CSS errors), 118, 76.
+- 483/449: bound at 1e-3; 332 [262, 422] (30 errors); 129 [115, 145].
+- MWPM: 5.9-170.
+points_eps.csv, r = 3d:
+- XYZ^2 corr_gauge Y d = 3: 5.88e-4 / 2.745e-3 / 7.15e-3.
+- CSS worse basis d = 3: 7.27e-4 / 2.745e-3 / 4.62e-3. d = 5: 3.92e-5 / 3.35e-4 / 1.084e-3.
+- Interpolated CSS at 35 qubits (linear in n): 1.41e-4 / 8.4e-4 / 2.05e-3.
+lambda.csv: 11.00(39) vs 13.84(123); 4.04(20) vs 6.56(14); 2.34(9) vs 3.98(5).
+fits.csv chi2 7.45 and 7.12 on 2 dof.
+2112.06036.txt lines 1076-1083.",
+ "confidence": 0.92
+}

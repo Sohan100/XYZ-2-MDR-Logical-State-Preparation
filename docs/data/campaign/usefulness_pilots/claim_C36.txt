@@ -1,0 +1,91 @@
+{
+ "id": "C36",
+ "regime": "Platform map: which device classes the campaign models represent, and whether they can host XYZ^2's circuit",
+ "verdict": "not_useful",
+ "statement": "Inference from the model definitions, combined with measured results (pilots where marked). Error ratios are XYZ^2/competitor (above 1 means XYZ^2 is worse). Pilot errors are stat only. Pilot significances follow C33: z = |ln R|/sigma under three error models. (a) is Poisson. (b) scales the Poisson error by the pool's own replicate scatter (1.7 for a single run), read as Student t when that scale is estimated. (c) adds a run-level log-rate offset delta = 0.15 or 0.25 per XYZ^2 run. A pilot lead or loss counts only at 3 sigma under all three.
+
+Scope of the verdict. No modelled platform gives XYZ^2 an established use.
+- r = 1 preparation: no tested fixed-footprint window remains under SI1000. On 35 qubits a CSS patch beats XYZ^2 d = 3 in each basis (pilots, below).
+- Memory: one idealized window is not closed by measurement. With spin-like idling only during readout and reset (hw_tr) and no gate-layer dephasing (f = 0), XYZ^2 with BM leads XZZX, the best competitor run (C35). With small gate and readout errors added, the lead is not established (m1, below). The example spin device is unlikely to meet these conditions (inference, below). No r = 1 preparation run under hw_tr is archived (C35).
+
+Ions:
+- These are the only models calibrated to real devices that natively host the circuit (all-to-all connectivity).
+- At both device points a surface patch that fits prepares the state better: 2.8-37x at Helios and 4.7-26x at H2 (C11).
+- In docs/data/campaign/competitors_table.csv, XYZ^2's threshold is nominally below the best competitor in every ion row but one (ratios 0.115-0.833). The exception, h2_p at r = 5 (ratio 1.41), is a Tesseract fit of L_X only: 0.817(17)% (stat only), with nu at the 6.0 fit bound and chi2 14.8 on 7 points. It sits under a crosstalk model whose listed thresholds are fit artifacts for every code (C13, C27).
+- Ion memory error is pure Z, about 5-6e-3 per data qubit per round at d = 5 (Helios 6.3e-3, H2 5.25e-3). It is applied in every gate layer and every measurement step. That is hw_t's placement, where XYZ^2 loses (threshold 0.13 of XZZX), not hw_tr's.
+
+Superconducting:
+- Only SI1000 and its repeated-link variant are superconducting-inspired.
+- SI1000, r = 1, p = 1e-3, 35 qubits (pilots). XYZ^2 d = 3 prepares its MDR basis L_X with error 1.139(33)e-3 (corr_gauge) and 1.1698(21)e-3 (MWPM). A 6x3 CSS patch on 35 qubits, built with the repository's competitor circuit, schedule and noise, has X-basis fault distance 6 and error 6.39(16)e-5 (corr). XYZ^2 is 17.8x (corr_gauge) and 18.3x (MWPM) worse. In the other basis, XYZ^2's L_Y (3.4498(35)e-3, MWPM) is 1.90-2.01x the square CSS D = 4 patch on 31 qubits (1.715(40)e-3 to 1.8117(29)e-3). Both patches fit every footprint from 35 to 48 qubits, so no window remains there.
+- Each basis needs its own patch. The 6x3 patch's Z basis (fault distance 3) has error 4.90(10)e-3, above XYZ^2's L_Y.
+- Square patches alone leave a granularity gap. Against CSS and XZZX D = 4 on 31 qubits, XYZ^2's L_X is 0.60-0.70x, at least 7.7 sigma (stat only; C11).
+- The repo's degree-6 circuit would need routing on degree-4 or heavy-hex chips. Routing was not modelled, which favours XYZ^2.
+- Hetenyi-Wootton's square-lattice layout (ancilla pairs, links read in a second readout round) avoids degree 6 at the cost of a second readout window.
+- 2109.13308 runs a related code on heavy-hex with an auxiliary qubit per link. It has no threshold study.
+
+Spin arrays:
+- XYZ^2 loses wherever idling is charged in every gate layer (hw_t, threshold 0.13 of XZZX). It also loses the readout-only corner below threshold (hw_rr, C20).
+- Hetenyi-Wootton's idling placement (hw_tr) plus gate and readout error, f = 0. XYZ^2 BM against XZZX corr, 99/97 qubits, r = 3d, eta = 20 (pilots). Values are R (Poisson error), then z under (a), (b) and (c) at delta 0.15/0.25:
+  - m1 (pG 0.1%, p_R 1%, p_T 4%; four replicates): 0.70(4); 5.7, 2.0 (scale 1.66, t on 3 dof), 3.6/2.5. A nominal lead that is not established.
+  - A (pG 0.3%, p_R 1%, p_T 4%; one run): 0.75(6); 3.7, 2.2, 1.7/1.1. A tie.
+  - E (pG 0.1%, p_R 2.7%, p_T 1.5%; the 5.8 us readout that Hetenyi-Wootton find QEC-optimal for the rotated surface code): 1.72(16); 5.7, 5.7, 3.8/2.7. Its two replicates are Poisson-consistent (chi2 0.01 on 1 dof), and with m1's scale 1.66 (b) gives 3.4. A loss for delta up to 0.22.
+  - XYZ^2's best tested value (1.13e-3 per round, at E) is 1.72(16)x XZZX's best (6.60e-4, at E). Each code's own optimal readout time is untested, so this compares tested operating points on one example device (C37, C38).
+  - E has no reset error. The device's combined readout-and-reset error at 5.8 us is 3.1% (Eq. 8, p_res 0.5%), against the 2.7% modelled. Its effect on the ratio is untested.
+- The f = 0 lead depends on conditions the example device is unlikely to meet:
+  - No gate-layer dephasing. At f = 0.02 (0.08% per idle site) the m1 ratio is 1.02(7) (Poisson), a tie. 0 < f < 0.02 is untested. Gate durations are not in the repo. For an unechoed 100 ns gate layer, Hetenyi-Wootton's Gaussian dephasing (Eqs. 4 and 12, T2 = 50 us) gives f of about 0.008-0.015 at the maximum-fidelity readout (9.8 us) and 0.011-0.022 at the QEC-optimal readout (5.8 us) (inference). Dynamical decoupling during idling, which they propose, would lower f. The device therefore lies inside or at the upper edge of the untested range.
+  - eta = 20. At p_T 3%, eta = 20 gives 0.68(8), eta = 10 gives 0.81(8) and eta = 100 gives 1.14(19) (Poisson). eta = 10 and eta = 20 differ by 1.1 sigma, so the bias dependence is not established. With T2 = 50 us, Eq. 5 puts eta = 20 at a data T1 of about 2.0-3.0 ms at the device's 9.8 and 5.8 us readout times (inference).
+  - One readout window per cycle and XX links.
+  - BM decoding. BM takes 17-25 CPU ms per 15-round d = 5 shot (SD6 timing), or 1.1-1.7 ms per round, against a cycle of about 9-13 us. Whether a BP-class decoder can run in real time is untested.
+- Spin-blockade readout uses ancilla pairs. XYZ^2 therefore needs either two readout windows per cycle (their 4d^2 layout, ZZ links) or about 6d^2 qubits for one window (inference). Changing the link orientation changes the ancilla basis change (Hadamards on ancillas); it adds no data-side gates.
+- Shuttling architectures (2601.10461) apply dephasing per two-qubit gate to the shuttled qubits. That is the biased-gate placement, where XYZ^2 loses (C5, C6), not hw_t's per-idle-site charge. At equal qubits the two codes have nearly equal two-qubit gate counts (170 vs 168 at 99/97; C11).
+
+Other:
+- Pair measurements have been demonstrated in small circuit-QED devices and are targeted by Majorana tetrons. The honeycomb code is native there, and its threshold is 6.1x XYZ^2's (C14).
+- Cat qubits deploy repetition codes. The biased models cover their bias range, and XYZ^2 loses there.
+- Neutral atoms were not modelled. Atom loss is a dominant error source there (2603.24237). Under erasure the literature finds XZZX leading or tied with CSS. sd6_noidle is not a proxy for them.
+- phen, phen_b10, sd6_il, hw_tr and the gap variants are not hardware models.",
+ "evidence": "Model definitions, /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/:
+- src/mdr/ft/circuit_noise.py lines 159-212 (quantinuum(): memory r 6e-4 Helios, line 189; 5e-4 H2, line 191; p_mem_z = 1.5 r_mem on every qubit in every gate layer and on data qubits in every measurement step, lines 170, 208).
+- paper/manuscript/Hardware.tex line 72 (seven memory steps, 6.3e-3 at d = 5). H2: 7 x 1.5 x 5e-4 = 5.25e-3.
+- scripts/run_decoder_threshold_sweep.py lines 56-71 (hw_t, hw_rr, hw_tr).
+- docs/fair_comparison.md section 3.4; docs/hetenyi_wootton_check.md lines 35, 40; docs/data/campaign/hw/summary.csv (hw_t: XYZ^2 1.330% vs XZZX 10.01(171)%).
+
+Ion thresholds:
+- docs/data/campaign/competitors_table.csv: 23 ion rows with a ratio. h2_p r = 5: 1.413 ('tesseract, depth6 L_X only'); the other 22: 0.115-0.833.
+- docs/data/campaign/thresholds.csv line 2519 (h2_p, tesseract, r = 5: 0.8167(170)%, syst 0, nu 5.99999, chi2 14.77, 7 points).
+- docs/noncss_comparison.md lines 71, 124.
+
+SI1000 r = 1, p = 1e-3 pilots (stat only), /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/usefulness_pilots/:
+- bq/si.log: XYZ^2 d = 3 (35 qubits) depth6 L_X corr_gauge 1194/1,048,320 = 1.139(33)e-3, MWPM 1.201(34)e-3; CSS D = 4 (31 qubits) corr Z 1.715(40)e-3, X 1.794(41)e-3; XZZX D = 4 corr X 1.887(42)e-3, Z 1.784(41)e-3.
+- ovc/resr1.jsonl: XYZ^2 MWPM 1.1698(21)e-3 (313,454 errors), BM 1.170(58)e-3 (411), depth6-Y MWPM 3.4498(35)e-3 (985,268); CSS-Z D = 4 corr 1.7227(31)e-3, CSS-X D = 4 corr 1.8117(29)e-3.
+- r6rev4/rect.py: subclasses RotatedSurfaceLayout to dx x dy inside the repository's CompetitorCircuit (same schedule and noise); fault distance from stim search_for_undetectable_logical_errors. Run in this check with the repository .venv python, one thread, 0.17 GB peak, under 15 s each:
+  - 'rect.py css X corr 6 3 0.001 85 si1000 1': nq 35, fd 6, 1507 errors in 23,592,704 shots, 6.39(16)e-5.
+  - 'rect.py css Z corr 6 3 0.001 60 si1000 1': nq 35, fd 3, 2567 errors in 524,032 shots, 4.90(10)e-3.
+  Outputs: /tmp/claude-108819/-pscratch-sd-s-sohan100/b9bb5492-172d-4149-9bf3-b4e9300d223c/scratchpad/c36r6/rect_css_6x3_X.txt and rect_css_6x3_Z.txt (not archived).
+- Ratios: 1.139e-3/6.39e-5 = 17.8; 1.1698e-3/6.39e-5 = 18.3; |ln R|/sigma about 74 (Poisson). L_Y 3.4498e-3 over CSS D = 4 1.715e-3 to 1.8117e-3: 1.90-2.01. 6x3 Z 4.90e-3 over L_Y: 1.42. Square-patch margin: L_X 0.604-0.700 of CSS and XZZX D = 4; weakest pair BM 1.170(58)e-3 vs CSS-Z corr 1.715(40)e-3, 7.7 sigma; MWPM 1.201(34)e-3 vs the same, 9.8 sigma.
+
+hw_tr pilots, same archive. hwrev_q7/mixg.py: idle_mr_xyz (pT/84, pT/84, 10pT/21) at each of the readout and reset steps; q = f*pT on every gate-layer idle site. XYZ^2 d = 5 BM, r = 15; XZZX d = 7 corr, r = 21. Ratios as in cons2/pool.py.
+- m1: XYZ^2 X 258/13,058 = 1.342e-3 (cons/m1_x_X_a 69/3187, cons/m1_x_X_b 45/3201, litrev/m1_xyz2_X 80/3401, hwrev_q7/D0_xyz2_X 64/3269; replicate chi2 8.29 on 3 dof) vs cons/m1_z_X 1.916e-3 (34,217 errors): 0.700(44).
+- A: hwrev_q7/A_xyz2_X 174/3179 = 3.850e-3 vs hwrev_q7/A_xzzx_X 5.116e-3 (57,973): 0.752(57).
+- E: hwrev_q7/E_xyz2_Y 56/3379 and hwrev_q7/E2_xyz2_Y 56/3308 = 1.134e-3 (chi2 0.01 on 1) vs hwrev_q7/E_xzzx_X 6.603e-4 (11,601): 1.718(163).
+- f = 0.02: hwrev_q7/C_xyz2_X 108/3237 and hwrev_q7/D2_xyz2_X 83/3238 vs hwrev_q7/C_xzzx_X 1.982e-3 (32,049): 1.021(74).
+- p_T 3%: cons/x3_Y_a, x3_Y_b 73/68,108 vs cons/z3_X 1.054e-4: 0.679(80); cons/e10_x_Y, e10b_x_Y 99/67,777 vs cons/e10_z_X 1.208e-4: 0.807(82); cons/e100_x_Y 36 errors vs cons/e100_z_X 4.502e-5: 1.141(191).
+- C33 statistics recomputed from these counts (z = |ln R|/sigma): m1 (a) 5.70, (b) t 3.44 on 3 dof = 2.04 sigma, (c) 3.65/2.55; A 3.75, 2.21 (f 1.7), 1.69/1.09; E 5.70, 5.70 (f = 1; 3.44 with f 1.66, 3.76 with 1.52), 3.80/2.70, with z = 3 at delta 0.217; f = 0.02: 0.28 (a). These match docs/data/campaign/usefulness_pilots/../C33 values for m1 and A (5.7, 2.0, 3.6/2.5; 3.7, 2.2, 1.7/1.1).
+
+Decoder timing: docs/data/campaign/eq/timing.csv (xyz2 X sd6 bm d = 5: 0.0170-0.0248 s per shot, r = 15).
+
+Literature, /pscratch/sd/s/sohan100/ftmdr_tools/noncss/papers/:
+- 2306.17786.txt: Eqs. 3-5 (lines 299-342; dynamical decoupling during idling, lines 336-339), Eqs. 6-8 (lines 481-512), Eq. 12 (lines 624-628), line 693 (example device), lines 900-905 (9.8 and 5.8 us), lines 1076-1104 (XYZ^2 layout, stabilizers read in two rounds), 1423-1425, 1880-1890, 2036-2046.
+- 2109.13308.txt lines 1-14, 93-103.
+- 2601.10461.txt lines 963-979 (data and ancilla shuttled between each two-qubit gate; dephasing per two-qubit gate).
+- 2108.10457.txt lines 111-114.
+- 2603.24237.txt line 9 ('Atom loss is a dominant error source in neutral-atom quantum processors').
+Notes: /pscratch/sd/s/sohan100/ftmdr_tools/noncss/lit_hardware.md sections A, C, D, E; line 136 (erasure: XZZX leads, CSS and XZZX nearly equal at R_e = 0.98 with native gates).
+
+Arithmetic (inference):
+- f for an unechoed 100 ns layer, using Eq. 12's Gaussian dephasing with T2 = 50 us and tau = readout + 3 us reset (12.8 and 8.8 us; p_T2 3.17% and 1.53%): time share 0.1/12.8 = 0.0078 and 0.1/8.8 = 0.0114; marginal Gaussian increment (tau/T2^2) e^{-tau^2/T2^2} x 0.1 us divided by p_T2 gives 0.0151 and 0.0224. A Markovian T2 of 50 us would give p_T of 11% over 12.8 us, inconsistent with Eq. 12, so it is not used.
+- T1: Eq. 5 gives eta + 1 = 2 tau T1/T2^2, so T1 = 21 T2^2/(2 tau) = 3.0 ms (tau 8.8 us) and 2.05 ms (12.8 us).
+- p_RR(5.8 us) = 0.005(1 - 0.0266) + 0.0266(0.995) = 3.13% (Eq. 8).
+- One-window spin layout: 2d^2 data qubits plus an ancilla pair for each of about 2d^2 stabilizers, about 6d^2 qubits.",
+ "confidence": 0.8
+}

@@ -1,0 +1,21 @@
+{
+ "id": "C29",
+ "regime": "Long memories (r >> d) under circuit-level extreme Z bias (purez, biased100), full detector-error-model decoders, equal qubits",
+ "verdict": "untested",
+ "statement": "Untested as a long-memory statement, and weakened by measured data.
+- Full-DEM data (XYZ^2 BM) lose by 3.4-6.9x at 99/97 and by 28-51x at 323/337 (C6).
+- Removing the time boundary does not help. The boundary-free (two-round difference) error at 99/97 favours XZZX by 6.2-9.0x (biased100) and 10.6-14.9x (purez). Removing the boundary changes XYZ^2's error by only 20-46%.
+- XYZ^2's measured BM Lambda (d = 7 to 9, 3e-3) is 7.5 and 9.4, each on 16 d = 9 errors, against the break-even 18.4-22.8.
+- XY gives d^2 pure-Z protection on half the qubits and has a higher purez threshold.
+
+Contrast with hw_tr (perfect syndromes): there, XYZ^2's L_Y ratio is unchanged with r (0.40 at r = 3d, 0.38 at r = 6d). The worse-basis ratio improves from 0.61 to 0.38 only because L_X's time-boundary term is spread over more rounds (C9).
+
+MDR preparation would not benefit (C9).",
+ "evidence": "docs/data/campaign/eq/points_eps.csv BM X at 3e-3: biased100 d = 7 1.353e-5 (98 errors), d = 9 1.812e-6 (16); purez 1.412e-5, 1.505e-6 (16).
+boundary.csv eps_two:
+- biased100 2.44e-6 / 5.20e-5 / 2.80e-4 vs 3.92e-7 / 6.48e-6 / 3.11e-5;
+- purez 2.21e-6 / 3.77e-5 / 2.57e-4 vs 2.08e-7 / 3.22e-6 / 1.72e-5.
+lambda.csv XZZX 7.84(17), 9.12(29).
+litrev/hwtr4_*; cons/b_*.",
+ "confidence": 0.4
+}

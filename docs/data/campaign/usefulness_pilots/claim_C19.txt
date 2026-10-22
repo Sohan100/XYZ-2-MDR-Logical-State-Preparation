@@ -1,0 +1,31 @@
+{
+ "id": "C19",
+ "regime": "Hetenyi-Wootton spin-qubit corners with one channel each (hw_g gates, hw_g1q gates plus single-qubit gates, hw_t idling with eta_T = 20 in every gate layer and readout); r = d, d = 11-21 (honeycomb 12-20); both schedule, decoders mwpm/corr/corr_gauge/bm",
+ "verdict": "not_useful",
+ "statement": "Measured. These corners are symmetric in schedule and decoder class. Like hw_tr, each one switches off every channel but one, so they are diagnostics of single channels, not device models.
+- hw_g: XYZ^2 ties the honeycomb for third. It is 0.78 of CSS (5.0 sigma) and 0.79 of XZZX (7.4 sigma), with stat plus syst errors.
+- hw_g1q: XYZ^2 is third.
+- hw_t: 0.35 of CSS and 0.13 of XZZX. XYZ^2's entry is corr_gauge Y, 1.330(14)% after inflating by sqrt(chi2). Its Y-basis BM was excluded by the drift rule (pair crossing 1.617(176), drift 0.73). That rule flags only downward drift, while competitor fits drifting upward 2.0-2.5x are kept. With XYZ^2 BM the ratios would be about 0.42 and 0.16. The verdict is unchanged.
+
+hw_t is harsher than Hetenyi-Wootton's placement. hw_tr puts idling where they do (C21, C35).
+
+Their ordering XYZ^2 > XZZX at the gate corner (0.465 vs 0.37) is not reproduced.
+- hw_g1q cannot test it: the same single-qubit error on every code keeps CSS and XZZX isomorphic.
+- Their XZZX carries extra data-qubit basis changes. Their XYZ^2 also has X and Y basis conversions, which 'contribute significantly', and plaquette SWAPs. So the cause of their ordering is not isolated.
+
+Absolute corner values differ from theirs by factors of 0.32-3.76 with best decoders and 0.21-3.11 with MWPM. The surface codes' hw_g crossings drift up more than XYZ^2's, so the hw_g gap may be understated.",
+ "evidence": "/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/hw/summary.csv (err = stat and syst in quadrature):
+- hw_g: 1.097(37) / CSS 1.400(49) / XZZX 1.389(14) / honeycomb 1.081(8). Theirs: 0.465 / 0.82 / 0.37 / 0.43. z vs CSS -4.96, vs XZZX -7.43, vs honeycomb +0.44.
+- hw_g1q: 0.402(7) / 0.519(13) / 0.514(10) / 0.372(5).
+- hw_t: 1.330(6) / 3.82(40) / 10.0(17) / 0.507(11).
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/hw/thresholds.csv:
+- All 24 honeycomb rows have dmin 12, dmax 20. Every other row has 11-21 (also /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/hw/thresholds.md header and /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/hetenyi_wootton_check.md line 91).
+- hw_t xyz2 Y bm pair 0.016172(1759), drift 0.733, flag drift; X bm fss 1.669(26); Y corr_gauge chi2 4.77.
+- css X bm drift 1.77 at hw_g (fss, counts=True).
+- At hw_t, kept competitor fits drifting upward: css X mwpm 2.01 and bm 2.26, xzzx Z mwpm 2.45 (all fss, counts=True). css X corr 2.49 and xzzx Z corr 3.11 are pair-only, counts=False.
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/paper/analysis/campaign_report.py lines 210-213 (drift rule).
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/scripts/run_decoder_threshold_sweep.py lines 64-71.
+/pscratch/sd/s/sohan100/ftmdr_tools/noncss/papers/2306.17786.txt Table I; lines 1011-1016, 1104-1110, 1885-1893.
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/hetenyi_wootton_check.md lines 35, 40, 46, 121.",
+ "confidence": 0.84
+}

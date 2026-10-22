@@ -1,0 +1,63 @@
+{
+ "id": "C2",
+ "regime": "Gate models without crosstalk (sd6, si1000, biased10/100, purez, helios_p_noxt, h2_p_noxt, lr variants; sd6_il is a diagnostic). Thresholds at r = 1, 2, 3, 5, 10 and d. Fits at r = 4, 6-9 and 11-21 exist for XYZ^2 only",
+ "verdict": "not_useful",
+ "statement": "Measured at r = 1, 2, 3, 5, 10 and d, the round counts with competitor fits. XYZ^2 is nominally below the best competitor in all 66 (model, r) rows. The highest ratio is 0.98 (si1000 and si1000_lr2 at r = 1). No row shows a significant XYZ^2 lead. At r = 4, 6-9 and 11-21 only XYZ^2 has fits, so the verdict there is an inference.
+
+The tie and loss lists below use the table's fits (the competitors_table.csv selection) with stat plus syst errors.
+
+Ties: XYZ^2 within 3 sigma of every competitor.
+- si1000 at r = 1, 2 and 5.
+- si1000_lr2 at r = 1-10.
+- h2_p_noxt at r = 3 (z -2.98).
+- sd6_il at r = 2, 5 and 10. These are not hardware ties: in this \u00a73.4 diagnostic only XYZ^2's links are noiseless.
+
+Losses within 3.5 sigma: XYZ^2 at least 3 sigma below some competitor.
+- si1000 r = 3 (-3.4 vs CSS; -3.3 vs the table's best, XY).
+- si1000 r = 10 (-3.5 vs CSS; -2.6 vs the table's best, XY).
+- sd6_il r = 1 (-3.0).
+The other 51 rows are losses at z -3.6 (helios_p_noxt r = d) to -40 (biased100 r = d), stat only -4.7 to -57: sd6, sd6_lr2, sd6_lr3, biased10, biased100, purez and helios_p_noxt at every r; h2_p_noxt at r other than 3; si1000, si1000_lr2 and sd6_il at r = d; sd6_il at r = 3.
+
+Stat-only errors keep these as ties: si1000 r = 1 (-0.25), si1000_lr2 r = 1/2/3/5/10 (-0.34 / -1.65 / -1.09 / -2.99 / -2.96), sd6_il r = 2 (-2.66). The other rows of the two lists above reach stat-only -3.1 to -7.7.
+
+Which XYZ^2 fit is used changes the labels. Under symmetric rules (XYZ^2 both schedule with mwpm, corr_gauge or bm; stat plus syst):
+- si1000 r = 1 (-3.4 vs XZZX), h2_p_noxt r = 3 (-7.3), si1000 r = 5 (-4.4 vs XZZX, -3.6 vs CSS) and sd6_il r = 5/10 (-4.8 / -6.0) become losses.
+- si1000 r = 3 becomes a tie (-2.1).
+The table's ties there come partly from the larger error bars of XYZ^2-only fits (C24). Per-row labels near |z| = 3 are not robust; the ranking is.
+
+Competitor BP-OSD and Tesseract have no fss fits. Their non-drift d = 9/11 pair crossings (stat errors only) raise the best-competitor entry in sd6 and its variants at r = 1 and 3, biased100 at r = 1 and 10 and purez at r = 3, 5 and 10, and in no row at r = d. Admitting them lowers each of those ratios, most at purez r = 10 (0.465 to 0.264; xzzx-Z tesseract 4.24(63)%). It changes one label: the sd6_il r = 1 loss becomes a tie (-2.6 vs CSS), because XZZX's entry then carries the crossing's larger error.
+
+The trend with r depends on the model. Significances compare the ratios at two round counts, with stat plus syst errors unless marked stat only:
+- highest at r = 1 for SD6, SI1000 and strong bias (biased100, purez): 1.5-2.6 sigma above r = d (2.2-5.4 stat only), but only 0.3-1.5 sigma above r = 2;
+- rising toward r = d for Helios (0.64 to 0.76; 1.3 sigma, 3.6 stat only);
+- flat at 0.71-0.76 for h2_p_noxt;
+- U-shaped for biased10: r = 3, 0.546(22), is 1.7 sigma (2.8 stat only) below r = 1 and 3.5 sigma (4.7 stat only) below r = d, 0.636(12).
+
+Fixed-r fits have larger nu than r = d fits. Over C2's models the median nu of usable fss fits at r = 1, 2, 3, 5 and 10 is 1.66-1.78 for XYZ^2 and 1.64-1.74 for competitors, against 1.04 and 1.09 at r = d. XYZ^2's fits at r = 4, 6-9 and 11-21 have medians 1.71-1.95. XYZ^2's own fixed-r thresholds at large r exceed its r = d value (sd6 depth-6 L_X, seq_soft: 0.723(66)% at r = 21 against 0.543(7)% at r = d), but no competitor fits exist there.
+
+Symmetric ratios at r = 1/2/3/5/10/d:
+- sd6: 0.72/0.67/0.62/0.64/0.60/0.60;
+- si1000: 0.89/0.90/0.87/0.85/0.85/0.83.",
+ "evidence": "/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/competitors_table.csv ratios at r = 1/2/3/5/10/d:
+- sd6 0.73/0.71/0.66/0.66/0.64/0.63
+- si1000 0.98/0.90/0.88/0.89/0.85/0.83
+- biased10 0.62/0.56/0.55/0.58/0.60/0.64
+- biased100 0.57/0.51/0.49/0.50/0.47/0.51
+- purez 0.56/0.50/0.50/0.46/0.46/0.42
+- helios_p_noxt 0.64/0.63/0.68/0.69/0.73/0.76
+- h2_p_noxt 0.71/0.76/0.73/0.73/0.76/0.76
+Per-row labels and per-competitor z (stat plus syst from the err column; stat only from the stat column): recomputed from /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/thresholds.csv with /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/paper/analysis/competitor_report.py (usable(), xyz2_values(), code_values(), competitor_for(); weaker basis per code, every competitor except honeycomb). 11 models x 6 round counts = 66 rows: 12 ties, 54 losses. Weakest unlisted losses: helios_p_noxt r = d -3.62, sd6_lr2 r = 3 -3.77, helios_p_noxt r = 5 -3.88, sd6_lr3 r = 1 -4.04, sd6_il r = 3 -4.04, sd6 r = 2 -4.25; strongest biased100 r = d -40.23 (stat -57.29); smallest stat-only among them sd6_lr3 r = 1 -4.70. z against the table's best: /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/usefulness_pilots/rev4num/z.py and z.csv. Listed pairs: /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/usefulness_pilots/statrev/z3.py.
+- si1000 r = 3: XYZ^2 both-X bp_corr 0.711(22) vs css-Z bm 0.809(19), -3.44; vs xy-X bm 0.812(21), -3.33.
+- si1000 r = 10: css -3.45, xzzx -2.49, xy -2.60. XYZ^2 bm 0.567(13) vs css-Z bm 0.656(22).
+- h2_p_noxt r = 3: 1.147(127) vs 1.565(59), -2.98 (stat -7.65).
+- Stat only: si1000_lr2 r = 5 -2.99 (css-X bm), r = 10 -2.96 (xy-Z bm); sd6_il r = 2 -2.66 (xy-Z corr), -2.64 (css-X bm). Other tie and listed-loss rows: sd6_il r = 10 -3.07 (smallest) to h2_p_noxt r = 3 -7.65.
+Symmetric: ratios from /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/usefulness_pilots/fairrev/sym.py (sd6 0.716/0.667/0.624/0.639/0.602/0.599; si1000 0.890/0.900/0.875/0.853/0.847/0.828).
+- si1000 r = 1: both-X mwpm 0.959(16) vs xzzx-Z bm 1.055(23), -3.42 (statrev/z3.py).
+- si1000 r = 5: both-X bm 0.622(15) vs xzzx-X corr 0.705(12), -4.41; vs css-X bm 0.729(26), -3.62.
+- h2_p_noxt r = 3: both-X bm 1.108(20) vs 1.565(59), -7.35. sd6_il r = 5/10: -4.84/-5.97. si1000 r = 3: -2.12.
+Pair crossings: thresholds.csv rows with method pair, dmin 9, dmax 11, no drift flag, decoder bposd or tesseract (0 fss rows for these decoders, 856 pair rows), admitted into each competitor basis with competitor_report.code_values(). purez r = 10: xzzx-Z tesseract 4.243(629)% becomes XZZX's weaker basis, ratio 0.465 to 0.264. biased100 r = 10: 0.472 to 0.443 via xzzx-X bm 2.324(200)%. sd6_il r = 1: XZZX entry becomes xzzx-Z tesseract 2.432(194)% (sd6); most negative z becomes -2.57 vs css-X bm 2.408(70)% (sd6). Other z changes in C2's regime keep their labels (biased100 r = 1 -11.59 to -3.68; sd6_lr3 r = 1 -4.04 to -3.76).
+Trend: ratio errors propagated from the table entries' err (stat column for stat only); fits at different r are independent. r = 1 vs r = d: sd6 0.729(34) vs 0.629(18), 2.60 (stat 3.88); si1000 1.52 (2.21); biased100 1.97 (2.35); purez 2.60 (5.43); helios_p_noxt 0.638(68) vs 0.759(66), -1.27 (stat -3.60); h2_p_noxt -1.06. r = 1 vs r = 2: sd6 0.30, si1000 0.76, purez 1.04, biased100 1.52. biased10: 0.619(37) at r = 1, 0.546(22) at r = 3, 0.636(12) at r = d; 1.68 (stat 2.84) and 3.53 (stat 4.71).
+nu: medians of usable fss fits in thresholds.csv restricted to C2's 11 models: XYZ^2 1.659/1.698/1.695/1.728/1.779 at r = 1/2/3/5/10, 1.037 at r = d, 1.705-1.949 at r = 4, 6-9, 11-21; competitors 1.645/1.657/1.708/1.655/1.737 at r = 1/2/3/5/10, 1.089 at r = d. sd6 r = 21 depth-6 L_X seq_soft 0.723(66)%; sd6 r = d depth-6 L_X bp_corr 0.543(7)%.
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/fair_comparison.md line 31 (sd6_il).",
+ "confidence": 0.88
+}

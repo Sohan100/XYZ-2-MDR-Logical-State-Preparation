@@ -1,0 +1,27 @@
+{
+ "id": "C1",
+ "regime": "Generic depolarizing gate noise (SD6, platform-neutral) and SI1000 (superconducting-inspired); links repeated (sd6_lr2/lr3, si1000_lr2). Memory threshold at r = d, weaker basis, d = 11-21",
+ "verdict": "not_useful",
+ "statement": "Measured. XYZ^2 is far below the rotated surface codes.
+- SD6, symmetric rules (both schedule; mwpm/corr_gauge/bm vs mwpm/corr/bm): 0.487(7)%, 0.60 of XZZX. The table entry (bp_corr, a decoder only XYZ^2 gets) is 0.63, at 14.0 sigma below XZZX and 21.3 below CSS.
+- SI1000: 0.83 (8.2 sigma vs CSS).
+- Same decoder for every code: MWPM 0.57-0.58 (SD6) and 0.77 (SI1000); BM 0.83-0.84 (SI1000, X basis only).
+- Repeating the links does not close the gap (0.65-0.85).
+- With idling removed for both codes (sd6_noidle, a diagnostic) XYZ^2 is still at 0.774(8).
+
+Under SD6 the CSS, XZZX and XY detector error models are isomorphic. Pooled they give 0.809(9)%. That error is understated, because the fit-window syst term is common to the three fits.
+
+Hardware reading (inference):
+- SD6 is generic; only SI1000 is superconducting-inspired.
+- This repo's circuit needs degree-6 couplers. That requirement belongs to the circuit, not the code. Hetenyi-Wootton embed XYZ^2 in a square lattice (connectivity 4): ancilla pairs, SWAPs on the plaquettes, links read in a separate round. There XYZ^2 reaches 0.57 of the surface code at their gate corner. Their surface code also pays SWAPs, so that is not a direct measure of the routing penalty.
+- 2112.06036 warned that the weight-6 checks could make XYZ^2 more susceptible to measurement noise (see C34 for what the gap diagnostic shows).",
+ "evidence": "docs/data/campaign/thresholds.csv and competitors_table.csv, r = d:
+- SD6: sd6@both-X bp_corr 0.5116(78)% vs xzzx-Z bm 0.8128(200), z 14.0; vs css-X corr 0.8092(116), z 21.3; symmetric both-X bm 0.4866(65), ratio 0.599.
+- SI1000: si1000@both-X bm 0.4308(85) vs css-Z bm 0.5200(69), z 8.2.
+- Link repeats: sd6_lr2 0.70, sd6_lr3 0.65, si1000_lr2 0.85.
+gap/fractions.csv sd6_noidle 0.774(8).
+usefulness_pilots/fairrev/sym.py.
+2306.17786.txt Table I (connectivity 4) and App. D lines 1880-1890.
+2112.06036.txt lines 169-178.",
+ "confidence": 0.93
+}

@@ -1,0 +1,29 @@
+{
+ "id": "C18",
+ "regime": "Phenomenological depolarizing noise (phen, eta = 0.5; not hardware), threshold at all r and equal qubits",
+ "verdict": "not_useful",
+ "statement": "Measured.
+
+Threshold (z uses stat plus syst errors; pair crossings have stat errors only):
+- r = d: a loss. XYZ^2 is 0.92 of XZZX (4.1 sigma) and 0.91 of the pooled isomorphic competitors (4.551(36)%, 5.8 sigma). Against the single CSS-Z fit alone it is 2.8 sigma. Symmetric rules: 0.906 of XZZX (3.6 sigma) and 0.895 of CSS (2.9 sigma).
+- r = 1, 2, 3, 5 and 10: ties. Every |z| is below 3, with either XYZ^2 schedule and with or without pair crossings. With XYZ^2's best schedule and fss fits the largest is 1.86 (r = 5).
+- The r = 1 nominal lead (1.08, 1.05 sigma) is the maximum over XYZ^2's schedules and decoders. Symmetric rules give 1.009 (0.3 sigma). The competitors' d = 9/11 pair crossings give 0.99 (xzzx-Z Tesseract 17.08(138)%).
+
+Equal qubits (pilots, p = 2.5%, r = 3d, weaker basis of each code, XYZ^2 BM against XZZX corr): XYZ^2's logical error per round is 1.36(8), 1.83(12) and 2.36(18) times XZZX's at 18/16, 50/49 and 98/100 data qubits (35/31, 99/97 and 195/199 total qubits). The ratio errors are Poisson. Significance is z = |ln R|/sigma under C33's three error models: (a) Poisson; (b) uniform scaling, f = 1.7 for each single run and the pool's own replicate scatter for a pool; (c) a run-level offset per XYZ^2 BM run, quoted at delta 0.15/0.25. A label needs 3 sigma under all three.
+- 18/16: z 5.3, 3.1, 1.9/1.2. Not established. Each code has a single run.
+- 50/49: z 8.9, 5.3, 3.7/2.3. A loss for delta up to 0.19.
+- 98/100: z 11.0, 8.7, 6.5/4.4. A loss. The two XYZ^2 runs agree within 0.7 sigma, so the pool's f is 1.
+The 50/49 XYZ^2 run agrees with a replicate within 1.4 sigma. With BM on both sides at 50/49 the ratio is larger, 2.16(18), so the competitor's decoder does not create the loss. The ratio rises with size, but this trend is 5.6, 3.9 and 2.6/1.7 sigma under (a), (b) and (c), so it is not established. Inference: the XZZX partners at 16 and 100 data qubits have even distance (4 and 10), which costs qubits without raising the number of faults a failure needs, so these pairings do not favour XZZX.
+
+Inference: the losses are consistent with 2112.06036's code-capacity observation that at low p failure scales with code distance, here 3, 5 and 7 for XYZ^2 against 4, 7 and 10 for XZZX.",
+ "evidence": "/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/thresholds.csv, phen (err = stat plus syst; pair rows stat only):
+- r = d: phen@depth6-X bp_corr 4.156(57) vs xzzx-X bm 4.510(66), z -4.05; css-Z bm 4.570(135), z -2.83. The six competitor single-basis BM fits (css-X 4.659(116), css-Z 4.570(135), xy-X 4.579(97), xy-Z 4.555(141), xzzx-X 4.510(66), xzzx-Z 4.540(63)) pool by inverse variance to 4.551(36), z -5.83. Symmetric (both schedule; mwpm/corr_gauge/bm vs mwpm/corr/bm): phen@both-X bm 4.088(96), z -3.64 vs XZZX, -2.92 vs CSS.
+- r = 1: phen@both-X cfe 16.955(1116), phen@depth6-X cfe 15.915(525), phen@both-X bm 15.737(433); xzzx-Z bm 15.719(377), z +1.05. Symmetric: phen@both-X mwpm 15.854(281), z +0.29. Pair crossings d = 9/11, no drift flag: xzzx-Z tesseract 17.076(1383), xzzx-X bposd 18.067(1987).
+- r = 1 to 10, weaker basis of each code (best decoder per basis, minimum over bases): with XYZ^2's best schedule and fss fits, max |z| 1.86 (r = 5, phen@depth6-X bp_corr 6.456(135) vs css-X bm 6.963(237)), and -1.975 with the css-X error 0.218 in /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/competitors.csv. Either XYZ^2 schedule: max |z| 2.01 (r = 5, phen@both-X bp_full 6.400(151) vs css-X bm). Pair crossings allowed on both sides: max |z| 1.26 (best schedule) and 1.55 (either schedule). The stronger-basis row phen@both-Y tnml pair (d = 3/5) 11.829(772) at r = 2 gives +2.32 against xy-X bm 9.790(419); the weaker basis of that schedule is X (phen@both-X tnml pair 10.579(1124)).
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/usefulness_pilots/bq/phen.log (eps = (1 - (1 - 2 pL)^(1/r))/2): XYZ^2 Y BM d = 3 8.616e-3 (592 errors) vs XZZX Z corr d = 4 6.323e-3 (579); d = 5 2.555e-3 (416) vs XZZX X corr d = 7 1.400e-3 (468); d = 7 7.999e-4 (114) and 8.740e-4 (129), pooled 8.38e-4 (243), vs XZZX X corr d = 10 3.550e-4 (518). XYZ^2 Y is the weaker XYZ^2 basis at each size (X: 4.394e-3, 1.841e-3, 7.983e-4 and 7.639e-4).
+Log-form z recomputed from these counts, matching C33 item 4: 18/16 ln R 0.309, (a) 5.29, (b) 3.11, (c) 1.92/1.21; 50/49 ln R 0.602, 8.93, 5.25, 3.66/2.32, and z = 3 under (c) needs delta <= 0.189; 98/100 ln R 0.859, 11.05, 8.72, 6.53/4.45 (delta^2 divided by the 2 pooled runs). d = 7 Y replicates: 0.69 sigma (chi2 0.47 on 1). Size trend ln(R98/R18) 0.549: 5.65, 3.93, 2.64/1.71.
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/usefulness_pilots/stat/runph_xyz2_Y_bm.log 2.328e-3 (500), 1.40 sigma from the bq/phen.log d = 5 Y value; against runph_xzzx_X_bm.log 1.077e-3 (198) the ratio is 2.16(18). runph_xzzx_X_corr.log 1.3235e-3 (25,446), 1.2 sigma from the bq/phen.log d = 7 X corr value.
+Total qubits 4d^2 - 1 (XYZ^2 d = 3, 5, 7) and 2d^2 - 1 (XZZX d = 4, 7, 10): 35/31, 99/97, 195/199.
+/pscratch/sd/s/sohan100/ftmdr_tools/noncss/papers/2112.06036.txt lines 172-175 (weight-six checks may raise susceptibility to measurement noise) and 1063-1083 (code capacity: failure tracks qubit number above threshold and code distance at low p).",
+ "confidence": 0.85
+}

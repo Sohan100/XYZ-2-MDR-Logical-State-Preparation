@@ -1,0 +1,1 @@
+si1000 css rect 6x3 Z corr r=1 nq=35 fd=3 p=0.001 shots=524032 err=2567 pL=4.899e-03+-9.6e-05 t=0s

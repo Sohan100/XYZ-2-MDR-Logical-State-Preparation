@@ -1,0 +1,24 @@
+{
+ "id": "C26",
+ "regime": "Labelling of the campaign's biased noise models, and biased noise with gates that do not preserve bias",
+ "verdict": "untested",
+ "statement": "Measured from the code. The biased models put Z-type channels (IZ, ZI, ZZ) after every native CX, CY and CZ, so they preserve bias; measurement and reset flips stay at p.
+
+Three files list XYZ^2's biased values under 'gates not bias-preserving':
+- noncss_comparison.md line 15 and lit_hardware.md line 114 (0.75/0.83/0.86%);
+- lit_surface_family.md line 163 (as ranges).
+
+The device form of bias (Z-dephasing memory with depolarizing gates) was simulated, and where the dephasing sits decides the outcome:
+- per gate layer (ion models, hw_t): XYZ^2 loses;
+- only during readout and reset, with perfect syndromes (hw_tr): XYZ^2 leads in BM pilots (C35);
+- small gate-layer fractions remove that lead (C37).
+
+Untested: bias at every location with a CX compiled through H (2505.17718). XYZ^2's values lie between XZZX's two non-bias-preserving compilations (CZ-only 0.73-0.80%, HBD 0.85-0.93%), so that model could produce anything from a loss to a tie (cross-model).
+
+Gate set: CY = (I x S) CX (I x S^dag) is bias-preserving in the cat-qubit set. Treating CY and CZ as native favours both codes alike, apart from the omitted Z(pi/2) noise.",
+ "evidence": "src/mdr/ft/circuit_noise.py lines 139-156.
+Labels: docs/noncss_comparison.md line 15; ftmdr_tools/noncss/lit_hardware.md lines 112-114; lit_surface_family.md line 163 ('Your biased100 (0.46-0.83 %) and purez (0.46-0.86 %)').
+papers/1904.09474.txt line 394.
+Our XZZX 1.175/1.655/2.061.",
+ "confidence": 0.75
+}

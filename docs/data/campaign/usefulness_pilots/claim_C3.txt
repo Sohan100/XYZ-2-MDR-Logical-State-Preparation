@@ -1,0 +1,56 @@
+{
+ "id": "C3",
+ "regime": "SI1000-type noise below r = d (si1000 and si1000_lr2 at r = 1, 2, 3, 5, 10, with r = d for contrast) and hyb_lr2 at r = 1-2; threshold",
+ "verdict": "not_useful",
+ "statement": "Measured. No cell in this regime is a win. Significances use stat plus syst errors (the err column of docs/data/campaign/thresholds.csv) unless stated. The table rule is docs/data/campaign/competitors_table.csv. The symmetric rules are: both schedule; XYZ^2 mwpm/corr_gauge/bm against competitor mwpm/corr/bm. Each entry gives the ratio to the best competitor and the largest pull against any competitor.
+
+si1000 (table rule; symmetric rules):
+- r = 1: tie, 0.98, -0.2 sigma; loss, 0.89, -3.4 sigma (XZZX-Z bm 1.055(23)).
+- r = 2: tie under both, 0.808(33) against CSS-Z 0.899(28), 0.90, -2.1 sigma.
+- r = 3: loss, 0.711(22), 0.88, -3.4 sigma against CSS-Z and -3.3 against XY; tie, 0.710(43), 0.88, -2.1 sigma.
+- r = 5: tie, 0.646(33), 0.89, -2.0 sigma; loss, 0.622(15), 0.85, -4.4 sigma (XZZX-X corr 0.705(12)).
+- r = 10: loss under both, 0.567(13), 0.85, -3.5 sigma (CSS-Z 0.656(22)).
+- r = d: loss under both, 0.431(8), 0.83, -8.2 sigma.
+
+si1000_lr2 (competitors as si1000) ties under both rule sets at r = 1, 2, 3, 5 and 10 (ratios 0.89-0.98, largest pulls -0.2 to -2.0 sigma). At r = d it loses (table 0.85, -6.8 sigma; symmetric 0.84, -8.7 sigma).
+
+Three table-rule ties become losses under the symmetric rules: si1000 r = 1, si1000 r = 5, and hyb_lr2 r = 1 against the gate surface codes. Each uses one or more choices that only XYZ^2 gets:
+- decoders outside the competitors' set (XYZ^2 has 14, the competitors 5): TN ML and CFE-TN at r = 1, bp_corr at si1000 r = 5;
+- the best of 20-25 usable schedule-decoder candidates of the weaker basis;
+- at r = 1, the depth6 schedule, whose L_Y memory has fault distance only (d+1)/2. The hyb rule refuses the surface codes a compilation with that fault distance.
+
+si1000 r = 1 in the MDR basis (depth6 L_X) with matched decoders: corr_gauge 0.995(14).
+- It is 0.91-0.94 of each competitor single-basis fit and within 3 sigma of each. The largest pull is 2.6 sigma, against XZZX-X corr 1.078(28). This is a tie.
+- Against the six fits pooled it is 0.93. The pull is 3.7 sigma if the fits' syst terms are independent (err-weighted pool 1.069(15)%). It is 2.9 sigma if the stat errors are pooled (1.070(8)%) and a common syst of 0.02% is added, and 3.4 sigma with 0.015%.
+- The pool assumes that CSS, XZZX and XY share one SI1000 threshold. Their isomorphism is shown only under SD6 (C1).
+Either way it is not an advantage.
+
+hyb_lr2: the hyb rule (docs/fair_comparison.md section 2; COMPETITOR_HARDWARE = [sd6, em3]) makes the honeycomb on pair measurements the comparator.
+- r = 1: table 0.61-0.66 (z -3.9 to -5.5); symmetric 0.59 (both-Y bm 2.067(103), z -11.3). The 0.66 entry is TN ML depth6 L_X 2.299(206) against 3.497(73). L_X is the weaker depth6 basis only because the depth6 L_Y TN ML fit, 3.207(652)%, has nu at the 0.30 fit bound. Without that fit the entry is bp_corr depth6 L_Y 2.149(340), ratio 0.61.
+- r = 2: 0.44 (table 1.507(109) against 3.390(109), 0.445, z -12.2; symmetric both-Y bm 1.478(85), 0.436, z -13.8).
+Against the gate surface codes alone, r = 1 is a table-rule tie (largest pull 0.6-0.8 sigma) and a symmetric loss (3.1 sigma, XZZX-Z corr 2.417(47)). r = 2 is a tie under both rules (largest pulls 2.1 and 2.9 sigma, XY corr 1.747(38)). That comparator is not the one the rules select.
+
+Below-threshold r = 1 comparisons at a fixed footprint are in C11.",
+ "evidence": "Paths are relative to /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation. Values in %; err = stat and syst in quadrature. Pulls come from code_values, xyz2_values and competitor_for in paper/analysis/competitor_report.py applied to docs/data/campaign/thresholds.csv. Restricting the competitors to mwpm/corr/bm changes no competitor value in these cells.
+
+docs/data/campaign/thresholds.csv (table entries match docs/data/campaign/competitors_table.csv), si1000, XYZ^2 table entry / symmetric entry; competitors:
+- r = 1: depth6-Y tnml 1.059(91) / both-X mwpm 0.959(16); css-X bm 1.078(58), css-Z bm 1.083(35), xzzx-X corr 1.078(28), xzzx-Z bm 1.055(23), xy-X bm 1.059(54), xy-Z bm 1.094(74). MDR basis: depth6-X corr_gauge 0.995(14), cfe_tn 1.061(46).
+- r = 2: both-X bm 0.808(33) under both; css-Z bm 0.899(28), xy-X bm 0.895(33), xzzx-Z bm 0.884(29). competitors_table.csv ratio 0.900.
+- r = 3: both-X bp_corr 0.711(22) / bm 0.710(43); css-Z bm 0.809(19), xy-X bm 0.812(21), xzzx-X bm 0.805(33).
+- r = 5: both-X bp_corr 0.646(33) / bm 0.622(15); css-X bm 0.729(26), xy-Z bm 0.724(22), xzzx-X corr 0.705(12).
+- r = 10: both-X bm 0.567(13) under both; css-Z bm 0.656(22), xy-Z bm 0.669(37), xzzx-Z bm 0.659(34).
+- r = d: both-X bm 0.431(8); css-Z bm 0.520(7).
+
+si1000_lr2 (competitors as si1000), table / symmetric entry and largest pull: r = 1 depth6-Y tnml 1.053(85), -0.24 / both-X bm 0.975(43), -1.62; r = 2 both-X bm 0.848(48), -0.91 / both-Y corr_gauge 0.847(23), -1.43; r = 3 both-X bp_full 0.771(48), -0.77 / bm 0.730(35), -2.01; r = 5 both-X bm 0.668(22), -1.80 under both; r = 10 both-X bm 0.595(39), -1.38 under both; r = d both-X bp_corr 0.444(9), -6.79 / bm 0.439(6), -8.73.
+
+hyb_lr2:
+- r = 1: depth6-Y tnml 3.207(652), nu 0.300 (lower bound 0.3, bounds line 137 of paper/analysis/campaign_report.py), chi2 0.05; depth6-Y bp_corr 2.149(340); depth6-X tnml 2.299(206); both-Y bm 2.067(103). Honeycomb mwpm Z as em3 3.497(73). Gate competitors as sd6: css-X bm 2.408(70), xzzx-Z corr 2.417(47), xy-Z bm 2.381(192). competitors_table.csv ratio 0.658.
+- r = 2: depth6-Y bp_corr 1.507(109) / both-Y bm 1.478(85); honeycomb bm X as em3 3.390(109); gate competitors as sd6: css-X bm 1.749(54), xy-Z corr 1.747(38), xzzx-Z bm 1.738(64). competitors_table.csv ratio 0.445.
+
+Pools of the six si1000 r = 1 competitor single-basis fits (inverse variance): err-weighted 1.0692(146), z -3.65 against 0.9947(143); stat-weighted 1.0703(82), z -2.92 with a common 0.020% syst and -3.39 with 0.015%. Two fits have total syst below 0.02%: css-Z bm 0.0188%, xzzx-Z bm 0.0145%.
+
+Decoder sets in thresholds.csv: competitors bm, bposd, corr, mwpm, tesseract; XYZ^2 14 decoders, including tnml, cfe_tn, bp_corr and bp_full. Weaker-basis candidate counts (definition of docs/data/campaign/usefulness_pilots/fairrev/pool.py): si1000 r = 1 25, r = 5 20; hyb_lr2 r = 1 23. The symmetric rule set is that of docs/data/campaign/usefulness_pilots/fairrev/sym.py.
+
+Code: paper/analysis/competitor_report.py lines 46-47 (COMPETITOR_HARDWARE); src/mdr/ft/extraction_schedule.py line 161 (depth6 L_Y fault distance (d+1)/2, SD6, CP-SAT); src/mdr/ft/competitor_circuits.py lines 41-45 (the hybrid weight2='direct' compilation is refused for its (d+1)/2 fault distance).",
+ "confidence": 0.87
+}

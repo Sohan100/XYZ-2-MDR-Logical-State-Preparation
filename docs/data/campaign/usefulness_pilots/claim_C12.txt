@@ -1,0 +1,28 @@
+{
+ "id": "C12",
+ "regime": "Trapped-ion one-parameter models without crosstalk (helios_p_noxt, h2_p_noxt), r = d and r = 1",
+ "verdict": "not_useful",
+ "statement": "Measured. XYZ^2 reaches 0.76 of the best surface code on both machines; symmetric rules give 0.757 and 0.748.
+- Helios: ties CSS (0.1 sigma), because Z dephasing weakens CSS's X basis. It is 3.6 sigma below XZZX.
+- H2: 0.76 of XY. Against CSS it is nominally below (2.3 sigma with the table fit).
+- r = 1: 0.64-0.71 against weaker bases; 0.40-0.58 against CSS-Z |0> (C10).
+
+Memory dephasing matters most for XYZ^2. At the Helios device point, removing it lowers XYZ^2's preparation error 8.7x (d = 3) and 9.8x (d = 5). Memory alone gives only 27% and 6% of the full error, so the effect is an interaction with the other channels. No competitor budget exists.
+
+The device points are 0.25 and 0.32 of XYZ^2's r = d thresholds. The fixed-size comparison decides (C11).
+
+The repo's ion numbers do not suggest an ion route to the hw_tr edge (inference):
+- Helios memory is pure Z (eta effectively infinite), and the hw_tr edge is already gone at eta = 100 (1.14(19)).
+- Ion memory error is about 6.3e-3 per data qubit per round, far below the 3-6% per round where the edge was measured.
+- Ion gate error per round (about 2.9e-3) is about 0.46 of the dephasing, against at most 0.1 in the mixtures that kept the edge.
+- Crosstalk adds about 3.7e-3.
+Moving memory error into measurement and cooling windows changes none of these magnitudes.",
+ "evidence": "thresholds.csv r = d:
+- helios_p_noxt: both-X bp_corr 0.408(35), bm 0.407(3); xzzx-Z corr 0.537(6); css-X 0.403(5), css-Z 0.782(16).
+- h2_p_noxt: bp_corr 0.581(25), bm 0.574(14); xy-X bm 0.766(10); xzzx 0.754(8); css-X 0.641(9).
+docs/data/helios/helios_budget.csv r = 1: d = 3 full 8.26e-4, no_memory 9.49e-5, only_memory 2.23e-4; d = 5 9.09e-5 / 9.25e-6 / 5.75e-6.
+Hardware.tex line 72 (2.9e-3 gate, 6.3e-3 Z flip from seven memory steps, crosstalk 3.7e-3).
+circuit_noise.py lines 159-245 (p_mem_z, Z only).
+usefulness_pilots/cons/e100_*.",
+ "confidence": 0.86
+}

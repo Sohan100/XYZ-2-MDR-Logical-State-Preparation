@@ -1,0 +1,159 @@
+**Answer.** No modelled hardware gives XYZ^2 an established use, either as a memory or for r = 1 MDR state preparation. The measured result is negative. In every gate-based and hardware-motivated model, XYZ^2's memory threshold is below the best rotated surface code's. In every hardware-motivated equal-qubit comparison, XYZ^2 has the higher logical error, with one exception: a fixed-footprint preparation window whose deciding competitors were not run. Three exceptions remain in total, and none of them is a device use case.
+- **Competitive in two idealized, non-device models: hw_tr (C35) and phen_b10 (C31).** In both, XYZ^2 decoded with belief-matching (BM) has a lower error per round at equal qubits than square XZZX, the best competitor run. Both results come from pilots, and both need BM or BP decoding. With matching-class decoders XYZ^2 loses at the points probed (C23).
+- **Untested in one fixed-footprint window.** For SI1000 r = 1 preparation on 35-48 qubits, in the MDR basis only, XYZ^2 d = 3 beats every patch run there by 1.43-1.59x (at least 7.7 sigma, stat only; C11, C36).
+  - The rectangular CSS and XZZX patches that fit this window (3x6 on 35 qubits, 4x5 on 39) were not run.
+  - SI1000 does not charge for XYZ^2's degree-6 couplings.
+  - Inference: one of those rectangular patches likely wins.
+- **Threshold ties with the best competitor.**
+  - phen_b10 at r = d: 5.539(54)% against 5.537(55)%, z +0.03 (C17).
+  - r = 1 MDR-basis thresholds under SI1000 and si1000_lr2 (C3, C10).
+
+**Conventions.**
+- **Ratios.** Threshold ratios are XYZ^2/competitor, so below 1 means XYZ^2 is worse. Equal-qubit error ratios are XYZ^2/competitor, so above 1 means XYZ^2 is worse.
+- **Labels.**
+  - Loss: XYZ^2 is at least 3 sigma below some competitor.
+  - Tie: XYZ^2 is within 3 sigma of every competitor.
+  - Win: XYZ^2 is at least 3 sigma above the best competitor.
+- **Errors.**
+  - Threshold z values use stat plus syst errors (the err column of docs/data/campaign/thresholds.csv) unless marked stat only.
+  - Equal-qubit campaign brackets are 68% Wilson intervals (docs/data/campaign/eq/).
+  - Pilot z values use Poisson (stat-only) errors.
+  - "Scaled" means the XYZ^2 error is multiplied by 1.66, the replicate scatter of the four m1 runs (C33, C35, C37).
+- **Pilots.** Pilot outputs are in docs/data/campaign/usefulness_pilots/ and are not campaign standard.
+- **Stricter pilot rule.** C33 also requires 3 sigma under log-ratio Student-t scaling and under run-level offsets of 0.15-0.25 in log rate. No pilot lead passes it.
+
+**Memory thresholds: no significant XYZ^2 lead on any hardware-motivated model.** Sources: docs/data/campaign/competitors_table.csv and thresholds.csv.
+- **r = d, gate models without crosstalk.** XYZ^2 reaches 0.42-0.85 of the best rotated surface code under the table rule (C1, C2, C5).
+  - Under symmetric rules, which compare XYZ^2's both schedule with mwpm/corr_gauge/bm against competitor mwpm/corr/bm, the ratios are:
+    - SD6 0.60;
+    - SI1000 0.83;
+    - biased10/biased100/purez 0.62/0.49/0.41;
+    - Helios/H2 without crosstalk 0.76/0.75.
+  - The symmetric ratios come from usefulness_pilots/fairrev/sym.py (C1, C5, C12).
+- **Fixed round counts r = 1, 2, 3, 5, 10 and d, 11 gate models without crosstalk.** XYZ^2 is nominally below the best competitor in all 66 rows, with a highest ratio of 0.98 (C2).
+  - Table-rule ties:
+    - si1000 at r = 1, 2 and 5;
+    - si1000_lr2 at r = 1-10;
+    - h2_p_noxt at r = 3 (z -2.98);
+    - sd6_il at r = 2, 5 and 10, a diagnostic in which only XYZ^2's links are noiseless.
+  - Under symmetric rules these become losses: si1000 r = 1 (z -3.4 against XZZX), si1000 r = 5 (-4.4), h2_p_noxt r = 3 (-7.3), and sd6_il r = 5 and 10. si1000 r = 3 becomes a tie (-2.1). Labels near |z| = 3 are not robust; the ranking is (C2, C24).
+- **All 107 head-to-head rows, every model included.**
+  - 103 rows are nominally lower for XYZ^2.
+  - The rules give 0 wins, 22 ties and 85 losses (C33).
+  - Symmetric rules give 0 wins, 15 ties and 82 losses of 97 rows (C24).
+  - The only nominal lead on a hardware-motivated model is h2_p r = 5 (ratio 1.41). It is a fit artifact: a Tesseract fit of L_X only, with nu pinned at 6.0 (C13, C27).
+- **Ions with crosstalk.** No code has a threshold (C13).
+- **hyb and hyb_lr2.** The rules make the honeycomb the comparator.
+  - Without nu-pinned fits XYZ^2 reaches 0.30-0.53 (hyb) and 0.31-0.61 (hyb_lr2).
+  - All of these are losses, |z| at least 3.8 (C15, C27).
+- **em3.**
+  - XYZ^2 is 1.29-1.36x the cat-state surface compilations.
+  - On the same hardware the honeycomb's threshold is 6.1x XYZ^2's at r = d (C14).
+- **Spin corners.** Each corner switches off every channel but one, so each is a diagnostic. Sources: docs/data/campaign/hw/summary.csv and diag_hw_tr_centers.csv.
+  - hw_g: 0.78 of CSS (5.0 sigma) and 0.79 of XZZX (7.4 sigma) (C19).
+  - hw_t: 0.35 of CSS and 0.13 of XZZX (C19).
+  - hw_rr: a tie, 10.63(46)% against 10.50(56)% and 10.32(44)% (C20).
+  - hw_tr: the MWPM pair crossings (d <= 9) put XZZX-Z at 18.95(160)% and XYZ^2-X at 10.49(55)%. That is 5.0 sigma stat only, and 1.7 sigma when each code's drift counts as syst, so it is a tie under the rules. No best-decoder threshold exists (C21).
+  - Hetenyi-Wootton's combination rule applied to these corners gives XYZ^2 0.79 of XZZX, 8.5 sigma below (C21).
+- **phen (not hardware).**
+  - r = d is a loss: 0.92 of XZZX, 4.1 sigma.
+  - r = 1-10 are ties (C18).
+
+**Equal qubits below threshold: losses on every hardware-motivated model** (docs/data/campaign/eq/pairs.csv, points_eps.csv, boundary.csv; r = 3d).
+- **SD6.** XYZ^2's error per round is 6.5-693x the CSS code's, with corr on both codes, and the gap grows with size.
+  - The 693x pair rests on 2 CSS errors. Its one-sided 3-sigma Poisson bound is about 107x (C4, C33).
+  - Cause: at equal qubits XYZ^2 has 1/sqrt2 of the distance (C4).
+- **Strong Z bias, against XZZX (C6).**
+  - With corr on both codes: 10-17x worse at 99/97 qubits, and 154-367x worse at 323/337 (p = 2e-3 and 3e-3).
+  - XYZ^2 BM against XZZX corr: 3.4-6.9x worse at 99/97, and 28x and 51x worse at 323/337 (p = 3e-3, 16 XYZ^2 errors each).
+  - Without the time boundary, the 99/97 ratio is still 6.2-14.9x.
+  - An exponent crossover just below p = 1e-3 is not excluded (inference, C6).
+- **The original paper's equal-qubit case does not carry over.**
+  - With biased10 gates, XYZ^2 BM is 3.3-3.4x worse than XZZX corr at 99/97 qubits (pilot, C32).
+  - In hw_tr at eta = 10, the bias of 2112.06036, the result is a tie: 0.81(8) (C34, C35).
+- **Pilot losses on the diagnostic and idealized models.**
+  - phen: 1.36(8)x, 1.83(12)x and 2.36(18)x worse at 18/16, 50/49 and 98/100 data qubits (C18).
+  - hw_rr: 1.98(7)x worse in logical error per run (p_L), BM against corr, 14.7 sigma stat only (C20).
+- **Relative wins only over codes that are themselves beaten on the same hardware.**
+  - Square CSS under bias: 3.5-58x better at equal qubits with corr, and 1.16-1.38x the threshold at r = d with BP decoders. XZZX dominates on the same gates (C7).
+  - The honeycomb on gate hardware: 1.60-4.46x the threshold (C16).
+  - em3's cat-state compilations (C14).
+  - At equal distance under strong bias, XYZ^2's error at p = 1e-3 is below XZZX's, but XYZ^2 uses 1.6-1.8x the qubits. Qubits x d favours XZZX by 1.48-1.65x with corr (C8).
+
+**r = 1 MDR preparation.**
+- **Threshold, MDR basis.** Over 13 hardware-motivated models: 10 losses, 3 ties, 0 wins (C10).
+  - Tie: SI1000.
+  - Tie: si1000_lr2, where bp_corr 1.074(52)% is within 0.35 sigma of every competitor basis.
+  - Tie: sd6_lr3, through its TN ML fit only. With matched decoders it is a loss.
+- **SI1000 with matched decoders (C3).**
+  - corr_gauge gives 0.995(14)%, which is 0.91-0.94 of each competitor single-basis fit. The largest pull is 2.6 sigma (stat plus syst), so this is a tie.
+  - Against the six competitor fits pooled, the ratio is 0.93 at 2.9-3.7 sigma, depending on how the shared syst is treated. So the tie label depends on the rule for isomorphic competitors.
+- **Fixed footprint (pilots, C11).** Above 48 qubits, a surface patch that fits always does better:
+  - SI1000 at 99/97: 2.5-2.7x worse (corr), and 2.1-2.3x worse with XYZ^2 BM (3.3-3.5 sigma, stat only).
+  - SD6 at 99/97: 7.7-8.1x worse.
+  - Helios: 2.8-2.9x worse than CSS-X and 8.7-9.5x worse than XZZX. With a gate-count timing proxy it is still 1.95(7)x and 6.1-6.3x worse.
+  - H2: 4.7-4.8x worse than CSS-X and 9.7-10.0x worse than XZZX.
+  - The SI1000 35-48-qubit window above is the only exception.
+- **Ion device points.** Without crosstalk they sit at 0.25 and 0.32 of XYZ^2's r = d thresholds (C12).
+
+**The two idealized edges.** These are competitive results, not device use cases. The ratios are XYZ^2 BM against XZZX corr, from docs/data/campaign/usefulness_pilots/cons2/pool.py.
+- **hw_tr (C35).** The model has perfect syndromes, eta = 20 dephasing on data qubits only during ancilla readout and reset, and XX links. Results at 99/97 qubits, r = 3d:
+  - p_T 6%: 0.61(4), z 9.3; scaled 0.61(7), z 5.6.
+  - p_T 4%: 0.61(8), z 5.1; scaled z 3.1.
+  - p_T 4%, r = 6d: 0.38(4); scaled 0.38(6).
+  - p_T 3%: 0.68(8), z 4.0; scaled z 2.4, a tie.
+  - At 195 qubits: 0.54(10), 4.6 sigma Poisson and 2.8 sigma scaled, a tie.
+  - eta = 10 gives a tie, 0.81(8); eta = 100 gives 1.14(19). Hetenyi-Wootton expect eta of order 10 for spins.
+- **phen_b10 (C31).**
+  - 50/49 data qubits, p = 2%: L_Y 0.81(4), z 4.6; L_X 0.78(6), z 3.9 with its own replicate scaling.
+  - 50/49, p = 3%: 0.81(4), z 5.3; scaled 0.81(6), z 3.2.
+  - 50/49, p = 2.5%: 0.78(5), z 4.2 with Poisson errors; scaled 0.78(8), z 2.6, a tie.
+  - 18/16, p = 3%: 0.70(5); scaled 0.70(7), z 4.5. The comparator is XZZX at d = 4, an even distance.
+  - Unresolved: 98/100 qubits, and p = 1.5%.
+  - Thresholds (C17): r = d is a tie. XZZX's threshold is higher at r = 1-5, including r = 5 under the symmetric rule (z -4.6).
+- **Matching-class decoders (C23).** Both edges need BM or BP decoding:
+  - phen_b10, p = 2%, 50/49, L_X: XYZ^2 corr_gauge is 1.62(3)x worse than XZZX corr. MWPM against MWPM, it is 7.62(8)x worse.
+  - hw_tr, p_T 4%, 99/97, worse basis (unarchived probe): XYZ^2 corr_gauge is 2.27-2.32x worse than XZZX corr. XYZ^2 MWPM is 15x worse than XZZX corr and about 14x worse than XZZX MWPM.
+- **Decoder speed.** This repository's Python BM takes 0.11-0.48 s per shot at d = 11-15, against 5.5e-5 to 1.7e-3 s for corr and corr_gauge. At d = 5 it takes 17-25 ms per 15-round shot, about 1.1-1.7 ms per round, against a spin QEC cycle of about 9-13 us (docs/data/campaign/eq/timing.csv; C23, C38). Whether an optimized BP-class decoder can run in real time is untested.
+
+**Spin-qubit variants of hw_tr point against a device use** (C37, C38; pilots at 99/97 qubits, eta = 20).
+- **No gate-layer dephasing (f = 0).**
+  - 0.1% gate and 1% readout error keep the edge: 0.70(7) scaled, z 4.1 (m1).
+  - With 0.3% gates the ratio is a nominal 0.752(95), z 2.6 scaled, a tie. This is one replicate, and it reaches 4.3 sigma only with Poisson errors.
+- **Gate-layer dephasing.** f is the fraction of p_T applied on every gate-layer idle site.
+  - f = 0.02 removes the edge: 1.02(7) Poisson, 1.02(12) scaled.
+  - f = 0.05 gives 1.27(19) scaled.
+  - XYZ^2 has 4.9x the gate-layer idle sites per round: 254 against 52 (C25).
+  - f between 0 and 0.02 is untested. For an assumed 100 ns unechoed gate layer and T2 = 50 us, the example device has f of about 0.008-0.03 at the maximum-fidelity readout and 0.011-0.07 at the QEC-optimal readout (inference, C38).
+- **Readout time.** Run E uses 5.8 us, the rotated surface code's QEC-optimal readout time for Hetenyi-Wootton's example device (p_T 1.5%, readout 2.7%).
+  - XYZ^2 is 1.72(16)x worse: 4.4 sigma with Poisson errors, a loss.
+  - With scaling it is 2.7 sigma (factor 1.66) or 2.9 sigma (pooled factor 1.52), ties.
+  - Each code's own optimal readout time is untested: about 7.3 us for XYZ^2 and 7.9 us for XZZX.
+- **Best tested points.** XZZX's best tested error per round, 6.60e-4, is 1.7x below XYZ^2's best tested, 1.13e-3 (C38).
+- **Ions.** The ion models apply pure-Z memory dephasing in every gate layer. That is hw_t's placement, where XYZ^2 loses, so they offer no route to the hw_tr edge (C12, C36; inference).
+
+**Where the cost comes from.**
+- **Threshold.** With noiseless links and no idling, XYZ^2 ties XZZX at a threshold ratio of 1.013(30) (docs/data/campaign/gap/fractions.csv; C22).
+  - Idling accounts for 0.60(1) of the gap.
+  - Link noise accounts for 0.23(2) against XZZX without idling, or 0.43(4) against XZZX under SD6.
+  - The two effects are super-additive.
+- **Idling.** The idling comes from the deeper schedule that one-ancilla weight-6 checks need.
+  - XYZ^2 has 8 ticks per round against 6.
+  - At 99/97 qubits it has 254 gate-layer idle sites per round against 52: 130 on data qubits, 100 on link ancillas waiting through 4 of the 6 gate layers, and 24 on plaquette ancillas (C25).
+- **Measurement noise.** Noise on the weight-6 measurements does not limit the threshold (C34).
+- **Below threshold.** The 2x qubit overhead (4d^2-1 against 2d^2-1 qubits, so 1/sqrt2 of the distance at equal qubits) is an independent cause of the loss (C4, C25).
+
+**Conclusion (inference).** XYZ^2 is not a useful memory or r = 1 preparation code for any modelled hardware.
+- Its leads are confined to two idealized models with BM decoding. The device-like variants remove those leads (f = 0.02) or turn them into a nominal loss (run E).
+- One fixed-footprint window remains open, because its deciding competitors were not run.
+- The paper's contribution is the fault-tolerant MDR protocol and its decoders.
+----
+<class 'list'> 38
+{
+ "id": "C1",
+ "regime": "Generic depolarizing gate noise (SD6, platform-neutral) and SI1000 (superconducting-inspired); links repeated (sd6_lr2/lr3, si1000_lr2). Memory threshold at r = d, weaker basis, d = 11-21",
+ "verdict": "not_useful",
+ "statement": "Measured. XYZ^2 is far below the rotated surface codes.\n- SD6, symmetric rules (both schedule; mwpm/corr_gauge/bm vs mwpm/corr/bm): 0.487(7)%, 0.60 of XZZX. The table entry (bp_corr, a decoder only XYZ^2 gets) is 0.63, at 14.0 sigma below XZZX and 21.3 below CSS.\n- SI1000: 0.83 (8.2 sigma vs CSS).\n- Same decoder for every code: MWPM 0.57-0.58 (SD6) and 0.77 (SI1000); BM 0.83-0.84 (SI1000, X basis only).\n- Repeating the links does not close the gap (0.65-0.85).\n- With idling removed for both codes (sd6_noidle, a diagnostic) XYZ^2 is still at 0.774(8).\n\nUnder SD6 the CSS, XZZX and XY detector error models are isomorphic. Pooled they give 0.809(9)%. That error is understated, because the fit-window syst term is common to the three fits.\n\nHardware reading (inference):\n- SD6 is generic; only SI1000 is superconducting-inspired.\n- This repo's circuit needs degree-6 couplers. That requirement belongs to the circuit, not the code. Hetenyi-Wootton embed XYZ^2 in a square lattice (connectivity 4): ancilla pairs, SWAPs on the plaquettes, links read in a separate round. There XYZ^2 reaches 0.57 of the surface code at their gate corner. Their surface code also pays SWAPs, so that is not a direct measure of the routing penalty.\n- 2112.06036 warned that the weight-6 checks could make XYZ^2 more susceptible to measurement noise (see C34 for what the gap diagnostic shows).",
+ "evidence": "docs/data/campaign/thresholds.csv and competitors_table.csv, r = d:\n- SD6: sd6@both-X bp_corr 0.5116(78)% vs xzzx-Z bm 0.8128(200), z 14.0; vs css-X corr 0.8092(116), z 21.3; symmetric both-X bm 0.4866(65), ratio 0.599.\n- SI1000: si1000@both-X bm 0.4308(85) vs css-Z bm 0.5200(69), z 8.2.\n- Link repeats: sd6_lr2 0.70, sd6_lr3 0.65, si1000_lr2 0.85.\ngap/fractions.csv sd6_noidle 0.774(8).\nusefulness_pilots/fairrev/sym.py.\n2306.17786.txt Table I (connectivity 4) and App. D lines 1880-1890.\n2112.06036.txt lines 169-178.",
+ "confidence": 0.93
+}

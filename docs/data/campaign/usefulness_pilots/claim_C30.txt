@@ -1,0 +1,66 @@
+{
+ "id": "C30",
+ "regime": "Regimes and competitors not simulated",
+ "verdict": "untested",
+ "statement": "Untested; the expected directions are inference.
+
+hw_tr's bulk is equivalent to repeated code capacity at a per-round p of about p_T: every syndrome is perfect, and noise acts in two half-layers per round. C35 is therefore measured code capacity with MDR time boundaries.
+
+Noise:
+- strong bias at p < 1e-3 (C6: an exponent crossover is not excluded);
+- X- and Y-biased circuit noise;
+- non-bias-preserving gates (C26);
+- erasure and leakage;
+- intra-link correlated ZZ dephasing;
+- quasi-static dephasing, which could make a two-window layout up to 4x worse without an echo;
+- amplitude damping with ZZ links (C28);
+- hybrid hardware with unequal rates.
+
+hw_tr-type models (C35, C37, C38):
+- gate-layer dephasing fractions 0 < f < 0.02;
+- each code at its own QEC-optimal readout time (Hetenyi-Wootton Eq. 14: about 7.3 us for XYZ^2, 7.9 us for XZZX);
+- the exact maximum-fidelity point (p_T 3.2%, p_RR 1.6%);
+- reset, single-qubit gate and readout-pair two-qubit errors;
+- p_T < 3%;
+- eta between 10 and 20 with more shots;
+- r = 1 MDR preparation;
+- d = 3 (35/31 qubits);
+- Hetenyi-Wootton's 4d^2:3d^2 qubit pairing;
+- a true two-window cycle;
+- ZZ links;
+- just-in-time or Z-basis link ancillas;
+- XYZ^2 bp_corr and CFE;
+- matching-class decoding at other p_T and sizes (one point measured, C23).
+
+Hardware:
+- neutral atoms;
+- routing on degree-4 and degree-3 chips;
+- the heavy-hex compilation of 2109.13308;
+- Hetenyi-Wootton's square-lattice layout with SWAPs for both codes;
+- shuttling spin architectures;
+- helios_cb for the competitors;
+- a per-gate timing model for ions.
+
+Competitors:
+- CSS (Z-basis preparation), honeycomb and XY at equal qubits in hw_tr;
+- rectangular, co-prime and d^2-frame XZZX/XY with ML or tensor-network decoding in hw_tr (2112.06036 Fig. 7c shows near parity, 0-14%, against the d^2 frame at code capacity);
+- 3x6 and 5x10 rectangular patches for r = 1 preparation;
+- rectangular or tailored CSS under gate-level bias;
+- Clifford-deformed and colour codes; repetition cat codes;
+- 3aux under em3;
+- competitor BP-OSD and Tesseract at fss;
+- a built pipelined XZZX;
+- the competitors' third hyb option;
+- competitor runs at r = 4, 6-9 and 11-21.
+
+Equal-qubit runs missing under hyb, the ions, em3, SI1000 memory, and hw_tr at campaign standard. Also missing: logical operations (lattice surgery, injection), which all touch the weak time boundary.",
+ "evidence": "pairs.csv covers sd6, biased100 and purez only.
+thresholds.csv: competitor bposd/tesseract are pair-only.
+circuit_noise.py lines 55-75. run_decoder_threshold_sweep.py line 71.
+cons/hwtr_eta.py (h = p/2 per idle_mr location).
+docs/data/helios/ (helios_cb XYZ^2-only).
+2112.06036.txt lines 1093-1119.
+2306.17786.txt Eqs. 6, 8, 12, 14; lines 693, 900-905, 1880-1890.
+lit_hardware.md; lit_surface_family.md.",
+ "confidence": 0.5
+}

@@ -1,0 +1,131 @@
+             noise rounds      xyz2                    xyz2_dec best_other     ratio  xyz2_sym          xyz2_dec_sym  ratio_sym  ratio_both  ratio_md      drop
+0              sd6      d  0.005116           bp_corr, both L_X       xzzx  0.629414  0.004866          bm, both L_X   0.598576    0.629414  0.598576  0.048994
+1           si1000      d  0.004308                bm, both L_X        css  0.828327  0.004308          bm, both L_X   0.828327    0.828327  0.828327  0.000000
+2         biased10      d  0.007476         bp_corr, depth6 L_Y       xzzx  0.636276  0.007331          bm, both L_X   0.623981    0.630126  0.623981  0.019322
+3        biased100      d  0.008364         bp_full, depth6 L_X       xzzx  0.505370  0.008157          bm, both L_X   0.492865    0.503203  0.492865  0.024743
+4            purez      d  0.008571         bp_full, depth6 L_X       xzzx  0.415860  0.008375          bm, both L_X   0.406352    0.414089  0.410229  0.022865
+5              em3      d  0.003254        seq_soft, depth6 L_Y  honeycomb  0.164720  0.003162  corr_gauge, both L_X   0.160046    0.163788  0.160046  0.028372
+6    helios_p_noxt      d  0.004077           bp_corr, both L_X       xzzx  0.758576  0.004066          bm, both L_X   0.756596    0.758576  0.756596  0.002610
+7        h2_p_noxt      d  0.005807           bp_corr, both L_X         xy  0.757596  0.005735          bm, both L_X   0.748228    0.757596  0.748228  0.012365
+8         helios_p      d  0.000516         seq_match, both L_Y       xzzx  0.158141       NaN                              NaN    0.158141  0.598376       NaN
+9             h2_p      d  0.003118                bm, both L_X       xzzx  0.765525  0.003046          bm, both L_Y   0.747825    0.765525  0.747825  0.023121
+10             hyb      d  0.005874           bp_corr, both L_X  honeycomb  0.297331  0.005753  corr_gauge, both L_X   0.291181    0.297331  0.291181  0.020682
+11         hyb_lr2      d  0.006186      corr_gauge, depth6 L_Y  honeycomb  0.313143  0.006164  corr_gauge, both L_X   0.311988    0.311988  0.313143  0.003691
+12         sd6_lr2      d  0.005683          seq_soft, both L_X       xzzx  0.699091  0.005576          bm, both L_X   0.685953    0.699091  0.685953  0.018793
+13         sd6_lr3      d  0.005289        corr_links, both L_X       xzzx  0.650708  0.005263  corr_gauge, both L_X   0.647463    0.650708  0.647463  0.004987
+14      si1000_lr2      d  0.004436           bp_corr, both L_X        css  0.853077  0.004385          bm, both L_X   0.843280    0.853077  0.843280  0.011484
+15            phen      d  0.041556         bp_corr, depth6 L_X        css  0.909323  0.040881          bm, both L_X   0.894556    0.894556  0.899555  0.016240
+16        phen_b10      d  0.055392           bp_full, both L_X       xzzx  1.000466  0.054495          bm, both L_X   0.984274    1.000466  0.984274  0.016184
+17          sd6_il      d  0.006442      corr_gauge, depth6 L_Y       xzzx  0.792575  0.006259  corr_gauge, both L_X   0.769994    0.778093  0.792575  0.028491
+18             sd6      1  0.017626           bp_full, both L_X       xzzx  0.729282  0.017315          bm, both L_Y   0.716404    0.729282  0.716404  0.017658
+19          si1000      1  0.010594            tnml, depth6 L_Y        css  0.983017  0.009588        mwpm, both L_X   0.889746    0.924614  0.889746  0.094883
+20        biased10      1  0.019663          cfe_tn, depth6 L_X       xzzx  0.619089  0.018802          bm, both L_X   0.591967    0.594901  0.591967  0.043808
+21       biased100      1  0.019740            tnml, depth6 L_X       xzzx  0.572662  0.018970  corr_gauge, both L_X   0.550323    0.557021  0.553330  0.039010
+22           purez      1  0.019630            tnml, depth6 L_Y       xzzx  0.563822  0.018986          bm, both L_X   0.545331    0.557058  0.557131  0.032796
+23             em3      1  0.011178              tnml, both L_X  honeycomb  0.319668  0.010100  corr_gauge, both L_X   0.288846    0.319668  0.288846  0.096418
+24   helios_p_noxt      1  0.015119              tnml, both L_X       xzzx  0.637658  0.014758  corr_gauge, both L_Y   0.622429    0.637658  0.622429  0.023882
+25       h2_p_noxt      1  0.021415           bp_corr, both L_X       xzzx  0.706547  0.020965  corr_gauge, both L_X   0.691707    0.706547  0.691707  0.021004
+26        helios_p      1  0.003325        cfe, depth6 L_X only       xzzx  0.559207       NaN                              NaN         NaN       NaN       NaN
+27            h2_p      1  0.011569     cfe_tn, depth6 L_X only       xzzx  0.833351       NaN                              NaN         NaN       NaN       NaN
+28             hyb      1  0.018581              tnml, both L_Y  honeycomb  0.531369  0.018283        mwpm, both L_Y   0.522843    0.531369  0.522843  0.016044
+29         hyb_lr2      1  0.022994            tnml, depth6 L_X  honeycomb  0.657568  0.020666          bm, both L_Y   0.590995    0.593147  0.595991  0.101241
+30         sd6_lr2      1  0.019480            tnml, depth6 L_X       xzzx  0.806006  0.018420          bm, both L_Y   0.762148    0.778249  0.762148  0.054414
+31         sd6_lr3      1  0.018104              tnml, both L_X       xzzx  0.749050  0.017437          bm, both L_X   0.721464    0.749050  0.721464  0.036827
+32      si1000_lr2      1  0.010531            tnml, depth6 L_Y        css  0.977225  0.009752          bm, both L_X   0.904897    0.949664  0.910250  0.074014
+33            phen      1  0.169548               cfe, both L_X       xzzx  1.078615  0.158538        mwpm, both L_X   1.008573    1.078615  1.016655  0.064938
+34        phen_b10      1  0.154647              tnml, both L_Y       xzzx  0.600137  0.145664        mwpm, both L_X   0.565279    0.600137  0.566581  0.058084
+35          sd6_il      1  0.021316              tnml, both L_X       xzzx  0.881972  0.020765  corr_gauge, both L_X   0.859171    0.881972  0.859171  0.025852
+36             sd6      2  0.012350           bp_corr, both L_X        css  0.706148  0.011669          bm, both L_X   0.667224    0.706148  0.667224  0.055121
+37          si1000      2  0.008084                bm, both L_X        css  0.899618  0.008084          bm, both L_X   0.899618    0.899618  0.899618  0.000000
+38        biased10      2  0.014063         bp_full, depth6 L_X       xzzx  0.564062  0.013623          bm, both L_X   0.546426    0.559917  0.555744  0.031268
+39       biased100      2  0.014553         bp_full, depth6 L_Y       xzzx  0.507663  0.014235          bm, both L_Y   0.496558    0.499240  0.496558  0.021876
+40           purez      2  0.014490           bp_full, both L_X       xzzx  0.502853  0.014409          bm, both L_X   0.500070    0.502853  0.500070  0.005533
+41             em3      2  0.007409          seq_soft, both L_X  honeycomb  0.218582  0.007069          bm, both L_X   0.208540    0.218582  0.216014  0.045942
+42   helios_p_noxt      2  0.009850           bp_full, both L_Y       xzzx  0.626920  0.009590          bm, both L_X   0.610321    0.626920  0.610321  0.026477
+43       h2_p_noxt      2  0.014315           bp_corr, both L_X       xzzx  0.757042  0.014034          bm, both L_X   0.742192    0.757042  0.742192  0.019615
+45            h2_p      2  0.008346       cfe0, depth6 L_X only        css  0.511619       NaN                              NaN         NaN       NaN       NaN
+46             hyb      2  0.013601           bp_corr, both L_Y  honeycomb  0.401245  0.013538          bm, both L_Y   0.399402    0.401245  0.399402  0.004593
+47         hyb_lr2      2  0.015075         bp_corr, depth6 L_Y  honeycomb  0.444741  0.014778          bm, both L_Y   0.435968    0.437753  0.435968  0.019725
+48         sd6_lr2      2  0.013220       seq_erasure, both L_X        css  0.755903  0.013048          bm, both L_X   0.746107    0.755903  0.746107  0.012959
+49         sd6_lr3      2  0.012352              bm, depth6 L_Y        css  0.706265  0.011811          bm, both L_X   0.675378    0.697255  0.706265  0.043733
+50      si1000_lr2      2  0.008481                bm, both L_X        css  0.943828  0.008470  corr_gauge, both L_Y   0.942610    0.943828  0.942610  0.001290
+51            phen      2  0.097195         bp_corr, depth6 L_X       xzzx  0.970321  0.093048          bm, both L_X   0.928924    0.968019  0.939338  0.042663
+52        phen_b10      2  0.098222              bm, depth6 L_X       xzzx  0.637440  0.097763          bm, both L_Y   0.634457    0.636850  0.634457  0.004679
+53          sd6_il      2  0.015138         bp_corr, depth6 L_Y        css  0.865605  0.015107          bm, both L_X   0.863832    0.863832  0.863832  0.002048
+54             sd6      3  0.010258           bp_corr, both L_X         xy  0.664769  0.009626          bm, both L_X   0.623808    0.664769  0.623808  0.061617
+55          si1000      3  0.007111           bp_corr, both L_X         xy  0.875977  0.007100          bm, both L_X   0.874705    0.875977  0.874705  0.001452
+56        biased10      3  0.012335                bm, both L_X       xzzx  0.545890  0.012335          bm, both L_X   0.545890    0.545890  0.545890  0.000000
+57       biased100      3  0.013035           bp_full, both L_X       xzzx  0.488814  0.012803          bm, both L_Y   0.480115    0.488814  0.480115  0.017796
+58           purez      3  0.013187         bp_full, depth6 L_X       xzzx  0.499951  0.011705  corr_gauge, both L_Y   0.443778    0.495369  0.482358  0.112356
+59             em3      3  0.006286          seq_soft, both L_Y  honeycomb  0.220191  0.006181          bm, both L_Y   0.216503    0.220191  0.216503  0.016750
+60   helios_p_noxt      3  0.007948         bp_corr, depth6 L_Y       xzzx  0.675491  0.007925          bm, both L_X   0.673504    0.673504  0.673504  0.002941
+61       h2_p_noxt      3  0.011465           bp_corr, both L_X       xzzx  0.732567  0.011083          bm, both L_X   0.708136    0.732567  0.708136  0.033350
+62        helios_p      3  0.003085       cfe0, depth6 L_X only       xzzx  0.546876       NaN                              NaN         NaN  0.541753       NaN
+63            h2_p      3  0.006117    bp_corr, depth6 L_X only         xy  0.536595       NaN                              NaN         NaN       NaN       NaN
+64             hyb      3  0.011642         bp_corr, depth6 L_Y  honeycomb  0.407791  0.011380          bm, both L_X   0.398601    0.406361  0.398601  0.022536
+65         hyb_lr2      3  0.012767       seq_erasure, both L_Y  honeycomb  0.447170  0.012136  corr_gauge, both L_X   0.425067    0.447170  0.425067  0.049427
+66         sd6_lr2      3  0.011805          seq_soft, both L_X         xy  0.765036  0.011047          bm, both L_X   0.715915    0.765036  0.715915  0.064207
+67         sd6_lr3      3  0.010393              bm, depth6 L_Y         xy  0.673528  0.009701  corr_gauge, both L_X   0.628657    0.659270  0.673528  0.066621
+68      si1000_lr2      3  0.007714           bp_full, both L_X         xy  0.950272  0.007301          bm, both L_X   0.899413    0.950272  0.899413  0.053521
+69            phen      3  0.078603           bp_full, both L_X       xzzx  0.920102  0.075789          bm, both L_X   0.887162    0.920102  0.907369  0.035801
+70        phen_b10      3  0.085082           bp_full, both L_X       xzzx  0.681938  0.081997          bm, both L_X   0.657208    0.681938  0.657208  0.036264
+71          sd6_il      3  0.012741           bp_corr, both L_X         xy  0.825678  0.012406  corr_gauge, both L_X   0.803998    0.825678  0.803998  0.026257
+72             sd6      5  0.008608           bp_corr, both L_X       xzzx  0.661844  0.008313          bm, both L_X   0.639130    0.661844  0.639130  0.034319
+73          si1000      5  0.006462           bp_corr, both L_X        css  0.885908  0.006219          bm, both L_X   0.852658    0.885908  0.852658  0.037533
+74        biased10      5  0.010844           bp_corr, both L_X       xzzx  0.579261  0.010578          bm, both L_Y   0.565048    0.579261  0.565503  0.024535
+75       biased100      5  0.011776           bp_full, both L_X       xzzx  0.498119  0.011149          bm, both L_X   0.471600    0.498119  0.471600  0.053238
+76           purez      5  0.011697           bp_full, both L_Y       xzzx  0.458467  0.011379          bm, both L_Y   0.446011    0.458467  0.446011  0.027169
+77             em3      5  0.005195         bp_corr, depth6 L_X  honeycomb  0.207214  0.005091  corr_gauge, both L_Y   0.203090    0.207114  0.203090  0.019901
+78   helios_p_noxt      5  0.006498         bp_full, depth6 L_Y       xzzx  0.689509  0.006387          bm, both L_X   0.677740    0.683315  0.677740  0.017069
+79       h2_p_noxt      5  0.009365           bp_corr, both L_X       xzzx  0.730456  0.009150          bm, both L_X   0.713669    0.730456  0.713669  0.022982
+80        helios_p      5  0.000503       seq_match, depth6 L_Y        css  0.115253       NaN                              NaN         NaN       NaN       NaN
+81            h2_p      5  0.008167  tesseract, depth6 L_X only       xzzx  1.412989       NaN                              NaN    0.463047  0.727293       NaN
+82             hyb      5  0.009613          seq_soft, both L_Y  honeycomb  0.383435  0.009413          bm, both L_Y   0.375480    0.383435  0.375480  0.020747
+83         hyb_lr2      5  0.010322        seq_soft, depth6 L_Y  honeycomb  0.411725  0.009814  corr_gauge, both L_Y   0.391477    0.403771  0.391477  0.049178
+84         sd6_lr2      5  0.009439           bp_corr, both L_X       xzzx  0.725682  0.009317          bm, both L_X   0.716310    0.725682  0.716310  0.012915
+85         sd6_lr3      5  0.008699                bm, both L_X       xzzx  0.668789  0.008699          bm, both L_X   0.668789    0.668789  0.668789  0.000000
+86      si1000_lr2      5  0.006680                bm, both L_X        css  0.915812  0.006680          bm, both L_X   0.915812    0.915812  0.915812  0.000000
+87            phen      5  0.064563         bp_corr, depth6 L_X        css  0.927204  0.063403          bm, both L_X   0.910533    0.919048  0.915865  0.017980
+88        phen_b10      5  0.075249           bp_full, both L_X       xzzx  0.782423  0.072568          bm, both L_X   0.754547    0.782423  0.758958  0.035628
+89          sd6_il      5  0.010477           bp_full, both L_X       xzzx  0.805473  0.010068  corr_gauge, both L_X   0.774051    0.805473  0.774051  0.039011
+90             sd6     10  0.007026         bp_corr, depth6 L_Y        css  0.636352  0.006646          bm, both L_X   0.601925    0.613720  0.606285  0.054099
+91          si1000     10  0.005671                bm, both L_X         xy  0.847039  0.005671          bm, both L_X   0.847039    0.847039  0.847039  0.000000
+92        biased10     10  0.009757           bp_full, both L_Y       xzzx  0.602610  0.009554          bm, both L_Y   0.590076    0.602610  0.590076  0.020799
+93       biased100     10  0.010287                bm, both L_X       xzzx  0.472211  0.010101          bm, both L_Y   0.463683    0.472211  0.463825  0.018060
+94           purez     10  0.011201              bm, depth6 L_X       xzzx  0.464903  0.010025          bm, both L_X   0.416120    0.424794  0.420997  0.104931
+95             em3     10  0.004366        seq_soft, depth6 L_X  honeycomb  0.176549  0.004121  corr_gauge, both L_X   0.166663    0.173293  0.170785  0.055996
+96   helios_p_noxt     10  0.005483           bp_full, both L_X       xzzx  0.727062  0.005467          bm, both L_X   0.724954    0.727062  0.724954  0.002900
+97       h2_p_noxt     10  0.008192           bp_corr, both L_X       xzzx  0.761269  0.007764          bm, both L_X   0.721532    0.761269  0.721532  0.052199
+98        helios_p     10  0.000501         seq_match, both L_Y       xzzx  0.172326       NaN                              NaN    0.172326       NaN       NaN
+99            h2_p     10  0.003126     seq_erasure, depth6 L_Y         xy  0.638209       NaN                              NaN    0.518647  0.638057       NaN
+100            hyb     10  0.007774                bm, both L_X  honeycomb  0.314377  0.007695          bm, both L_Y   0.311169    0.314377  0.312421  0.010202
+101        hyb_lr2     10  0.008711         bp_full, depth6 L_Y  honeycomb  0.352273  0.008203          bm, both L_Y   0.331744    0.335102  0.335524  0.058274
+102        sd6_lr2     10  0.008029              bm, depth6 L_Y        css  0.727256  0.007617          bm, both L_X   0.689941    0.707435  0.727256  0.051310
+103        sd6_lr3     10  0.007197              bm, depth6 L_Y        css  0.651870  0.006778  corr_gauge, both L_X   0.613862    0.650561  0.651870  0.058305
+104     si1000_lr2     10  0.005949                bm, both L_X         xy  0.888641  0.005949          bm, both L_X   0.888641    0.888641  0.888641  0.000000
+105           phen     10  0.054754                bm, both L_X         xy  0.885968  0.054490          bm, both L_Y   0.881694    0.885968  0.881694  0.004824
+106       phen_b10     10  0.068440         bp_corr, depth6 L_X         xy  1.095894  0.064836          bm, both L_X   1.038187    1.066482  1.048331  0.052657
+107         sd6_il     10  0.009013        seq_soft, depth6 L_Y        css  0.816349  0.008447          bm, both L_X   0.765032    0.783091  0.775287  0.062862
+----- z values
+si1000 1 full 1.059 0.091 tnml depth6 L_Y vs css 1.078 0.058 ratio 0.983 z -0.17
+si1000 1 sym 0.959 0.016 mwpm both L_X vs css 1.078 0.058 ratio 0.89 z -1.96
+si1000_lr2 1 full 1.053 0.085 tnml depth6 L_Y vs css 1.078 0.058 ratio 0.977 z -0.24
+si1000_lr2 1 sym 0.975 0.043 bm both L_X vs css 1.078 0.058 ratio 0.905 z -1.41
+si1000_lr2 2 full 0.848 0.048 bm both L_X vs css 0.899 0.028 ratio 0.944 z -0.91
+si1000_lr2 2 sym 0.847 0.023 corr_gauge both L_Y vs css 0.899 0.028 ratio 0.943 z -1.43
+si1000_lr2 3 full 0.771 0.048 bp_full both L_X vs xy 0.812 0.021 ratio 0.95 z -0.77
+si1000_lr2 3 sym 0.73 0.035 bm both L_X vs xy 0.812 0.021 ratio 0.899 z -2.01
+hyb_lr2 1 full 2.299 0.206 tnml depth6 L_X vs honeycomb 3.497 0.073 ratio 0.658 z -5.48
+hyb_lr2 1 sym 2.067 0.103 bm both L_Y vs honeycomb 3.497 0.073 ratio 0.591 z -11.29
+phen 1 full 16.955 1.116 cfe both L_X vs xzzx 15.719 0.377 ratio 1.079 z 1.05
+phen 1 sym 15.854 0.281 mwpm both L_X vs xzzx 15.719 0.377 ratio 1.009 z 0.29
+phen_b10 d full 5.539 0.054 bp_full both L_X vs xzzx 5.537 0.055 ratio 1.0 z 0.03
+phen_b10 d sym 5.45 0.04 bm both L_X vs xzzx 5.537 0.055 ratio 0.984 z -1.28
+phen_b10 10 full 6.844 0.332 bp_corr depth6 L_X vs xy 6.245 0.379 ratio 1.096 z 1.19
+phen_b10 10 sym 6.484 0.18 bm both L_X vs xy 6.245 0.379 ratio 1.038 z 0.57
+em3 d full 0.325 0.005 seq_soft depth6 L_Y vs honeycomb 1.976 0.019 ratio 0.165 z -82.93
+em3 d sym 0.316 0.005 corr_gauge both L_X vs honeycomb 1.976 0.019 ratio 0.16 z -83.16
+phen 2 full 9.719 0.25 bp_corr depth6 L_X vs xzzx 10.017 0.563 ratio 0.97 z -0.48
+phen 2 sym 9.305 0.389 bm both L_X vs xzzx 10.017 0.563 ratio 0.929 z -1.04
+si1000 2 full 0.808 0.033 bm both L_X vs css 0.899 0.028 ratio 0.9 z -2.08
+si1000 2 sym 0.808 0.033 bm both L_X vs css 0.899 0.028 ratio 0.9 z -2.08

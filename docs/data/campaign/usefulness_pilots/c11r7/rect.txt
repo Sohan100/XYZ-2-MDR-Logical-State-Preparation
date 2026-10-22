@@ -1,0 +1,14 @@
+si1000 css rect 6x3 X corr r=1 nq=35 fd=6 p=0.001 shots=23854848 err=1514 pL=6.347e-05+-1.6e-06 t=10s
+maxrss_kb=139864
+si1000 css rect 3x6 Z corr r=1 nq=35 fd=6 p=0.001 shots=24379136 err=1518 pL=6.227e-05+-1.6e-06 t=10s
+maxrss_kb=133120
+si1000 css rect 6x3 Z corr r=1 nq=35 fd=3 p=0.001 shots=524032 err=2696 pL=5.145e-03+-9.9e-05 t=0s
+maxrss_kb=126976
+si1000 css rect 5x4 X corr r=1 nq=39 fd=5 p=0.001 shots=6553344 err=1537 pL=2.345e-04+-6.0e-06 t=3s
+maxrss_kb=116736
+si1000 xzzx rect 6x3 X corr r=1 nq=35 fd=6 p=0.001 shots=24116992 err=1514 pL=6.278e-05+-1.6e-06 t=10s
+maxrss_kb=129024
+si1000 css rect 8x6 X corr r=1 nq=95 fd=8 p=0.001 shots=92798720 err=1327 pL=1.430e-05+-3.9e-07 t=95s
+maxrss_kb=152728
+si1000 css rect 4x4 X corr r=1 nq=31 fd=4 p=0.001 shots=1048320 err=1825 pL=1.741e-03+-4.1e-05 t=1s
+maxrss_kb=145408

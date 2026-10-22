@@ -1,0 +1,4 @@
+helios_p xyz2 d=5 r=1 corr_gauge p_mem_z x0.75 nq=99 shots=76541952 err=4363 pL=5.700e-05+-8.6e-07 t=96s
+maxrss_kb=357604
+helios_p xyz2 d=5 r=1 corr_gauge p_mem_z x1.0 nq=99 shots=68153344 err=5886 pL=8.636e-05+-1.1e-06 t=96s
+maxrss_kb=349772

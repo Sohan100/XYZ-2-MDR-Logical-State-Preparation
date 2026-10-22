@@ -1,0 +1,12 @@
+sd6 xyz2 depth6 X corr_gauge d=3 r=1 nq=35 p=0.001 shots=4194048 err=1735 pL=4.137e-04+-9.9e-06 t=2s
+maxrss_kb=377908
+sd6 xyz2 depth6 X mwpm d=3 r=1 nq=35 p=0.001 shots=4194048 err=1731 pL=4.127e-04+-9.9e-06 t=2s
+maxrss_kb=393628
+sd6 css depth6 X corr d=4 r=1 nq=31 p=0.001 shots=4194048 err=1657 pL=3.951e-04+-9.7e-06 t=2s
+maxrss_kb=317256
+sd6 css depth6 Z corr d=4 r=1 nq=31 p=0.001 shots=4194048 err=1616 pL=3.853e-04+-9.6e-06 t=2s
+maxrss_kb=336652
+sd6 xzzx depth6 X corr d=4 r=1 nq=31 p=0.001 shots=4194048 err=1665 pL=3.970e-04+-9.7e-06 t=1s
+maxrss_kb=341108
+sd6 css rect 6x3 X corr r=1 nq=35 fd=6 p=0.001 shots=207093504 err=1501 pL=7.248e-06+-1.9e-07 t=49s
+maxrss_kb=141312

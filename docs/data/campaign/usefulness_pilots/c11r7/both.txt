@@ -1,0 +1,6 @@
+si1000 xyz2 both Y mwpm d=3 r=1 nq=35 p=0.001 shots=524032 err=1472 pL=2.809e-03+-7.3e-05 t=0s
+maxrss_kb=135168
+si1000 xyz2 both Y corr_gauge d=3 r=1 nq=35 p=0.001 shots=524032 err=1453 pL=2.773e-03+-7.3e-05 t=0s
+maxrss_kb=137216
+si1000 xyz2 both X corr_gauge d=3 r=1 nq=35 p=0.001 shots=1048320 err=1318 pL=1.257e-03+-3.5e-05 t=1s
+maxrss_kb=165620

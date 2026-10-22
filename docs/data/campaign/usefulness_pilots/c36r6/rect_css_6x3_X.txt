@@ -1,0 +1,1 @@
+si1000 css rect 6x3 X corr r=1 nq=35 fd=6 p=0.001 shots=23592704 err=1507 pL=6.388e-05+-1.6e-06 t=11s

@@ -1,0 +1,34 @@
+{
+ "id": "C20",
+ "regime": "Spin-qubit readout-only corner (hw_rr: outcome flips only): threshold at r = d, and an equal-qubit probe at p = 4% (0.38 of threshold), r = 3d, 99/97 qubits",
+ "verdict": "not_useful",
+ "statement": "Threshold, measured: a tie (stat plus syst errors).
+- XYZ^2's 10.63(46)% (X basis, corr_gauge) against CSS 10.50(56)% and XZZX 10.32(44)% (z 0.2 and 0.5).
+- Only MWPM has fss fits in both of XYZ^2's bases. There XYZ^2 is 8% higher (10.60(28) vs 9.78(41) and 9.85(26); 1.6 and 2.0 sigma). The Y-basis MWPM fss (10.85(22)) lies above X.
+- With corr_gauge and BM, XYZ^2's Y basis has only drift-flagged pair crossings (10.27(54), 9.95(82)). Its X-basis BM (10.32(119)) is level with CSS and XZZX.
+
+Below threshold at equal qubits (pilot, repo layout: 4d^2-1 vs 2d^2-1): a loss by C33's rule. That rule needs 3 sigma under all three of its error models, with z = |ln R|/sigma: (a) Poisson; (b) f = 1.7 on each single run; (c) an extra log-rate offset delta = 0.15 or 0.25 on each XYZ^2 BM run. Ratio errors are binomial stat.
+- hw_rr never corrupts the data, so every logical error is a failure of the final data readout (the time boundary), and p_L does not grow with r. The probe therefore compares p_L per run (XYZ^2 d = 5, r = 15; XZZX d = 7, r = 21), not an error per round.
+- XYZ^2's weaker basis (Y) has 1.98(7)x XZZX's p_L with BM against corr. z is 19.8, 11.6 and 4.4/2.7, so this single BM run is a loss for delta up to 0.22.
+- With MWPM on both sides the ratio is 2.09(1)x (z 104 and 61). No BM run is involved, so (c) does not apply, and the loss holds under all three models.
+- XYZ^2's X basis alone is 1.36(1)x worse with MWPM on both sides (z 41 and 24). With BM against corr it is 1.31(6)x (z 6.3, 3.7 and 1.7/1.1), which (c) does not establish.
+- CSS matches XZZX (1.00(1)x and 0.99(1)x, MWPM).
+- In Hetenyi-Wootton's spin layout (4d^2 vs 3d^2) about 100 qubits pairs XYZ^2 d = 5 with XZZX d = 5-6. That pairing was not run (inference: the loss would shrink, to perhaps 1-2x).
+
+hw_rr omits their readout-pair two-qubit error and reset error. Their own readout-corner lead (16.5 vs 14.5, 14%) is about 1 sigma of their combined plane-fit deviations (0.12 and 0.08).",
+ "evidence": "/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/hw/summary.csv hw_rr (err = stat and syst in quadrature): XYZ^2 10.634(460) X corr_gauge; CSS 10.504(563); XZZX 10.319(437); honeycomb 1.72(3). MWPM weaker basis 10.596(276) vs CSS Z 9.782(414) and XZZX X 9.846(261): z 1.64 and 1.97.
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/hw/thresholds.csv:
+- XYZ^2 Y mwpm fss 10.853(219); Y corr_gauge pair 10.27(54), drift; Y bm pair 9.95(82), drift.
+- XYZ^2 X bm 10.32(119) (pth 0.103157, err 0.011884 = stat 0.003764 and syst 0.011273); CSS bm 10.50(56) Z / 10.51(66) X; XZZX bm 10.32(44) X / 10.38(77) Z.
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/usefulness_pilots/rv/ (p_L per run; eqprobe.py, r = 3d; errors/shots, binomial stat errors):
+- rr2_xyz2_Y_bm.txt 887/59,048 = 1.502(50)e-2; rr2_xzzx_X_corr.txt 14,883/1,962,124 = 7.585(62)e-3. R = 1.980(68); ln R = 0.683; sigma (a) 0.0346, (b) 0.0588 (f = 1.7 on both single runs; 0.0577 and z 11.85 if only the XYZ^2 run is scaled), (c) 0.154/0.252. z = 3 under (c) needs delta <= 0.225.
+- rr_xyz2_Y.txt (MWPM) 70,997/4,470,689 = 1.5881(59)e-2; rr_xzzx_X.txt (MWPM) 27,593/3,629,009 = 7.603(46)e-3. R = 2.089(15); z (a) 103.8, (b) 61.1. If (c) were applied to this MWPM run anyway: 4.9/2.9.
+- rr2_xyz2_Y_corr_gauge.txt 33,044/2,076,184 = 1.5916(87)e-2: 2.098(21)x XZZX corr, and about 0.3 sigma (0.33) from the independent MWPM run.
+- rr_xyz2_X.txt (MWPM) 48,956/4,718,132 = 1.0376(47)e-2: R = 1.365(10), z 41.3 and 24.3. rr2_xyz2_X_bm.txt 574/57,771 = 9.94(41)e-3: R = 1.310(55), z 6.3, 3.7, 1.73/1.06; z = 3 under (c) needs delta <= 0.08.
+- rr_css_X.txt 27,267/3,576,266 = 7.624(46)e-3 and rr_css_Z.txt 27,170/3,609,792 = 7.527(45)e-3: 1.003(9) and 0.990(8) of XZZX MWPM.
+C33's three error models: (a) sigma^2 = 1/N1 + 1/N2; (b) sigma^2 = f1^2/N1 + f2^2/N2 with f = 1.7 for a single run; (c) adds delta^2 per XYZ^2 BM run, competitor runs Poisson.
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/hetenyi_wootton_check.md lines 34 and 39 (hw_rr: outcome flips only, including the final data readout; no reset error, no readout-pair depolarizing error).
+Reviewer check, not archived (Stim, p = 0.04): XYZ^2 Y d = 5 has 5 observable-flipping mechanisms at both r = 5 and r = 15 (of 282 and 772), all on the last detectors (714-728 of 734 at r = 15); XZZX X d = 7 has 4 at both r = 7 and r = 21, all at time coordinate r. MWPM p_L at r = d: XZZX X d = 7 7.540(31)e-3; XYZ^2 Y d = 5 1.5946(39)e-2; both within 1.1 sigma of the r = 3d values above.
+/pscratch/sd/s/sohan100/ftmdr_tools/noncss/papers/2306.17786.txt Table I (lines 400-461): p_th,R 14.5 (surface), 12.9 (XZZX), 16.5 (XYZ^2); mean relative plane-fit deviation 0.08, 0.11, 0.12; nu_q/nu_a 1/2 (surface, XZZX) and 2/2 (XYZ^2). Lines 495-497: readout error = two-qubit depolarizing error plus outcome flip.",
+ "confidence": 0.85
+}

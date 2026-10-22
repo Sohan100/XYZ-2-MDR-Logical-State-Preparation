@@ -1,0 +1,24 @@
+{
+ "id": "C16",
+ "regime": "Gate-based hardware, XYZ^2 vs the honeycomb Floquet code only",
+ "verdict": "not_useful",
+ "statement": "Measured. This is a relative win over the honeycomb only.
+- Gate models without crosstalk, all r: XYZ^2's threshold is 1.60x (h2_p_noxt, r = d) to 4.46x (si1000_lr2, r = 10) the honeycomb's.
+- Spin corners: hw_g is a tie (1.02x, 0.4 sigma); hw_g1q a 1.08x lead (3.5 sigma).
+- Larger margins come from idling and readout: hw_t 2.6x, hw_rr 6.2x, hw_tr 7.7-8.5x (MWPM pair crossings, not thresholds).
+- Our SD6 honeycomb (0.218%) is at the bottom of the published 0.2-0.357% range, so these margins are inflated. Against the best ancilla-free circuits the SD6 margin is about 1.4-1.5x.
+
+It is not a use case: the honeycomb is never the best code on gate hardware. Where it is native (pair measurements, em3), it beats XYZ^2 by 6x (C14).
+
+Related hexagonal matching code: Wootton's 2109.13308 (XYZXYZ plaquettes, ZZ links) runs on heavy-hex hardware using an auxiliary qubit and CX gates per link. It has no threshold study.
+
+Hetenyi-Wootton's Floquet results use toric boundaries with no fault-tolerant initialisation or readout, so their XYZ^2/honeycomb ratios are not like-for-like.
+
+An equal-qubit comparison is untested (their spin layouts: 4d^2 vs 6d^2).",
+ "evidence": "competitors_table.csv XYZ^2/honeycomb: minimum 0.581/0.363 = 1.60, maximum 4.46.
+hw/summary.csv: hw_g 1.097(37) vs 1.081(8); hw_g1q 0.402(7) vs 0.372(5); hw_t 1.330 vs 0.507; hw_rr 10.63 vs 1.72.
+hw/diag_hw_tr_centers.csv: 10.49 vs 1.24-1.36.
+2109.13308.txt lines 1-14, 36-56, 93-103.
+2306.17786.txt lines 1072-1080, 1190-1197, 1263-1268, 1286-1290.",
+ "confidence": 0.86
+}

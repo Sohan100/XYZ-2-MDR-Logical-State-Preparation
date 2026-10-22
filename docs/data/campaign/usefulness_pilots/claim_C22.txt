@@ -1,0 +1,33 @@
+{
+ "id": "C22",
+ "regime": "Gap diagnostic (SD6 variants, not hardware): noiseless links and/or no idle errors; links repeated; links as pair measurements; schedule search",
+ "verdict": "not_useful",
+ "statement": "Measured. XYZ^2 reaches XZZX's threshold only when the link checks are noiseless and idle errors are zero; then it ties (threshold ratio 1.013(30)).
+
+Threshold ratios, each change alone:
+- noiseless links (against XZZX under SD6): 0.770(21);
+- no idling (against XZZX without idling): 0.774(8).
+
+Gap fractions (share of the gap removed). The effects are super-additive (about 3.5 sigma):
+- idling 0.60(1);
+- link noise 0.23(2) against XZZX without idling, or 0.43(4) against XZZX under SD6;
+- both together 1.02(5).
+XYZ^2 without idling against XZZX with idling gives a threshold ratio of 1.050(27). That is a cross-model comparison, not a use case.
+
+Physical substitutes recover little (gap fractions): hybrid 0.27(3), links twice 0.22(7), links three times 0.12(3).
+
+Schedule search:
+- the best of 1690 full-distance depth-6 schedules is within statistics of the default;
+- removing gate-layer idling alone raises XYZ^2's MWPM crossing from 0.38% to 0.57% (a d = 7/9 diagnostic).
+
+sd6_noidle also removes reset and readout idling. It is a diagnostic only, not a proxy for any platform.",
+ "evidence": "docs/data/campaign/gap/gap.csv: XYZ^2 0.487(7), sd6_il 0.626(8), sd6_noidle 0.854(6), sd6_il_noidle 1.117(31); XZZX 0.813(20) and 1.103(9).
+gap/fractions.csv:
+- 0.427(37) / 0.770(21); vs XZZX noidle 0.226(15);
+- 0.596(14) / 0.774(8);
+- 1.022(53) / 1.013(30);
+- hyb 0.272(28); lr2 0.218(68); lr3 0.122(32); sd6_noidle vs XZZX sd6 1.050(27).
+gap_diagnostic.md lines 59-60.
+Schedule-search results.md line 26, sections 3 and 5.",
+ "confidence": 0.88
+}

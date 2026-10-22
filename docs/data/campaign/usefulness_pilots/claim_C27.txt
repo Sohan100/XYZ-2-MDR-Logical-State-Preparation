@@ -1,0 +1,40 @@
+{
+ "id": "C27",
+ "regime": "Reported XYZ^2 'wins' or values in the campaign tables that are fit or coverage artifacts",
+ "verdict": "not_useful",
+ "statement": "Measured. Thresholds are in percent. None of these table entries should be cited as an XYZ^2 win or as a reliable value:
+- h2_p r = 5 (ratio 1.41, 'winner xyz2'): the Tesseract fit 0.817(17)% has nu pinned at 6.0 and chi2 14.8. The BM alternative is pinned too (nu 0.30).
+- helios_p r = d 0.052(3)%: both L_Y seq_match, nu 0.30, chi2 490. It is a nominal loss (C13).
+- phen_b10 r = 10 (1.096 vs XY, 'winner xyz2'): depth6 L_X bp_corr 6.84(33)% against XY-Z BM 6.25(38)% is a 1.2 sigma tie (stat plus syst). The table has no XZZX value because all five XZZX-X values are drift-flagged pair crossings (5.51-7.43%). It has no CSS value because CSS-Z has no r = 10 fit. The separate both-X bp_corr 7.41(22)% fit has nu pinned at 6.0 (C17).
+- phen_b10 r = d (1.0005 vs XZZX, 'winner xyz2'): both L_X bp_full 5.539(54)% against XZZX-Z corr 5.537(55)% is a 0.0 sigma tie (stat plus syst; C17).
+- phen r = 1 (1.08 vs XZZX, 'winner xyz2'): both L_X cfe 16.95(112)% against XZZX-Z BM 15.72(38)% is a 1.0 sigma tie (stat plus syst). XZZX-Z's non-drift d = 9/11 Tesseract pair crossing is 17.08(138)% (stat only, not an fss fit). With it the ratio is 0.99.
+- biased100 r = 10: XY falls back to MWPM 0.843(16)% because its BM and corr values are drift-flagged pair crossings. This gives XYZ^2's both L_X BM 1.029(45)% a nominal 3.9 sigma lead over XY (stat plus syst; C5). XY-X's d = 9/11 BP-OSD pair crossing is 1.268(102)% (stat only; drift 0.752 against the 0.75 cut). That is within 3 sigma of XYZ^2 (XY stat only, XYZ^2 stat plus syst). The row is a tie.
+- hyb_lr2 r = 1 (0.658 vs the honeycomb): the depth6 L_Y tnml fit 3.21(65)% has nu pinned at 0.30 (chi2 0.05). It makes depth6 L_X tnml 2.30(21)% the weaker basis. Without nu-pinned fits the entry is depth6 L_Y bp_corr 2.15(34)%, ratio 0.61 against the honeycomb's 3.497(73)% (z = -3.9, stat plus syst). Among rows with a competitor ratio, it is the only non-crosstalk row that moves by more than 2% when nu-pinned fits are dropped.
+- purez r = 9 and r = 16 (XYZ^2-only rows, no competitor): the depth6 L_X BM entries 1.100(122)% and 1.088(91)% have nu pinned at 6.0. Without them the entries are bp_full 1.071(34)% and 1.013(104)%, which are 2.6% and 6.9% lower.
+- hw_g1q both L_Y BM 0.644(33)%: nu 0.31, chi2 9.5. The raw curves first cross at about 0.41%.
+- sd6 r = d both L_Y cfe0 0.615(31)%: nu 0.30, chi2 13.7.
+- XYZ^2 pair crossings at purez r = d: both L_X cfe0 1.371(116)% (d = 19/21, drift 1.47) and depth6 L_Y Tesseract 1.415(161)% (d = 9/11), both stat only. The table entry is bp_full 0.857(7)%.
+- hw_tr: diag_hw_tr_centers.csv reports 'no crossing' for XZZX-X (C21).
+
+At r = d, the weaker-basis entries for biased10, em3, hyb_lr2 and sd6_il use depth6 L_Y (fault distance (d+1)/2). helios_p uses both L_Y. The both-schedule values are 0.002-0.012 percentage points lower. No conclusion changes.",
+ "evidence": "Notation: percent, with the uncertainty in the last digits shown, e.g. 16.95(112) = 16.95 +- 1.12. Errors are from thresholds.csv unless stated.
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/competitors_table.csv: winner = xyz2 in exactly four rows: phen_b10 r = d 1.0005, phen r = 1 1.079, h2_p r = 5 1.413 and phen_b10 r = 10 1.096. phen_b10 r = 10 has no css or xzzx value. hyb_lr2 r = 1 is 'tnml, depth6 L_X', ratio 0.658, against honeycomb 'mwpm, Z, as em3'. purez r = 9 and r = 16 are 'bm, depth6 L_X only' with no competitor. purez r = d is 'bp_full, depth6 L_X' 0.857(7). Examples of r = d xyz2_dec: biased10 'bp_corr, depth6 L_Y'; em3 'seq_soft, depth6 L_Y'.
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/thresholds.csv:
+- h2_p tesseract r = 5: 0.817(17), nu 6.000, chi2 14.77. h2_p bm r = 5: 0.4204, nu 0.300.
+- helios_p@both-Y seq_match r = d: 0.0516(30), nu 0.300, chi2 489.96.
+- sd6@both-Y cfe0 r = d: 0.6153(308), nu 0.300, chi2 13.71.
+- phen_b10 r = 10: @depth6-X bp_corr 6.844(332); @both-X bp_corr 7.414(218), nu 6.000; xy-Z bm 6.245(379). xzzx-X bm/bposd/corr/mwpm/tesseract are pair crossings at 7.35/7.43/6.88/6.84/5.51, all flagged drift. css-Z every decoder method none.
+- phen_b10 r = d: @both-X bp_full 5.539(54); xzzx-Z corr 5.537(55).
+- phen r = 1: @both-X cfe 16.95(112); xzzx-Z bm 15.72(38); xzzx-Z tesseract pair d 9/11 17.08(138), not flagged.
+- biased100 r = 10: xy-X mwpm 0.843(16). xy-X bm 1.19(12) and corr 0.94(12) are d 19/21 pairs flagged drift. xy-X bposd pair d 9/11 is 1.268(102), drift 0.7515, not flagged. @both-X bm 1.029(45).
+- hyb_lr2 r = 1: @depth6-Y tnml 3.207(652), nu 0.300, chi2 0.052; @depth6-Y bp_corr 2.149(340); @depth6-X tnml 2.299(206); em3 honeycomb-Z mwpm 3.497(73).
+- purez r = 9: bm 1.100(122), nu 6.000, chi2 1.43; bp_full 1.071(34). purez r = 16: bm 1.088(91), nu 6.000, chi2 0.56; bp_full 1.013(104).
+- purez@both-X cfe0 r = d: pair d 19/21, 1.371(116), drift 1.47. purez@depth6-Y tesseract r = d: pair d 9/11, 1.415(161).
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/competitors.csv has different bootstrap errors for the same competitor series: phen xzzx-Z tesseract r = 1 17.08(171); biased100 xy-X bposd r = 10 1.268(122) (1.8 sigma from XYZ^2); em3 honeycomb-Z mwpm r = 1 3.497(88) (hyb_lr2 z = -3.8); phen_b10 xy-Z bm r = 10 6.245(406) (1.1 sigma). No label changes.
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/paper/analysis/campaign_report.py line 212: the drift flag needs drift < 0.75 and a monotone tail.
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/hw/thresholds.csv: hw_g1q@both-Y bm 0.644(33), nu 0.311, chi2 9.54, cross_first 0.4065.
+/pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/docs/data/campaign/hw/diag_hw_tr_centers.csv: xzzx X 'no crossing in [0.005, 0.44]'.
+Recomputed with /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation/paper/analysis/competitor_report.py (xyz2_values, code_values, table on thresholds.csv and competitors.csv). This reproduces competitors_table.csv to a maximum ratio difference of 2e-14. With fits at nu 0.300 or 6.000 dropped from both inputs, the rows that move by more than 2% are helios_p and h2_p (crosstalk), hyb_lr2 r = 1 (ratio 0.658 to 0.614) and the XYZ^2-only purez r = 9 (-2.6%) and r = 16 (-6.9%). Treating competitors' non-drift d = 9/11 BP-OSD or Tesseract pair crossings as usable turns phen r = 1 into 0.993, winner xzzx, and raises XY's biased100 r = 10 entry to 'bposd, X' 1.268.
+Both-schedule minus depth6 values at r = d: biased10 0.0072, em3 0.0018, hyb_lr2 0.0022 and sd6_il 0.0117 pp.",
+ "confidence": 0.9
+}

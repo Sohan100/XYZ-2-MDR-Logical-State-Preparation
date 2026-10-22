@@ -1,0 +1,20 @@
+{
+ "id": "C13",
+ "regime": "Trapped-ion models with mid-circuit-measurement crosstalk (helios_p, h2_p)",
+ "verdict": "not_useful",
+ "statement": "Measured. No code has a threshold under these models. The listed thresholds are fit artifacts on both sides; Hardware.tex says the same.
+- The helios_p r = d XYZ^2 entry is a nominal loss (ratio 0.158; seq_match, nu 0.30, chi2 490).
+- The only nominal crosstalk 'win' is h2_p at r = 5, a Tesseract fit with nu pinned (C27).
+
+Matched (9,11) pair crossings in XYZ^2's weaker basis: 0.47-0.65 of the best surface code (Helios 0.075 vs 0.140-0.158; H2 0.340 vs 0.524-0.559). Pair crossings are diagnostics under rule 3.1 (+-15%).
+
+At equal d, XYZ^2 measures twice the ancillas and receives twice the crosstalk; per-ancilla scaling matches the vendor emulator. At fixed device size the crosstalk is equal, and XYZ^2 still loses (C11).",
+ "evidence": "thresholds.csv: fss fits with nu at the 0.300 or 6.000 bound number 87 of 109 (helios_p), 58 of 160 (h2_p), and 12 of 565 (purez).
+crossings.csv (9,11) r = d:
+- Helios XYZ^2 0.0751(37) vs 0.1397-0.1580.
+- H2 XYZ^2 weaker 0.3401 (L_X-only 0.3670) vs XZZX 0.5587, CSS 0.5238.
+- Helios r = 1 (7,9): 0.267 vs 0.497-0.523.
+competitors_table.csv: helios_p r = d 0.158; h2_p r = 5 1.413 (tesseract).
+Hardware.tex lines 51, 70, 72, 101-102.",
+ "confidence": 0.86
+}

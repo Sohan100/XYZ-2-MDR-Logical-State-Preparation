@@ -1,0 +1,37 @@
+{
+ "id": "C25",
+ "regime": "Hardware cost at equal distance, and qubit overhead by layout",
+ "verdict": "not_useful",
+ "statement": "Measured from the repo's circuits (one ancilla per check). XYZ^2 needs more hardware on every axis:
+- about twice the qubits;
+- 2.08-2.25x the two-qubit gates per round;
+- 8 ticks per round against 6;
+- coupler degree 6 against 4 (this circuit);
+- three gate types against two.
+
+At equal qubits (99/97) the two-qubit gate count is the same (170 vs 168), but idle exposure is not:
+- Gate-layer idle sites per round: 254 vs 52 (4.9x). XYZ^2's 254 split into 130 on data qubits, 100 on link ancillas (idle in 4 of 6 layers) and 24 on plaquette ancillas.
+- Reset and readout-window sites: 100 vs 98.
+- Total, the SD6-style count: 354 vs 150 (2.4x).
+So any gate-layer dephasing charges XYZ^2 about 4.9x more (C37). About half of that is ancilla waiting, which a just-in-time link-ancilla schedule might cut (untested).
+
+The XZZX and CSS d = 3 coupling graphs are not subgraphs of XYZ^2's d = 3 or d = 5 graphs. The 'same hardware' premise is exact only for all-to-all or reconfigurable platforms.
+
+Overhead by layout:
+- 2x with one ancilla per check;
+- 1.5x hybrid (2112.06036's triangular proposal, 3d^2-1);
+- about 1.6-1.7x under em3 (355 vs 209 declared qubits at d = 5);
+- 1.83x pipelined (266 vs 146 at d = 7);
+- 1.33x in Hetenyi-Wootton's square-lattice spin layout (4d^2 vs 3d^2, connectivity 4, no SWAPs for links). There the links reuse plaquette ancilla pairs and are read in a separate round, so data idle through two readout windows per cycle. A one-window layout needs about 6d^2, i.e. 2x (inference);
+- 0.67x against Floquet codes in their layout.",
+ "evidence": "Stim builds by several reviewers (scratchpad qcrev/cnt.py, cnt2.py, r4num/, r4ul/), FTMDRCircuit d = 5 both schedule vs competitor_circuit xzzx d = 7:
+- idle_xyz only: 254 vs 52; idle_mr only: 100 vs 98; both: 354 vs 150.
+- ticks 8 vs 6; num_qubits 99 vs 97; two-qubit gates 170 vs 168.
+d = 3/5/7: qubits 35/99/195 vs 17/49/97; two-qubit gates per round 54/170/350 vs 24/80/168.
+src/mdr/ft/ft_mdr_circuit.py lines 1130-1147 (_idle_mr fallback).
+networkx subgraph_is_monomorphic False.
+2306.17786.txt Table I; lines 1880-1890, 2042.
+2112.06036.txt lines 744-754.
+schedule-search results.md line 103.",
+ "confidence": 0.88
+}

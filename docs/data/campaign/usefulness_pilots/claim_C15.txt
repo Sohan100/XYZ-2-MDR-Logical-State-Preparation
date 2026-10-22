@@ -1,0 +1,39 @@
+{
+ "id": "C15",
+ "regime": "Hybrid hardware: gates plus native pair measurements at the same rate (hyb, hyb_lr2), the resource model 2112.06036 suggests",
+ "verdict": "not_useful",
+ "statement": "Measured. 2112.06036 is a code-capacity study. It names the hardware the code needs and suggests a cheaper link measurement:
+- a triangular lattice with one ancilla per plaquette, connected to its six neighbours (d^2-1 ancillas);
+- weight-2 links that 'may be possible to measure without ancilla qubits', citing circuit-QED joint-parity measurements.
+hyb models that suggestion.
+
+Under the hyb rule (fair_comparison.md section 2) the competitors get their best of all-gate (sd6) and all-pair (em3) compilations, so the honeycomb is the comparator at every r. With nu-pinned fits excluded, XYZ^2 reaches:
+- hyb: 0.30-0.53;
+- hyb_lr2: 0.31-0.61.
+Every entry is a loss (|z| at least 3.8, stat plus syst).
+
+Against the gate surface codes alone (z with stat plus syst):
+- hyb loses at |z| 4.9-7.4 over r = 1-10, and 10.2 at r = d;
+- hyb_lr2 ties at r = 1 and 2 (z -0.8 and -2.0).
+
+Schedule search (outside the d >= 11 rule; crossings at d = 5/7 and 7/9):
+- a link-step placement crosses at 0.51% (MWPM);
+- pipelined split hexagons lower p_L about 3x and cross at 0.63-0.68% (bp_full);
+- XZZX corr crosses at 0.80% in its weaker basis at the same distances, giving ratios 0.79-0.85.
+- The 'XZZX pipelined at about 1.0%' reference is the sd6_noidle proxy, an upper bound that removes all idling. Against it (1.07% at d = 5/7) the ratios are 0.59-0.64.
+
+Qubits: 3d^2-1 physical qubits against 2d^2-1 (the Stim circuit declares 4d^2-1 with flip auxiliaries); pipelined 130/266/450 at d = 5/7/9.
+
+No equal-qubit data exist under hyb. Small circuit-QED devices offer both gates and direct parity measurement, but no platform offers both at matched rates, at QEC scale, in a degree-6 geometry.",
+ "evidence": "Root /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation.
+docs/data/campaign/competitors_table.csv, XYZ^2/honeycomb (honeycomb as em3):
+- hyb 0.531 / 0.401 / 0.408 / 0.383 / 0.314 / 0.297 at r = 1/2/3/5/10/d;
+- hyb_lr2 0.658 / 0.445 / 0.447 / 0.412 / 0.352 / 0.313.
+The hyb_lr2 r = 1 entry 0.658 ('tnml, depth6 L_X' 2.299(206)%) is set by the nu-pinned fit hyb_lr2@depth6-Y tnml 3.207(652)% (nu 0.300, the lower fit bound in paper/analysis/campaign_report.py line 137; chi2 0.05; 7 points; docs/data/campaign/thresholds.csv), which makes L_X the weaker depth6 basis. Without nu-pinned fits depth6 L_Y's best is bp_corr 2.149(340)%, and the entry is 2.149/3.497(73) = 0.61, z -3.9 (stat plus syst; honeycomb em3 Z mwpm, thresholds.csv; competitors.csv gives 3.497(88), z -3.8). Removing nu-pinned fits changes no other hyb or hyb_lr2 entry (recomputed with paper/analysis/competitor_report.py xyz2_values). All other honeycomb z are -5.3 or below.
+Per-r z (stat plus syst) vs the best gate surface code, docs/data/campaign/usefulness_pilots/rev4num/z.csv: hyb -4.88 / -4.98 / -4.92 / -4.92 / -7.42 / -10.23; hyb_lr2 r = 2 -1.99 (1.507(109) vs css-X bm 1.749(54)).
+thresholds.csv hyb_lr2 r = 1 vs gate XZZX-Z corr 2.417(47): depth6 bp_corr 2.149(340), z -0.78; TN ML 2.299(206), z -0.56; without TN ML depth6 L_X corr_links 2.126(89), z -2.9.
+paper/analysis/competitor_report.py lines 46-47 (COMPETITOR_HARDWARE). docs/data/campaign/gap/fractions.csv: hyb 0.272(28).
+Schedule search: cloud/schedule_search/results.md on branch origin/cloud/schedule-search, lines 25-26, section 3 threshold table (lines 84-92: s1525_5_R MWPM 0.51(2); y20/y12 bp_full 0.63(2)/0.68(1); XZZX corr 5/7 0.83 X, 0.80 Z; sd6_noidle corr 5/7 1.07), section 5.
+/pscratch/sd/s/sohan100/ftmdr_tools/noncss/papers/2112.06036.txt lines 176-178, 744-754, refs [39]-[43] (lines 1663-1694).",
+ "confidence": 0.86
+}
