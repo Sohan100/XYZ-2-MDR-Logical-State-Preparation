@@ -40,7 +40,7 @@ The XYZ^2 hexagonal stabilizer code is a YZZY surface code concatenated with two
 
 - **Paths.**
   - Paths are relative to the repository root /pscratch/sd/s/sohan100/XYZ-2-MDR-Logical-State-Preparation.
-  - D/ is docs/data/campaign/. P/ is docs/data/campaign/usefulness_pilots/.
+  - D/ is docs/data/campaign/. P/ is docs/data/campaign/usefulness/pilots/.
   - Papers are the .txt files named by arXiv number in /pscratch/sd/s/sohan100/ftmdr_tools/noncss/papers/.
 - **Labels in this document.**
   - C1-C38 are the claims in the agreement record (section 9).

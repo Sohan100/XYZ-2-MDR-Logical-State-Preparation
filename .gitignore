@@ -64,3 +64,15 @@ logs/
 # Files delivered by Claude in the desktop app
 Claude outputs/
 docs/data/campaign/points.csv
+
+# Local run artifacts at the top level (logs and one-off run scripts)
+/*.log
+/local_*
+/local_logs/
+*.egg-info/
+.venv*/
+._dbindex_/
+
+# Working state of the multi-agent consensus driver (scripts/consensus/)
+.consensus/
+.wf_*.js

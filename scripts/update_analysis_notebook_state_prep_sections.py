@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-NOTEBOOK_PATH = Path("analysis_plots.ipynb")
+NOTEBOOK_PATH = Path("notebooks/analysis_plots.ipynb")
 
 XYZ2_SECTION_HEADING = "## XYZ^2 Logical-X Error vs Physical Error Rate"
 SURFACE_SECTION_HEADING = (

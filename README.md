@@ -6,12 +6,11 @@ It is a research-code package refactor from legacy project artifacts.
 
 ## Key results
 
-A full circuit-level threshold campaign (d up to 21, every decoder, finite-size fits over d >= 11) compared
-$XYZ^2$ with the CSS, XZZX and XY rotated surface codes and the honeycomb Floquet code, under the same
-noise primitives and the fairness rules in [`docs/fair_comparison.md`](docs/fair_comparison.md).
-Thresholds at r = d, each code with its best decoder in its weaker logical basis:
+**Verdict.** XYZ² has no established use on any hardware we modelled, either as a memory or for single-round MDR state preparation. The full consensus, after eight review rounds of ten reviewers, is in [`docs/xyz2_usefulness.md`](docs/xyz2_usefulness.md).
 
-| noise / hardware | $XYZ^2$ | XZZX | best overall |
+A circuit-level threshold campaign (d up to 21, every decoder, finite-size fits over d >= 11) compared XYZ² with the CSS, XZZX and XY rotated surface codes and the honeycomb Floquet code. Every code uses the same noise primitives and the rules in [`docs/fair_comparison.md`](docs/fair_comparison.md). Thresholds at r = d, each code with its best decoder in its weaker logical basis:
+
+| noise / hardware | XYZ² | XZZX | best overall |
 |---|---|---|---|
 | uniform depolarizing gates (sd6) | 0.51% | 0.81% | surface codes 0.81% |
 | SI1000 | 0.43% | 0.51% | CSS 0.52% |
@@ -20,13 +19,26 @@ Thresholds at r = d, each code with its best decoder in its weaker logical basis
 | hybrid: links as pair measurements, plaquettes with gates | 0.59% | 0.81% | honeycomb 1.98% |
 | phenomenological, eta = 10 (setting of arXiv:2505.03691) | 5.54% | 5.54% | tie |
 
-**Verdict.** Under fair circuit-level noise $XYZ^2$ does not beat XZZX; it ties it only in the
-phenomenological model at bias 10. It beats every surface code on pair-measurement hardware (the honeycomb
-is better there), beats the honeycomb on all gate-based hardware, and beats the CSS surface code under bias.
-The full analysis, with every noise model, the literature comparison and the reasons, is in
-[`docs/noncss_comparison.md`](docs/noncss_comparison.md); all fitted thresholds are in
-[`docs/data/campaign/`](docs/data/campaign/) (`thresholds.md`, `competitors.md`, `coverage.md`, and the merged
-raw counts `points.csv.gz`).
+- **Thresholds.** XYZ² never beats XZZX under circuit-level noise. It ties it only in the phenomenological model at bias 10. It beats the CSS code under bias, the honeycomb code under the gate models of the campaign table (the two tie with gate errors alone), and this repository's cat-state compilations of the surface codes under em3, where the honeycomb code is far ahead. See [`docs/noncss_comparison.md`](docs/noncss_comparison.md).
+- **Equal qubit count, below threshold.** Under SD6 the XYZ² error per round is 7 to 11 times the CSS code's at about 100 qubits and up to about 700 times at 330 to 480 qubits. Under strong Z bias it beats the CSS code but is 10 to 850 times worse than XZZX. See [`docs/equal_qubit_comparison.md`](docs/equal_qubit_comparison.md).
+- **Where the gap comes from.** Against XZZX without idle errors, idling accounts for 0.60(1) of the gap and link noise for 0.23(2); removing both closes it, 1.02(5). See [`docs/gap_diagnostic.md`](docs/gap_diagnostic.md).
+- **Spin-qubit corners of Hetényi and Wootton.** Their low XZZX threshold comes from noisy single-qubit gates; the honeycomb code ties XYZ² with gate errors alone; the XYZ² order against CSS at the idle corner depends on where idle errors act. See [`docs/hetenyi_wootton_check.md`](docs/hetenyi_wootton_check.md).
+
+Fitted thresholds and figures are in [`docs/data/campaign/`](docs/data/campaign/). Text for the paper is in [`paper/overleaf_patches/`](paper/overleaf_patches/), with a typeset preview. [`docs/README.md`](docs/README.md) indexes every document.
+
+## Repository layout
+
+```
+src/            Python package: code generators (xyz2/, surface_code/), MDR and fault-tolerant MDR with its decoders (mdr/, mdr/ft/)
+scripts/        Entry points: sweeps, the threshold campaign (campaign*.py), timing, plots; consensus/ holds the review driver
+slurm/          Slurm job scripts for Perlmutter
+tests/          pytest suite
+paper/          manuscript snapshot, analysis scripts (analysis/), figures, Overleaf patches
+docs/           results documents and their data (docs/data/); see docs/README.md
+notebooks/      exploratory notebooks
+legacy/         original notebook the package was refactored from
+data/           generated outputs (ignored by git; campaign counts mirrored on NERSC CFS)
+```
 
 ## Motivation
 
@@ -70,7 +82,7 @@ measurement-result flips at `5p`. Because the measurement-result rate is
 - systematic output folders under `data/`, with generated outputs ignored by
   git
 
-## Layout
+## Core classes
 
 - `src/xyz2/stabilizer_generator.py` -> `XYZ2StabilizerGenerator`
 - `src/xyz2/logical_generator.py` -> `XYZ2LogicalGenerator`
