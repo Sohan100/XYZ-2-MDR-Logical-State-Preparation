@@ -21,6 +21,10 @@ What their definitions say (from the paper text):
 - **Idling (Eqs. 3–5, 12, Fig. 1).** Relaxation gives X and Y errors with p_T1/2 each, dephasing gives Z errors with p_T2, ηT = p_T2/p_T1 = p_Z/(p_X + p_Y) and p_T = p_T1 + p_T2. The idling error acts on the data qubits while the ancillas are read out and reset (their Sec. II.4 and the caption of Fig. 1). Gates are fast, so there is no idling error in the gate layers.
 - **Reset and readout (Eqs. 6–8).** A readout error is a two-qubit depolarizing error on the readout pair followed by a classical flip of the outcome. A faulty reset gives the same syndrome as a faulty readout, so both are merged into one parameter p_RR.
 - **The intercepts** come from a plane fitted to thresholds measured at mixtures of the three errors, not from runs at the corners themselves.
+- **Their XYZ² links are ZZ** (Sec. IV.2: the concatenation with "a two-qubit repetition code (stabilized by ZZ)", "ZZ link along the XY edges"). Z-biased idling at ηT = 20 therefore falls on the Pauli that commutes with the links, the weak direction of the code. It is the ZZ-link image of the X-biased case of arXiv:2112.06036 (their Sec. 3: X bias with XX links is Z bias with ZZ links; Sec. 4.3, Fig. 7(b): at η = 10 XYZ² has about XZZX's threshold but higher logical failure rates). All our `hw_*` models use XX links, for which ηT = 20 dephasing is the strong direction.
+- **Two readout windows per cycle.** Their link measurements reuse the plaquette ancilla pairs and run in a separate measurement round after the plaquettes (App. D.2). Every data qubit is "subject to two idling phase during measurements" per cycle (App. D.3, Eq. D1), against one window for their surface codes. Their p_T is per window, so their 4.2% XYZ² corner is about 8.4% per cycle (first order; inference). `hw_tr` has one window per round (§2).
+- **Their decoder (App. D.3)** is a matching decoder built by hand: the plaquettes of one colour together with all links form a subgraph, the two subgraphs are decoded separately, and the edge weights come from analytic single-qubit error probabilities. Ours decode Stim detector error models with MWPM, correlated matching and belief-matching.
+- **Per cycle,** their XYZ²/XZZX idling ratio is 8.4/15.1 = 0.56. The `hw_tr` pilot (§4, MWPM, d = 7/9, weaker basis) gives 10.49(55)%/18.95(160)% = 0.55(6), statistical errors only. The two agree although the link Pauli, the readout windows per cycle and the decoders differ, so the agreement does not test their model.
 
 ## 2. Our one-parameter models
 
@@ -65,7 +69,7 @@ MWPM crossings of the largest pilot pair, in % (d = 7/9, honeycomb 4/8), with th
 | hw_g1q | 0.44 ± 0.01 | 0.42 ± 0.03 | 0.41 ± 0.03 | 0.41 ± 0.02 | 0.31 ± 0.01 | 0.34 ± 0.01 | 0.34 ± 0.01 | 0.34 ± 0.01 |
 | hw_t | 2.92 ± 0.23 | 29.59 ± 1.84 | 7.96 (grid) | 7.35 ± 0.36 | 0.87 ± 0.03 | 1.01 ± 0.03 | 0.42 ± 0.01 | 0.45 ± 0.01 |
 | hw_rr | 11.11 ± 1.00 | 10.18 ± 0.80 | 9.46 ± 0.41 | 9.27 ± 0.78 | 10.00 ± 0.71 | 11.20 ± 0.46 | 1.18 ± 0.02 | 1.16 ± 0.02 |
-| hw_tr | 6.64 ± 0.21 | > 44 | > 44 | 18.95 ± 1.60 | 10.49 ± 0.55 | 13.99 ± 1.66 | 1.24 ± 0.02 | 1.36 ± 0.03 |
+| hw_tr | 6.64 ± 0.21 | > 44 | unresolved (19–31) | 18.95 ± 1.60 | 10.49 ± 0.55 | 13.99 ± 1.66 | 1.24 ± 0.02 | 1.36 ± 0.03 |
 
 The pilot points are not used in the fits of §6. At 2 × 10⁴ shots their small-p points can put a spurious early sign change into the crossing search of `campaign_report`.
 
@@ -109,16 +113,19 @@ The crossing of d = 7 and 9 (MWPM, weaker basis; honeycomb d = 4 and 8) and ever
   - This supports the explanation that noisy single-qubit basis changes cause their low XZZX value. In our circuits this error also lowers CSS, because `hw_g1q` puts it on every gate of every code.
 - **Idling.** Ours: XZZX 9.8% > CSS 3.6% > XYZ² 0.88% > honeycomb 0.39%. Theirs: XZZX 15.1 > XYZ² 4.2 > CSS 3.94 > honeycomb 1.16.
   - **Ranking change:** XYZ² falls below CSS, also with the best decoders (1.330(6)% against 3.8(4)%).
-  - The reason is the placement of the idling error (§2). With the idling error only during ancilla readout and reset (`hw_tr`, pilot crossings of d = 7/9), the order becomes XZZX (19% in Z, none below 44% in X) > XYZ² 10.5(6)% > CSS 6.6(2)% > honeycomb 1.24(2)%, which is their order.
+  - The reason is the placement of the idling error (§2). With the idling error only during ancilla readout and reset (`hw_tr`), the MWPM pilot crossings of d = 7/9 (`diag_hw_tr_centers.csv`) are XZZX 19.0(16)% in Z (none below 44% in X), XYZ² 10.5(6)% in X̄, CSS 6.6(2)% in X and honeycomb 1.24(2)% (d = 4/8). XYZ² is above CSS again, as in their table.
+    - These are pilot crossings with MWPM only. At the idling corner MWPM handicaps XYZ²: under `hw_t` the best decoder raises its threshold 1.52 times (0.88(1)% to 1.330(6)%, corr_gauge), against 1.05 times for CSS and 1.02 times for XZZX (`summary.csv`).
+    - From d = 5/7 to 7/9 the crossings move by +4.7% (XZZX, Z), +0.9% (XYZ², X̄) and +1.2% (CSS, X). With each code's shift counted as a systematic error, XZZX against XYZ² is 1.7σ (5.0σ with the bootstrap errors alone) and XYZ² against CSS is 2.4σ (6.6σ). Only the honeycomb is separated from the rest, by at least 4.5σ. The crossings support the placement explanation, but they do not give a threshold ranking.
+    - Their XYZ² circuit has ZZ links and reads the plaquettes and the links in two readout rounds (their Fig. 5 and its text). Ours has XX links and one readout window per round. Under Z-biased idling (ηT = 20) the two link orientations do not see the same noise, so `hw_tr` is not their XYZ² model in our circuits.
 - **Readout.** With MWPM: XYZ² 10.6(3)% > CSS 9.8(4)% = XZZX 9.8(3)% > honeycomb 1.007(7)%. Theirs: XYZ² 16.5 > CSS 14.5 > XZZX 12.9 > honeycomb 0.99.
   - **Ranking change with the best decoders:** XYZ², CSS and XZZX agree within errors (10.6(5)%, 10.5(6)%, 10.3(4)%). The honeycomb stays an order of magnitude below (1.72(3)% with BM, 1.007(7)% with MWPM, against their 0.99).
 
 ### Surprises
 
 - **The honeycomb code under readout errors alone** could not be decoded by matching at all: its faults are hyperedges (§3). With the hinted decomposition its MWPM threshold, 1.007(7)%, is within 2% of their 0.99%, and belief-matching raises it to 1.72(3)%.
-- **XYZ² at the idling corner.** Its threshold is 0.88% with our placement against 4.2% in their model, and its relative order to CSS flips with the placement. The link ancillas of XYZ² wait in four of the six gate layers of a round, and its data qubits in two.
-- **The honeycomb code at the gate corner** reaches XYZ²'s threshold (0.88% against 0.89%). Under SD6 it is far below (0.17% against 0.40% with MWPM): its weakness is idling and readout, not the gates.
-- **Our gate-corner values exceed theirs for every code** (by a factor 1.4 for CSS and 1.9 for XYZ²). Their circuits use SWAP gates and their intercepts come from a plane fitted over mixtures of errors.
+- **XYZ² at the idling corner.** Its MWPM threshold is 0.877(11)% with our placement (best decoder 1.330(6)%) against 4.2% in their model, and its relative order to CSS flips with the placement, with either decoder. The link ancillas of XYZ² wait in four of the six gate layers of a round, and its data qubits in two.
+- **The honeycomb code at the gate corner** reaches XYZ²'s threshold (MWPM 0.88(1)% against 0.89(2)%; best decoders 1.081(8)% against 1.10(4)%). Under SD6 it is far below (0.17% against 0.40% with MWPM): its weakness is idling and readout, not the gates.
+- **Our gate-corner values exceed theirs for every code** (with MWPM by a factor 1.40(2) for CSS and 1.91(3) for XYZ²; with the best decoders 1.71(6) and 2.36(8)). Their circuits use SWAP gates and their intercepts come from a plane fitted over mixtures of errors.
 
 ## 7. Files
 

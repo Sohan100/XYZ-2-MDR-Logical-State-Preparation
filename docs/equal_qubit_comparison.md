@@ -2,7 +2,7 @@
 
 **Question (referee).** Does the XYZ² code do better below threshold at equal qubit count, which is where the original papers place its advantage?
 
-**Status (2026-10-15).** Stages 1 and 2 are done: 2,189 + 104 tasks, no failed task except three SIGBUS crashes on a node that rebooted, all rerun. A stage 3 (one belief-matching series, XYZ² X̄ under η = 100 at p = 3 × 10⁻³, d = 9) is running and changes no comparison below. Fits and tables: `docs/data/campaign/eq/`. Paper text: `paper/overleaf_patches/ranking.tex`.
+**Status (2026-10-15).** Done. Stages 1 and 2: 2,189 + 104 tasks, no failed task except three SIGBUS crashes on a node that rebooted, all rerun. Stage 3 (one belief-matching series, XYZ² X̄ under η = 100 at p = 3 × 10⁻³, d = 9) is also done: ε = 1.81 [1.41, 2.32] × 10⁻⁶ per round at r = 3d (16 errors) and 2.90 [2.42, 3.49] × 10⁻⁶ at r = d (29 errors). Belief-matching does not cover every point, so it is not the chosen decoder (§3), and this series changes no comparison below. Fits and tables: `docs/data/campaign/eq/`. Paper text: `paper/overleaf_patches/ranking.tex`.
 
 ## 1. Series
 

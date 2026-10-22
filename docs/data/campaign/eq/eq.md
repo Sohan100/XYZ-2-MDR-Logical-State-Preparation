@@ -1,6 +1,6 @@
 # Equal-qubit comparison below threshold
 
-Error per round epsilon (r = 3d), 68% Wilson intervals; a point without logical errors is a 95% upper bound (3/N per shot). One decoder per code and noise model (decoders.csv), and MWPM alone. Weaker basis per code, noise model and p. Lambda = epsilon(d)/epsilon(d+2) from d >= 5 and points with >= 30 errors.
+Error per round epsilon (r = 3d), 68% Wilson intervals; a point without logical errors is a 95% upper bound (3/N per shot). One decoder per code and noise model (decoders.csv), and MWPM alone. One basis per series (code, noise model, decoder and p): the one whose fit gives the larger epsilon at the largest fitted distance (at the largest common measured distance when a basis has no fit), so at some d the other basis is worse. Lambda = epsilon(d)/epsilon(d+2) from d >= 5 and points with >= 30 errors.
 
 ## Decoders
 

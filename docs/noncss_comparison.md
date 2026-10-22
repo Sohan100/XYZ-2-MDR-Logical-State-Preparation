@@ -12,13 +12,14 @@ Circuit-level thresholds, in % of the physical error rate. "Ours" are XYZ² thre
 |---|---|---|
 | SD6 (uniform depolarizing) | XZZX 0.66 (MWPM, every location at p; arXiv:2505.17718). By Clifford equivalence with the CSS surface code: 0.82 (MWPM) and 0.94 (belief-matching) (arXiv:2203.04948, lighter SPAM). Honeycomb Floquet 0.2–0.35 | 0.43 (MWPM), 0.54–0.56 (BM, Tesseract) |
 | SI1000 | honeycomb Floquet 0.1–0.15, the only non-CSS SI1000 number. CSS surface 0.3–0.5 | 0.37 (MWPM) to 0.45 (BM) |
-| biased, gates not bias-preserving | XZZX 0.85–0.93 (η = 10–1000, MWPM; arXiv:2505.17718); 0.73–0.80 with H on the data qubits | 0.75 / 0.83 / 0.86 (BM; η = 10 / 100 / ∞) |
-| biased, bias-preserving gates | XZZX ≈2.0 (η = 100) to ≈2.4 (η = 1000) (arXiv:2606.17709, read from a figure); Kerr-cat XZZX, CX infidelity up to ≈6.5 | — |
+| biased, gates not bias-preserving | XZZX 0.85–0.93 (η = 10–1000, MWPM; arXiv:2505.17718); 0.73–0.80 with H on the data qubits | — (not run: our biased models keep every CX, CY and CZ bias-preserving) |
+| biased, bias-preserving gates | XZZX ≈2.0 (η = 100) to ≈2.4 (η = 1000) (arXiv:2606.17709, read from a figure); Kerr-cat XZZX, CX infidelity up to ≈6.5 | 0.75 / 0.83 / 0.86 (BM; η = 10 / 100 / ∞) |
 | EM3 (native pair measurements) | honeycomb Floquet 1.5–2.0 (arXiv:2108.10457, 2202.11845). Pair-measurement surface codes 0.24–0.66 | 0.25–0.33 |
-| trapped ion | no non-CSS threshold under Quantinuum-like noise. Spin-qubit model (arXiv:2306.17786), gate-error corner: XYZ² 0.465, XZZX 0.37, CSS 0.82 | Helios / H2, no crosstalk: 0.43 / 0.63 |
+| trapped ion | no non-CSS threshold under Quantinuum-like noise | Helios / H2, no crosstalk: 0.43 / 0.63 |
+| spin qubits (gate-error corner) | XZZX 0.37, CSS 0.82, honeycomb Floquet 0.43; XYZ² itself 0.465 (arXiv:2306.17786, Table I, MWPM, intercepts of a fitted plane) | 0.89 (MWPM), 1.10 (BM) (`hw_g`, `docs/data/campaign/hw/thresholds.md`) |
 | erasure | XZZX 4–13 with gate-only noise; 2.85 with SPAM | — |
 
-No single-parameter circuit-level threshold of XYZ² under SD6, SI1000, EM3 or biased noise has been published. The campaign's values are the first. The only earlier circuit-level XYZ² study is Hetényi and Wootton's spin-qubit model; its isotropic value, ≈0.41% with matching, agrees with our 0.43% for MWPM. Nothing in the literature corresponds to our r = 1 values.
+No single-parameter circuit-level threshold of XYZ² under SD6, SI1000, EM3 or biased noise has been published. The campaign's values are the first. The only earlier circuit-level XYZ² study is Hetényi and Wootton's spin-qubit model. They print isotropic thresholds only for the surface code (0.65%) and XZZX (0.35%). Their XYZ² plane intercepts (Table I, ηT = 20: p_G 0.465, p_T 4.2, p_RR 16.5) combined with their Eq. 10, 1/p_ic = 1/p_G + 1/p_T + 1/p_RR, give ≈0.41% with matching. This value is derived here and is not in the paper. It is not comparable with our sd6 MWPM 0.433(4)% (r = d, `docs/data/campaign/thresholds.csv`). Their circuit uses ancilla pairs, SWAP gates for the plaquettes, ZZ links measured in a second readout round, idling only during readout and reset, and a readout error that includes two-qubit depolarizing noise. The two numbers are close by coincidence. Our runs at their three corners are in `docs/hetenyi_wootton_check.md`. Nothing in the literature corresponds to our r = 1 values.
 
 ## 2. The head-to-head, under our noise models
 
@@ -52,7 +53,9 @@ Only finite-size fits over d ≥ 11 count, for every code. Fits that drift, and 
 | helios_p_noxt | 0.43 | 0.40 | **0.54** | 0.53 | 0.23 | 1.54 | **2.37** |
 | h2_p_noxt | 0.62 | 0.64 | 0.75 | **0.77** | 0.36 | 2.24 | **3.03** |
 | helios_p | 0.20 | 0.28 | **0.33** | -- | -- | 0.33 | **0.59** |
-| h2_p | **0.44** | -- | 0.41 | -- | 0.17 | 1.16 | **1.39** |
+| h2_p | 0.31 † | -- | **0.41** | -- | 0.17 | 1.16 | **1.39** |
+
+† Weaker basis (L_X of the `both` schedule, bm): 0.312 ± 0.002%, with ν at its lower bound (0.3). The L_X-only value of the `depth6` schedule, 0.44 ± 0.06% (bp_corr, stat + syst), is within 1σ of XZZX's 0.41 ± 0.02%. Under crosstalk 58 of the 160 h2_p finite-size fits sit at a ν bound, so the h2_p thresholds are rough.
 
 With MWPM for every code, at r = d under sd6: XYZ² 0.43%; CSS, XZZX and XY 0.69–0.70%.
 
@@ -66,23 +69,22 @@ With MWPM for every code, at r = d under sd6: XYZ² 0.43%; CSS, XZZX and XY 0.69
 
 **Where XYZ² does win**
 
-1. **Against the honeycomb Floquet code under every gate-based model.** XYZ² is 2–4× higher (sd6 0.54 vs 0.22, si1000 0.47 vs 0.12, purez 0.86 vs 0.24). The honeycomb is the other non-CSS code built from weight-2 checks.
-2. **Against every surface code under em3 (native pair measurements), at every round count.** At r = d it reaches 0.33% against 0.24–0.25%, and at r = 1 1.07% against 0.79–0.82%. Its weight-2 links are native pair measurements and its plaquettes compile to few of them. The honeycomb is still 6× higher under em3.
-3. **Trapped-ion noise with measurement crosstalk (h2_p).** XYZ² 0.44% against XZZX 0.41%, a small margin. These crosstalk models drift with d in several series, so this is tentative.
-4. **XYZ² matches the CSS surface code** under si1000 (0.47 vs 0.52), Helios (0.43 vs 0.40) and H2 (0.62 vs 0.64) without crosstalk, and under biased noise it beats CSS (0.76–0.86 vs 0.62–0.64). It beats CSS but not XZZX.
+1. **Against the honeycomb Floquet code under every gate-based model of the campaign table.** At r = d, in its weaker basis, XYZ² is 1.6–3.7× higher (sd6 0.51 vs 0.22, si1000 0.43 vs 0.12, purez 0.86 vs 0.24; smallest margin h2_p_noxt, 0.58 vs 0.36). The honeycomb is the other non-CSS code built from weight-2 checks. Under gate errors alone (`hw_g`, `docs/hetenyi_wootton_check.md`) the two tie: 1.097(37)% against 1.081(8)%.
+2. **Against this repository's cat-state compilations of the CSS, XZZX and XY surface codes under em3 (native pair measurements), at every round count** (1.29–1.36× the best of the three). At r = d it reaches 0.33% against 0.24–0.25%, and at r = 1 1.07% against 0.79–0.82%. Its weight-2 links are native pair measurements and its plaquettes compile to few of them. This is not a win against the best known pair-measurement surface code: the published 3aux code (arXiv:2310.12981, not simulated here) reaches 0.66% under the harsher noise model of Chao et al., where the honeycomb reaches 1.3%. Relative to the honeycomb, 3aux reaches 0.33–0.51 and XYZ² 0.165 (a cross-model comparison). The honeycomb is still 6× higher under em3.
+3. **Against the CSS surface code**, with XYZ² in its weaker basis (§4; errors stat ⊕ syst): a tie under Helios without crosstalk (0.41 ± 0.04 vs 0.40 ± 0.01), but below CSS under si1000 (0.43 ± 0.01 vs 0.52 ± 0.01, 8.2σ) and H2 without crosstalk (0.58 ± 0.02 vs 0.64 ± 0.01, 2.3σ). Under biased noise it beats CSS (0.75–0.86 vs 0.62–0.64), but not XZZX.
 
 **Why XYZ² loses to XZZX** (decoder-independent; see the near-ML references in the campaign):
 
 - **It costs twice as many qubits and checks for the same distance.** [[2d², 1, d]] has 2d² − 1 checks, so with one ancilla per check that is about 4d² qubits, against 2d² for a rotated surface code. More fault locations per logical path lower the threshold, and at equal qubit count XYZ²'s distance is √2 smaller, so it is further behind there than in threshold.
-- **The weight-6 plaquettes** need six sequential gates, so ancilla faults spread to several data qubits.
-- **Its two-level advantage only holds when the link measurements are perfect.** It shows at code capacity and in the phenomenological model (3.4–4.3% vs about 3%). At circuit level, noisy link measurements make the lower-level flags unreliable.
+- **The weight-6 plaquettes** cost threshold through idling, not through faults in their measurement. With noiseless links and no idle errors (`sd6_il_noidle`), XYZ² still measures its weight-6 plaquettes with noisy gates and reaches 1.12(3)% against 1.103(9)% for XZZX without idle errors, a ratio of 1.01(3) (`docs/gap_diagnostic.md`, `docs/data/campaign/gap/gap.csv`, `fractions.csv`). The six gate layers leave more qubits waiting: at equal qubits (99 vs 97) XYZ² has 254 gate-layer idle sites per round against 52 for XZZX, 130 of them on data qubits and 100 on link ancillas that wait through 4 of the 6 layers (`docs/data/campaign/usefulness_pilots/claim_C25.txt`, `c37/cnt_idle2.py`). Removing all idle errors closes 0.60(1) of the gap to XZZX without idle errors.
+- **Its two-level decoding pays off under phenomenological noise with bias, not at circuit level.** That model (arXiv:2505.03691) measures every check with error q = p, links included. Under phen_b10 (η = 10) XYZ² ties XZZX at r = d, 5.54(5)% vs 5.54(5)%, and is above CSS (3.11(5)%). Without bias (phen) it is 4σ below XZZX, 4.16(6)% vs 4.51(7)% (stat plus syst, `thresholds.csv`). The paper's own 4.30% at η = 10 is 0.78× XZZX, because our belief-matching is stronger than theirs (§4). At circuit level link noise is the smaller part of the gap to XZZX: noiseless link checks close 0.23(2) of it, removing idle errors 0.60(1) (`docs/gap_diagnostic.md`).
 - **Bias.** With bias-preserving gates XZZX reduces to repetition codes that tolerate measurement errors. XYZ²'s bias structure is coupled through its noisy links.
 
 **When to use XYZ²:**
 - on hardware with native two-qubit Pauli measurements, where it beats every surface code;
 - in place of the honeycomb Floquet code on gate-based hardware.
 
-**When not to use it:** for gate-based memories with native controlled-Pauli gates, where XZZX (or plain CSS) is better at every round count and noise model we simulated except h2_p.
+**When not to use it:** for gate-based memories with native controlled-Pauli gates, where XZZX (or another surface code) is better at every round count and noise model we simulated, h2_p included (0.31% vs 0.41% at r = d). The one nominal exception, h2_p at r = 5 (XYZ² 0.82 ± 0.02% L_X only against XZZX 0.58%), is a Tesseract fit with ν at its upper bound (6.0) and χ² = 14.8 over 7 points.
 
 
 ## 4. Fair rerun (2026-10-12)
@@ -92,7 +94,7 @@ The campaign was repeated under `docs/fair_comparison.md`. Every code uses the s
 Independent checks (cloud runs, branches `cloud/*`):
 - **Fairness audit (`cloud/fairness-audit`).** The competitor circuits are fair. They are slightly *harsher* than Stim's reference circuit, because data qubits idle twice per round. XYZ² is built the same way. XZZX's 0.81% under sd6 comes from correlated decoding; with MWPM it gives 0.69–0.71%, consistent with the literature's 0.66%. Test suite: 920 passed, 0 failed.
 - **Schedule search (`cloud/schedule-search`).** Of 8,928 XYZ² extraction schedules, 1,690 keep full distance in both bases. No compilation closes the gap to XZZX. A pipelined hybrid circuit lowers p_L about 3× at fixed p but barely moves the threshold.
-- **arXiv:2505.03691 check (`cloud/phen-2505-03691`).** Our sequential matching decoder reproduces the paper's matching thresholds (3.42% at η = 0.5, 3.49% at η = 10, within finite-size drift). Our belief-matching runs BP on the full detector error model, so it is stronger than the paper's (5.4–5.5% vs 4.30% at η = 10).
+- **arXiv:2505.03691 check (`cloud/phen-2505-03691`).** The paper's matching thresholds are 3.42 ± 0.01% at η = 0.5 and 3.49 ± 0.02% at η = 10. Our sequential matching decoder gives 3.64% at η = 0.5 (3.636 ± 0.049% to 3.644 ± 0.039% over both schedules and both bases) and 3.58–3.68% at η = 10 (errors 0.03–0.08%). These are finite-size fits over d = 11–21 at r = d (`docs/data/campaign/thresholds.csv`, `seq_match`; errors are stat plus syst). Ours are 6% above the paper at η = 0.5 (4–6σ) and 3–6% above it at η = 10 (1.5–4σ). The gap is smaller than the finite-size drift: from the first to the last pair of consecutive distances, the crossing moves by 6–24% at η = 0.5 (crossings 3.06–4.14%) and by 4–12% at η = 10 (crossings 3.36–3.89%). Our belief-matching runs BP on the full detector error model, so it is stronger than the paper's (5.4–5.5% vs 4.30% at η = 10).
 
 ### Thresholds at r = d (%), each code's best decoder in its weaker basis
 
@@ -124,8 +126,8 @@ Independent checks (cloud runs, branches `cloud/*`):
 - **Gate-based hardware** (sd6, si1000, ion models): XYZ² reaches 0.63–0.85× the best surface code. Requiring both logical bases lowers XYZ² a little more than the Logical-X-only numbers of §3 suggested; the h2_p "win" of §3 disappears (0.31 vs 0.41).
 - **Hybrid hardware** (links as native pair measurements): XYZ² improves from 0.51% to 0.59–0.62%, but the same hardware lets XZZX keep 0.81% with gates, and lets the honeycomb reach 1.98% with pair measurements.
 - **Repeated links** raise XYZ² by at most 0.06 percentage points (sd6 0.51 → 0.57) and never close the gap.
-- **Ideal links** (diagnostic) recover only part of the gap (0.64% vs 0.81%). Noisy links cost XYZ² about 20%; the rest is the weight-6 plaquettes and the doubled qubit count.
-- **Phenomenological noise** (the setting of arXiv:2505.03691): at η = 0.5 XYZ² is 0.91× the surface codes, and at η = 10 it ties XZZX. The paper's advantage at code capacity does not survive measurement errors as an outright win.
+- **Ideal links** (diagnostic) recover only part of the gap (0.64% vs 0.81%). Noisy links lower XYZ²'s threshold by about 20%, but idling is the larger part of the gap (`docs/gap_diagnostic.md`). Measured against XZZX without idle errors, idle errors account for 0.60(1) of the gap and link noise for 0.23(2); against XZZX under SD6, link noise accounts for 0.43(4). With noiseless links and no idle errors, XYZ² ties XZZX without idle errors (1.12(3)% vs 1.103(9)%, ratio 1.01(3)). Nothing is left at the threshold level for the weight-6 plaquettes and the doubled qubit count. Their cost shows up below threshold, as the qubits needed per distance (`docs/equal_qubit_comparison.md`).
+- **Phenomenological noise** (the setting of arXiv:2505.03691): at η = 0.5 XYZ² is 0.91× the surface codes, and at η = 10 it ties XZZX. These thresholds do not test the claim of arXiv:2112.06036. At code capacity that paper already puts the two thresholds level ("about 28 % for both" at η = 10). Its advantage is a lower failure rate below threshold at equal qubit count (Fig. 7a inset: Z bias, near-ML decoding). The equal-qubit pilots test that claim (docs/data/campaign/usefulness_pilots/: memory at r = 3d, weaker basis of each code, XYZ² BM against XZZX corr, statistical errors only). At η = 10 and p = 1.5–3%, XYZ²'s error per round is 0.70–1.06× XZZX's. Some points are more than 3σ below 1 with Poisson errors, but none stays at 3σ once run-to-run scatter is included, so they count as ties. At η = 0.5 and p = 2.5% the ratio is 1.36(8), 1.83(12) and 2.36(18) at 35/31, 99/97 and 195/199 qubits. That is a loss at the two larger sizes (8.9σ and 11.0σ with Poisson errors).
 
 **Reasons to use XYZ²** (unchanged from §3): it beats every surface code on pair-measurement hardware (em3: 0.33 vs 0.25), but the honeycomb Floquet code is better there. It also beats the honeycomb on all gate-based hardware, and it beats the CSS surface code under bias.
 

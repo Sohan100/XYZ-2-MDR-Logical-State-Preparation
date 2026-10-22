@@ -179,7 +179,8 @@ def markdown(t: pd.DataFrame) -> str:
              "L_Y, each with its best decoder), then its best schedule; \"only\" marks a model with one basis "
              "measured. Ratio: XYZ^2 over the best competitor. Only finite-size fits over d >= 11 count: "
              f"thresholds that drift, crossings of two distances only, and series that stop below d = {MIN_DMAX} "
-             "(honeycomb: d = 12) are left out. sd6_il (noiseless link checks) is a diagnostic, not hardware.", ""]
+             "(honeycomb: d = 12) are left out. sd6_il (noiseless link checks) is a diagnostic, not hardware."
+             " \"best\" is the largest central value, with no significance test: a row is an XYZ^2 win only when XYZ^2 is at least 3 sigma (stat plus syst) above every competitor, and no row here passes that test. Two \"xyz2\" rows are fit or coverage artifacts, and competitors_table.csv has the same winner = xyz2 rows. h2_p, r = 5: the 0.82 comes from one Tesseract fit (L_X only, d = 11-21, 7 points) with nu = 6.00, which is the upper bound of the fit, and chi2 = 14.8. The other XYZ^2 finite-size fits at r = 5 give 0.42 (bm) and 0.38 (seq_soft), and XYZ^2 gives 0.31 at r = 10 and at r = d. XY has no fit and the honeycomb code has none over d >= 12. phen_b10, r = 10: XZZX has no fit (its X basis has only drifting two-distance crossings) and CSS has none in Z. Against XY, XYZ^2 has 6.84 +- 0.33 and XY has 6.25 +- 0.38, which is 1.19 sigma apart (stat plus syst), so the two are not resolved. phen_b10, r = d (ratio 1.00): XYZ^2 has 5.54 +- 0.05 and XZZX has 5.54 +- 0.05, which is a tie.", ""]
     for rk, g in t.groupby("rounds", sort=False):
         if not g[CODES].notna().any().any():
             continue
