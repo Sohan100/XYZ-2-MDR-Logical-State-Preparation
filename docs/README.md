@@ -2,6 +2,8 @@
 
 Start with [`xyz2_usefulness.md`](xyz2_usefulness.md). It is the final answer to the question this repository asks: when, if ever, is the XYZ² code more useful than the surface codes and the honeycomb Floquet code?
 
+For the paper rewrite, [`paper/REWRITE_BRIEF.md`](../paper/REWRITE_BRIEF.md) collects every new result, what it means for the paper's claims, and the LaTeX patches in one place.
+
 ## Protocol and decoders
 
 | document | contents |
