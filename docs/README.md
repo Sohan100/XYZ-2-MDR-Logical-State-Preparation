@@ -10,6 +10,7 @@ For the paper rewrite, [`paper/REWRITE_BRIEF.md`](../paper/REWRITE_BRIEF.md) col
 |---|---|
 | [`ft_mdr_protocol.md`](ft_mdr_protocol.md) | The fault-tolerant MDR preparation of the logical plus state: frame initialization, depth-6 schedule, fault distance d + 1 |
 | [`ft_mdr_decoders.md`](ft_mdr_decoders.md) | The two-level decoders (matching, correlated matching, belief-matching, hierarchical modes), the circuit noise models and the threshold table |
+| [`srivastava_exact_decoder.md`](srivastava_exact_decoder.md) | The sequential decoder of Srivastava et al. (arXiv:2505.03691) at circuit level (`sri_m`, `sri_bm`): algorithm, open choices, tests, validation against their thresholds, fault distance, cost |
 | [`ft_mdr_section.tex`](ft_mdr_section.tex) | Early draft of the protocol section, superseded by the manuscript; kept for history |
 
 ## Comparison with other codes
@@ -38,6 +39,7 @@ For the paper rewrite, [`paper/REWRITE_BRIEF.md`](../paper/REWRITE_BRIEF.md) col
 | `campaign/hw/` | Hetényi–Wootton corners: points, thresholds, figures |
 | `campaign/gap/` | Gap diagnostic: points, thresholds, gap fractions, pgfplots figure |
 | `campaign/eq/` | Equal-qubit comparison: points, error per round, Λ, qubit targets, figure |
+| `campaign/sri/` | Sequential decoder of Srivastava et al.: points, thresholds, validation, fault distance, timing (raw counts in `data/campaign/sri/`) |
 | `campaign/usefulness/` | The consensus: final state (`consensus_final.json`), earlier rounds (`rounds/`) and every pilot the reviewers ran (`pilots/`) |
 | `thresholds/`, `rounds_threshold/`, `cfe/`, `helios/`, `res_*.csv` | Earlier sweeps behind the paper figures |
 

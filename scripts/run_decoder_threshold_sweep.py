@@ -53,6 +53,13 @@ NOISE = {
     "sd6_il": lambda v: replace(CircuitNoise.uniform(v), link_noise=False, name="sd6_il"),
     "phen": lambda v: CircuitNoise.phenomenological(v),
     "phen_b10": lambda v: CircuitNoise.phenomenological(v, 10),
+    # phen with a noisy last time boundary: the final frame readout is flipped with probability p
+    "phen_nr": lambda v: replace(CircuitNoise.phenomenological(v), noisy_readout=True, name="phen_nr"),
+    "phen_b10_nr": lambda v: replace(CircuitNoise.phenomenological(v, 10), noisy_readout=True, name="phen_b10_nr"),
+    # code capacity of Srivastava et al. (run with 2 rounds): one layer of their data noise between two
+    # noiseless rounds, noiseless readout
+    "codecap": lambda v: CircuitNoise.code_capacity(v),
+    "codecap_b10": lambda v: CircuitNoise.code_capacity(v, 10),
     # one kind of error at a time, the corners of the threshold surface of Hetenyi and Wootton
     # (arXiv:2306.17786, Table I; docs/hetenyi_wootton_check.md):
     # - hw_g: gates only, two-qubit depolarizing p after every entangling gate;
@@ -102,6 +109,18 @@ DECODERS = {
     # narrow enough (r = 1 up to d = 21, r = 2 up to d ~ 9, r = d at d = 3)
     "cfe_tn": dict(mode="cfe_tn", kappa=0.5, osd_order=10, bp_iters=30, chi=32, chi_max=256,
                    tn_max_open=60),
+    # the sequential decoder of Srivastava et al. (arXiv:2505.03691) at circuit level: their link rule,
+    # Z on the top qubit, conditional priors, then matching (sri_m) or belief-matching (sri_bm) on the
+    # non-link detectors (src/mdr/ft/sequential_decoder.py); *_fast decide the links with one matching graph
+    "sri_m": dict(mode="sri_m"),
+    "sri_bm": dict(mode="sri_bm", bp_method="product_sum", bp_iters=10),
+    "sri_m_fast": dict(mode="sri_m", link_rule="fast"),
+    "sri_bm_fast": dict(mode="sri_bm", bp_method="product_sum", bp_iters=10, link_rule="fast"),
+    # Table I to first order only: an uncorrected link round brings in no pair of its data-edge faults
+    "sri_m1": dict(mode="sri_m", sri_table="first"),
+    "sri_bm1": dict(mode="sri_bm", bp_method="product_sum", bp_iters=10, sri_table="first"),
+    # their belief-matching with d iterations of BP (their Fig. 9), against our 10
+    "sri_bm_dit": dict(mode="sri_bm", bp_method="product_sum", bp_iters=0),
 }
 
 
@@ -153,7 +172,8 @@ def main() -> None:
                     t0 = time.time()
                     dec = TwoLevelDecoder(ft, **DECODERS[name])
                     slow = name in ("seq_soft", "seq_erasure", "seq_match", "bp_full", "bm", "bp_corr", "tnml", "cfe_tn",
-                                    "tesseract", "cfe")
+                                    "tesseract", "cfe", "sri_m", "sri_bm", "sri_m_fast", "sri_bm_fast", "sri_m1",
+                                    "sri_bm1", "sri_bm_dit")
                     batch = args.batch or (500 if slow else 20000)
                     est = dec.estimate(max_shots=args.max_shots,
                                        max_errors=args.max_errors,

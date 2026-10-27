@@ -50,7 +50,10 @@ class CircuitNoise:
     extraction every time); 1 is the standard circuit. link_noise : bool
     False makes every operation of the link checks noiseless (a diagnostic,
     not a hardware model). data_xyz : tuple (px, py, pz) of the
-    phenomenological data noise.
+    phenomenological data noise. data_from_round : int Under "phen", the
+    first round with data noise (1 for code capacity, see `code_capacity`).
+    noisy_readout : bool Under "phen", flip the final frame readout with
+    `p_meas` (a noisy last time boundary).
     """
 
     p1: float = 0.0
@@ -73,6 +76,8 @@ class CircuitNoise:
     link_noise: bool = True
     data_xyz: tuple | None = None
     idle_mr_xyz: tuple | None = None
+    data_from_round: int = 0
+    noisy_readout: bool = False
 
     @staticmethod
     def hybrid(p: float) -> "CircuitNoise":
@@ -98,6 +103,19 @@ class CircuitNoise:
         px = py = (p - pz) / 2.0
         return CircuitNoise(p_meas=p, native="phen", data_xyz=(px, py, pz),
                             name="phen" if eta == 0.5 else f"phen_b{eta:g}")
+
+    @staticmethod
+    def code_capacity(p: float, eta: float = 0.5) -> "CircuitNoise":
+        """
+        Code capacity as in Srivastava et al.: the data noise of
+        `phenomenological` once, between two noiseless rounds (use the circuit
+        with 2 rounds), and a noiseless readout, so every check, random or
+        not, has a known value before and after the noise.
+        """
+        pz = p * eta / (eta + 1.0)
+        px = py = (p - pz) / 2.0
+        return CircuitNoise(native="phen", data_xyz=(px, py, pz), data_from_round=1,
+                            name="codecap" if eta == 0.5 else f"codecap_b{eta:g}")
 
     @staticmethod
     def uniform(p: float) -> "CircuitNoise":

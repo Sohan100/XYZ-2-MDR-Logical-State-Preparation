@@ -246,7 +246,10 @@ class FTMDRCircuit:
     CircuitNoise Noise model. ancillas : List[int] Ancilla qubits (with the
     ancillas of repeated links). ancilla_of : Dict[int, int] Ancilla of every
     check measured with gates. depth : int Gate layers per round. logical :
-    str "X" or "Y".
+    str "X" or "Y". round_start : List[int] Set by `build`: the index of
+    the first instruction of every round in the built circuit, and last the
+    index where the final readout begins (an operation inserted there acts
+    after the previous round and before any operation of that round).
     """
 
     def __init__(
@@ -463,7 +466,9 @@ class FTMDRCircuit:
                 used.update((u, lo))
             return used
 
+        self.round_start = []
         for r in range(self.rounds):
+            self.round_start.append(len(c))
             if self.ancillas:
                 c.append("RX", self.ancillas)
             if nz.p_prep and noisy_anc:
@@ -546,6 +551,7 @@ class FTMDRCircuit:
             self._memory(c, data)
             self._round_detectors(c, r, rec, reps, count, init_rows)
             c.append("TICK")
+        self.round_start.append(len(c))
         return self._final_readout(c, rec, reps, count)
 
     def _build_phen(self) -> stim.Circuit:
@@ -557,7 +563,9 @@ class FTMDRCircuit:
         every data qubit, followed by a noiseless measurement of every check
         (one MPP per check, `link_reps` per link) whose outcome is flipped
         with probability `p_meas`. The detectors are those of the circuit
-        with gates.
+        with gates. Rounds before `noise.data_from_round` have no data noise
+        (code capacity: `CircuitNoise.code_capacity`), and
+        `noise.noisy_readout` flips the final frame readout with `p_meas`.
         """
         geo, nz = self.geometry, self.noise
         n = geo.n
@@ -578,8 +586,10 @@ class FTMDRCircuit:
         rec: Dict[Tuple[int, int], int] = {}
         reps: Dict[Tuple[int, int], List[int]] = {}
         count = 0
+        self.round_start = []
         for r in range(self.rounds):
-            if any(xyz):
+            self.round_start.append(len(c))
+            if any(xyz) and r >= nz.data_from_round:
                 c.append("PAULI_CHANNEL_1", data, list(xyz))
             c.append("TICK")
             for ci, ch in enumerate(geo.checks):
@@ -597,7 +607,8 @@ class FTMDRCircuit:
                     count += 1
             self._round_detectors(c, r, rec, reps, count, init_rows)
             c.append("TICK")
-        return self._final_readout(c, rec, reps, count, readout_noise=False)
+        self.round_start.append(len(c))
+        return self._final_readout(c, rec, reps, count, readout_noise=nz.noisy_readout)
 
     # ------------------------------------------------------------ detectors
     def _prev(self, rec, reps, r: int, ci: int) -> int:
@@ -934,7 +945,9 @@ class FTMDRCircuit:
         end_step(set(cat_layer(0, 0, 1)))
 
         pending: List[Tuple[int, int, int, int]] = []
+        self.round_start = []
         for r in range(self.rounds):
+            self.round_start.append(len(c))
             b = r % 2
             more = r < self.rounds - 1
             # step 0: links, last layer of this round's cats, readout of the
@@ -972,6 +985,7 @@ class FTMDRCircuit:
                     else:
                         used += cat_layer(1 - b, r + 1, col - 1)
                 end_step(set(used))
+        self.round_start.append(len(c))
         end_step(set(readout(pending)))
 
         # ---------------------------------------------------------- signs

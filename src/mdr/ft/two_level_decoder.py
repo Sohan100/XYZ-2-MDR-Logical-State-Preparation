@@ -59,6 +59,15 @@ class TwoLevelDecoder:
       two-pass correlated matching reweights each level with the edges
       matched on the other. ``lower="gauge"`` (default, HCM) uses every gauge
       detector, ``lower="links"`` only the odd links ("HCM with links").
+    - ``sri_m``, ``sri_bm``: the sequential decoder of Srivastava et al.
+      (arXiv:2505.03691) itself: hard decisions on every link along time,
+      Z on the top qubit of every link judged a data error, the conditional
+      priors of their Table I passed to matching (``sri_m``) or to BP and
+      matching on the non-link detectors (``sri_bm``); see
+      `sequential_decoder.py`. ``link_rule`` is "literal" (their pairing and
+      likelihood test) or "fast" (one matching graph of the link chains);
+      ``sri_table`` is "full" (Table I with its second-order s = 0 entries)
+      or "first" (first order only).
     - ``tesseract``: Tesseract on the full detector error model (reference).
     - ``cfe``: coset free-energy decoder (two-class BP-OSD, local descent
       with degeneracy moves and a free-energy comparison of the two logical
@@ -70,7 +79,8 @@ class TwoLevelDecoder:
     """
 
     MODES = ("mwpm", "seq_soft", "seq_erasure", "seq_match", "bp_full",
-             "corr_split", "bp_corr", "tesseract", "cfe", "tnml", "cfe_tn")
+             "corr_split", "bp_corr", "tesseract", "cfe", "tnml", "cfe_tn",
+             "sri_m", "sri_bm")
 
     def __init__(self, ft: FTMDRCircuit, mode: str = "bp_full",
                  bp_iters: int = 30, erasure_threshold: float = 0.2,
@@ -79,7 +89,8 @@ class TwoLevelDecoder:
                  cfe_guided: bool = True, cfe_gate: Optional[float] = None,
                  osd_method: str = "osd_cs", osd_impl: str = "fast",
                  chi: int = 32, chi_max: int = 256, tn_tol: float = 0.05,
-                 tn_max_open: int = 64) -> None:
+                 tn_max_open: int = 64, link_rule: str = "literal", sri_table: str = "full",
+                 sri_pair_top: Optional[int] = None) -> None:
         if ft.detectors != "combined":
             raise ValueError("TwoLevelDecoder needs detectors='combined'.")
         if mode not in self.MODES:
@@ -99,6 +110,9 @@ class TwoLevelDecoder:
         self.cfe_guided = cfe_guided
         self.cfe_gate = cfe_gate
         self.erasure_threshold = erasure_threshold
+        self.link_rule = link_rule
+        self.sri_table = sri_table
+        self.sri_pair_top = sri_pair_top
         self.circuit = ft.build()
         self._setup_columns()
         self._setup_full_dem()
@@ -206,6 +220,8 @@ class TwoLevelDecoder:
             key = (tuple(sorted(all_d)), tuple(sorted(all_o)))
             if key not in decomp or len(eids) < len(decomp[key]):
                 decomp[key] = eids
+        # Stim's split of every S_0 signature into graphlike edges (indices into edge_keys)
+        self.s0_decomp = decomp
         self.edge_keys = list(edge_ids.keys())
         self.num_edges = len(self.edge_keys)
         s0_index = {int(c): i for i, c in enumerate(self.s0_cols)}
@@ -322,6 +338,13 @@ class TwoLevelDecoder:
                 self.split_dem, enable_correlations=True)
         if self.mode == "seq_match":
             self._setup_link_matching()
+        if self.mode in ("sri_m", "sri_bm"):
+            from .sequential_decoder import SequentialDecoder
+
+            self._sri = SequentialDecoder(self, upper="bm" if self.mode == "sri_bm" else "match",
+                                          link_rule=self.link_rule, bp_iters=self.bp_iters,
+                                          bp_method=bp_method, table=self.sri_table,
+                                          pair_top=self.sri_pair_top)
 
     def _build_split_dem(self) -> stim.DetectorErrorModel:
         """
@@ -485,6 +508,8 @@ class TwoLevelDecoder:
                 d2, enable_correlations=True), dtype=bool)
         if self.mode == "bp_corr":
             return self._decode_bp_corr(dets)
+        if self.mode in ("sri_m", "sri_bm"):
+            return self._sri.decode_batch(dets)
         import pymatching
 
         if self.mode == "seq_match":

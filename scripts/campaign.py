@@ -70,6 +70,8 @@ NOISES = ["sd6", "si1000", "biased10", "biased100", "purez", "em3",
           "helios_p", "h2_p", "helios_p_noxt", "h2_p_noxt"]
 DECODERS = ["mwpm", "corr_links", "corr_gauge", "seq_soft", "seq_erasure", "seq_match", "bm", "bp_full", "bp_corr",
             "tesseract", "cfe", "cfe0", "cfe_tn", "tnml"]
+# decoders with campaign tables that the default task list leaves out (scripts/campaign_sri.py runs them)
+EXTRA_DECODERS = ["sri_m", "sri_bm", "sri_m1", "sri_bm1", "sri_m_fast", "sri_bm_fast", "sri_bm_dit"]
 ROUNDS = [str(r) for r in range(1, 22)] + ["d"]
 DISTANCES = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21]
 # Tesseract's beam search grows too fast with the circuit beyond d = 9.
@@ -105,17 +107,30 @@ _G["tesseract"] = _G["cfe"] = _G["cfe0"] = _G["cfe_tn"] = _G["tnml"] = _G["bp_fu
 _G_DEFAULT["tesseract"] = _G_DEFAULT["cfe"] = _G_DEFAULT["cfe0"] = _G_DEFAULT["cfe_tn"] = 1.3
 _G_DEFAULT["tnml"] = _G_DEFAULT["bp_full"] = _G_DEFAULT["bp_corr"] = 1.3
 _G["seq_erasure"], _G_DEFAULT["seq_erasure"] = {}, 1.05
+# the sequential decoder of Srivastava et al. (sri_m: their matching, sri_bm: their belief-matching), from
+# the pilot at d = 5 to 9 (docs/srivastava_exact_decoder.md); the campaign centres them on the measured
+# thresholds of seq_match and bm (PROXY)
+_G["sri_m"], _G_DEFAULT["sri_m"] = {}, 0.85
+_G["sri_bm"], _G_DEFAULT["sri_bm"] = {}, 1.1
+# the same with Table I to first order only (a diagnostic)
+_G["sri_m1"], _G_DEFAULT["sri_m1"] = {}, 0.85
+_G["sri_bm1"], _G_DEFAULT["sri_bm1"] = {}, 1.1
+# variants of their decoder: links by one matching graph (fast), d iterations of BP (dit)
+for _v, _base in (("sri_m_fast", "sri_m"), ("sri_bm_fast", "sri_bm"), ("sri_bm_dit", "sri_bm")):
+    _G[_v], _G_DEFAULT[_v] = {}, _G_DEFAULT[_base]
 # The crosstalk models have no threshold: the crossings of consecutive distances drift to small p.
 XT_RANGE = {"helios_p": (6e-5, 3e-3), "h2_p": (5e-4, 6e-3)}
 
 STEP = 4.0 ** (1 / 13)
 KRANGE = {"wide": range(-7, 7), "narrow": range(-5, 5)}
-SLOW = {"seq_soft", "seq_erasure", "bm", "bp_full", "bp_corr", "tesseract", "cfe", "cfe0", "cfe_tn", "tnml"}
+SLOW = {"seq_soft", "seq_erasure", "bm", "bp_full", "bp_corr", "tesseract", "cfe", "cfe0", "cfe_tn", "tnml",
+        "sri_bm", "sri_bm1", "sri_bm_fast", "sri_bm_dit"}
 TN = {"cfe_tn", "tnml"}           # decoders with the tensor network: tasks only where it can be contracted
 
 TARGET = {"mwpm": 500, "corr_links": 400, "corr_gauge": 400, "seq_soft": 250, "seq_match": 300,
           "bm": 250, "tesseract": 150, "cfe": 200, "cfe0": 150, "cfe_tn": 200,
-          "seq_erasure": 250, "bp_full": 250, "bp_corr": 250, "tnml": 200}
+          "seq_erasure": 250, "bp_full": 250, "bp_corr": 250, "tnml": 200, "sri_m": 300, "sri_bm": 250,
+          "sri_m1": 300, "sri_bm1": 250, "sri_m_fast": 300, "sri_bm_fast": 250, "sri_bm_dit": 250}
 MAX_SHOTS = 2_000_000
 S21 = 22 * 21 * 21
 S9 = 10 * 9 * 9
@@ -124,11 +139,16 @@ BUDGET = {"mwpm": (600, 1.15, 30), "corr_links": (1200, 1.15, 60), "corr_gauge":
           "seq_match": (1800, 1.1, 60), "seq_soft": (5400, 1.1, 120), "bm": (5400, 1.1, 120),
           "tesseract": (7200, 2.0, 120), "cfe": (60_000, 1.3, 300), "cfe0": (60_000, 1.4, 300),
           "cfe_tn": (150_000, 1.0, 600), "seq_erasure": (5400, 1.1, 120), "bp_full": (5400, 1.1, 120),
-          "bp_corr": (5400, 1.1, 120), "tnml": (150_000, 1.0, 600)}
+          "bp_corr": (5400, 1.1, 120), "tnml": (150_000, 1.0, 600),
+          "sri_m": (1800, 1.1, 60), "sri_bm": (5400, 1.1, 120), "sri_m1": (1800, 1.1, 60),
+          "sri_bm1": (5400, 1.1, 120), "sri_m_fast": (1800, 1.1, 60), "sri_bm_fast": (5400, 1.1, 120),
+          "sri_bm_dit": (5400, 1.1, 120)}
 # memory in GB: base + slope * S / S21 (measured on d = 9 to 21 circuits, with margin); CFE: see memory()
 MEMORY = {"mwpm": (0.4, 1.0), "corr_links": (0.4, 1.2), "corr_gauge": (0.4, 1.2), "seq_match": (0.4, 1.2),
           "seq_soft": (0.4, 1.8), "bm": (0.4, 2.0), "tesseract": (0.3, 0.162),
-          "seq_erasure": (0.4, 1.8), "bp_full": (0.4, 2.0), "bp_corr": (0.4, 2.0)}
+          "seq_erasure": (0.4, 1.8), "bp_full": (0.4, 2.0), "bp_corr": (0.4, 2.0),
+          "sri_m": (0.4, 1.2), "sri_bm": (0.4, 2.0), "sri_m1": (0.4, 1.2), "sri_bm1": (0.4, 2.0),
+          "sri_m_fast": (0.4, 1.2), "sri_bm_fast": (0.4, 2.0), "sri_bm_dit": (0.4, 2.0)}
 # Peak memory measured on Perlmutter CPU nodes (docs/data/campaign/memory_probe.csv: the largest task of every
 # decoder and noise model at the lowest and highest p of its grid, and CFE-0 from S = 810 to 9702). A batch
 # holds at most BATCH_BITS detector bits, and the fast decoders keep up to 6.2 bytes per sampled bit while
@@ -138,7 +158,7 @@ MEMORY = {"mwpm": (0.4, 1.0), "corr_links": (0.4, 1.2), "corr_gauge": (0.4, 1.2)
 # (MEMORY) was measured from d = 9 to 21 at the highest p: 1.44 GB at d = 21, r = 21, about linear in S.
 BATCH_BITS = 25_000_000
 BATCH_GB = 8 * BATCH_BITS / 1e9
-FAST = {"mwpm", "corr_links", "corr_gauge", "seq_match", "bp_corr"}
+FAST = {"mwpm", "corr_links", "corr_gauge", "seq_match", "bp_corr", "sri_m", "sri_m1", "sri_m_fast"}
 CFE0_GB_PER_MECH = 3.8e-5
 
 # Other codes under the same noise models (src/mdr/ft/competitor_circuits.py): a series "code-basis:decoder",
@@ -231,7 +251,9 @@ def grid(noise: str, decoder: str, r: str, c: float | None = None, wide: bool = 
 
 
 # decoders without measured thresholds take the centres of a close relative
-PROXY = {"bp_full": "bm", "bp_corr": "bm", "seq_erasure": "seq_soft", "tnml": "cfe_tn"}
+PROXY = {"bp_full": "bm", "bp_corr": "bm", "seq_erasure": "seq_soft", "tnml": "cfe_tn",
+         "sri_m": "seq_match", "sri_bm": "bm", "sri_m1": "seq_match", "sri_bm1": "bm",
+         "sri_m_fast": "seq_match", "sri_bm_fast": "bm", "sri_bm_dit": "bm"}
 R_EFF_D = 18          # the r = d threshold, set by d ~ 15 to 21, stands for about 18 rounds
 
 
