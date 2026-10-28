@@ -4,6 +4,8 @@ Start with [`xyz2_usefulness.md`](xyz2_usefulness.md). It is the final answer to
 
 For the paper rewrite, [`paper/REWRITE_BRIEF.md`](../paper/REWRITE_BRIEF.md) collects every new result, what it means for the paper's claims, and the LaTeX patches in one place.
 
+The addendum [`paper/REWRITE_BRIEF_SRI2025.md`](../paper/REWRITE_BRIEF_SRI2025.md) adds the circuit-level study of the sequential decoder of Srivastava et al. (arXiv:2505.03691): what it found, where it could go in the paper, and proposed text.
+
 ## Protocol and decoders
 
 | document | contents |
