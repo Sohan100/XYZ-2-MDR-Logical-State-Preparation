@@ -10,7 +10,7 @@ For the paper rewrite, [`paper/REWRITE_BRIEF.md`](../paper/REWRITE_BRIEF.md) col
 |---|---|
 | [`ft_mdr_protocol.md`](ft_mdr_protocol.md) | The fault-tolerant MDR preparation of the logical plus state: frame initialization, depth-6 schedule, fault distance d + 1 |
 | [`ft_mdr_decoders.md`](ft_mdr_decoders.md) | The two-level decoders (matching, correlated matching, belief-matching, hierarchical modes), the circuit noise models and the threshold table |
-| [`srivastava_exact_decoder.md`](srivastava_exact_decoder.md) | The sequential decoder of Srivastava et al. (arXiv:2505.03691) at circuit level (`sri_m`, `sri_bm`): algorithm, open choices, tests, validation against their thresholds, fault distance, cost |
+| [`srivastava_exact_decoder.md`](srivastava_exact_decoder.md) | The sequential decoder of Srivastava et al. (arXiv:2505.03691) at circuit level (`sri_m`, `sri_bm`): algorithm, open choices, tests, validation against their thresholds and fit range, circuit-level comparison with our decoders and the other codes under both link rules, equal qubits, fault distance, cost |
 | [`ft_mdr_section.tex`](ft_mdr_section.tex) | Early draft of the protocol section, superseded by the manuscript; kept for history |
 
 ## Comparison with other codes

@@ -41,9 +41,12 @@ RAW = ROOT / "data" / "campaign" / "sri"
 
 NOISES = ["sd6", "si1000", "biased10", "biased100", "purez", "em3", "helios_p_noxt", "h2_p_noxt"]
 SERIES = {"": "preparation", "@both-X": "memory X", "@both-Y": "memory Y"}
-XYZ2_DEC = ["sri_m", "sri_bm", "mwpm", "corr_gauge", "bm", "seq_soft", "seq_match"]
+XYZ2_DEC = ["sri_m", "sri_bm", "sri_m_fast", "sri_bm_fast", "mwpm", "corr_gauge", "bm", "seq_soft", "seq_match"]
 OURS_SYM = ["mwpm", "corr_gauge", "bm"]          # the symmetric rules of docs/xyz2_usefulness.md
-SRI = ["sri_m", "sri_bm"]
+SRI = ["sri_m", "sri_bm"]                        # their decoder, literal link rule
+SRI_FAST = ["sri_m_fast", "sri_bm_fast"]         # their decoder, link rule as one matching per link
+# the versions of their decoder compared at circuit level: (name, decoders)
+SRI_SETS = (("their decoder", SRI), ("their decoder, fast links", SRI_FAST))
 CODES = ["xzzx", "xy", "css", "honeycomb"]
 CODE_LAB = {"xyz2": "XYZ²", "xzzx": "XZZX", "xy": "XY", "css": "CSS", "honeycomb": "honeycomb"}
 DEC_LAB = {"sri_m": "their matching", "sri_bm": "their belief-matching", "mwpm": "MWPM",
@@ -166,6 +169,38 @@ def validation(th_sri, th_main):
     return pd.DataFrame(rows)
 
 
+FIT_RANGES = (("theirs", None), ("d 5-15", (5, 15)), ("d 11-21", (11, 21)))
+THEIR_DMAX = {"phen": 15, "phen_b10": 15, "codecap": 25, "codecap_b10": 25}   # legends of their Figs. 8 to 11
+
+
+def fit_range(df):
+    """The same finite-size fit over their distances (d = 3 to 15 for phen, every d at code capacity) and over
+    larger ones, both link rules, each basis: how far the distances alone move the threshold."""
+    rows = []
+    for model, dmax in THEIR_DMAX.items():
+        cc = model.startswith("codecap")
+        rounds = "2" if cc else "d"
+        for dec in (SRI if cc else SRI + SRI_FAST):
+            ref = THEIRS[(model, VARIANT_OF.get(dec, dec))][0]
+            for L in ("X", "Y"):
+                g = df[(df.noise == f"{model}@both-{L}") & (df.decoder == dec) & (df.rkey == rounds)]
+                if g.empty:
+                    continue
+                have = sorted(int(d) for d in g.d.unique())
+                row = dict(model=model, decoder=dec, basis=L, theirs=ref)
+                for name, rng in FIT_RANGES:
+                    ds = [d for d in have if d <= dmax] if rng is None else [d for d in have if rng[0] <= d <= rng[1]]
+                    f = None
+                    for half in (0.2, 0.3):
+                        f = R.fss(g, ds, ref, half, boot=150)
+                        if f is not None:
+                            break
+                    row[f"d_{name}"] = f"{min(ds)}-{max(ds)}" if ds else ""
+                    row[f"pth_{name}"], row[f"pth_{name}_err"] = (f["pth"], f["stat"]) if f else (np.nan, np.nan)
+                rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def competitors():
     comp = pd.read_csv(DATA / "competitors.csv")
     comp["rounds"] = comp.rounds.astype(str)
@@ -176,9 +211,9 @@ def their_model(th_sri, th_main, cv):
     """XYZ^2 with their decoder against the other codes in their phenomenological model (r = d)."""
     rows = []
     for model in ("phen", "phen_b10"):
-        x_sri = weaker(th_sri, model, SRI)
-        x_sym = weaker(th_main, model, OURS_SYM)
-        for name, x in (("their decoder", x_sri), ("mwpm, corr_gauge, bm", x_sym)):
+        cands = [(name, weaker(th_sri, model, decs)) for name, decs in SRI_SETS]
+        cands.append(("mwpm, corr_gauge, bm", weaker(th_main, model, OURS_SYM)))
+        for name, x in cands:
             row = dict(model=model, xyz2_decoders=name)
             if x is None:
                 rows.append(row)
@@ -207,22 +242,24 @@ def circuit_decoders(th_sri, th_main):
             row = dict(noise=noise, series=sname)
             vals = {}
             for dec in XYZ2_DEC:
-                v = value(th_sri if dec in SRI else th_main, lab, dec)
+                v = value(th_sri if dec.startswith("sri") else th_main, lab, dec)
                 vals[dec] = v
                 row[dec], row[dec + "_err"] = (v[0], v[1]) if v else (np.nan, np.nan)
                 row[dec + "_flag"] = (v[3] if v[2] == "fss" else f"pair {v[3]}".strip()) if v else ""
             for a, b in (("sri_m", "seq_match"), ("sri_m", "mwpm"), ("sri_bm", "bm"), ("sri_bm", "corr_gauge"),
-                         ("sri_bm", "seq_soft"), ("sri_bm", "sri_m")):
+                         ("sri_bm", "seq_soft"), ("sri_bm", "sri_m"), ("sri_m_fast", "seq_match"),
+                         ("sri_bm_fast", "bm"), ("sri_m_fast", "sri_m"), ("sri_bm_fast", "sri_bm")):
                 if counts(vals[a]) and counts(vals[b]):
                     r, er, z = ratio(vals[a][:2], vals[b][:2])
                     row[f"{a}/{b}"], row[f"{a}/{b}_err"], row[f"z_{a}/{b}"] = r, er, z
-            best_sri = max((vals[d] for d in SRI if counts(vals[d])), key=lambda v: v[0], default=None)
-            best_ours = max(((vals[d], d) for d in XYZ2_DEC if d not in SRI and counts(vals[d])),
+            sri_all = SRI + SRI_FAST
+            best_sri = max(((vals[d], d) for d in sri_all if counts(vals[d])), key=lambda x: x[0][0], default=None)
+            best_ours = max(((vals[d], d) for d in XYZ2_DEC if d not in sri_all and counts(vals[d])),
                             key=lambda x: x[0][0], default=None)
             if best_sri and best_ours:
-                r, er, z = ratio(best_sri[:2], best_ours[0][:2])
-                row.update(best_ours=best_ours[1], **{"bestsri/bestours": r, "bestsri/bestours_err": er,
-                                                      "z_bestsri/bestours": z})
+                r, er, z = ratio(best_sri[0][:2], best_ours[0][:2])
+                row.update(best_sri=best_sri[1], best_ours=best_ours[1],
+                           **{"bestsri/bestours": r, "bestsri/bestours_err": er, "z_bestsri/bestours": z})
             rows.append(row)
     return pd.DataFrame(rows)
 
@@ -232,8 +269,9 @@ def codes(th_sri, th_main, cv):
     rows = []
     for noise in NOISES + ["phen", "phen_b10"]:
         both = pd.concat([th_sri, th_main])
-        variants = {"their decoder": weaker(th_sri, noise, SRI), "symmetric": weaker(th_main, noise, OURS_SYM),
-                    "symmetric + theirs": weaker(both, noise, OURS_SYM + SRI)}
+        variants = {name: weaker(th_sri, noise, decs) for name, decs in SRI_SETS}
+        variants.update({"symmetric": weaker(th_main, noise, OURS_SYM),
+                         "symmetric + theirs": weaker(both, noise, OURS_SYM + SRI + SRI_FAST)})
         comp = {}
         for code in CODES:
             c = cv[(cv.noise == noise) & (cv.rounds == "d") & (cv.code == code)]
@@ -264,7 +302,7 @@ def eq_table(points: Path):
     if not points.exists():
         return pd.DataFrame()
     df = pd.read_csv(points)
-    df = df[(df.rounds == 3 * df.d) & df.decoder.isin(SRI)].copy()
+    df = df[(df.rounds == 3 * df.d) & df.decoder.isin(SRI + SRI_FAST)].copy()
     if df.empty:
         return pd.DataFrame()
     old = pd.read_csv(DATA / "eq" / "points_eps.csv")
@@ -284,7 +322,7 @@ def eq_table(points: Path):
                 if len(g) == 2:
                     w = g.sort_values("eps").iloc[-1]          # weaker basis: larger epsilon
                     refs[(code, dec)] = (float(w.eps), float(w.eps_lo), float(w.eps_hi), w.basis)
-            for dec in SRI:
+            for dec in SRI + SRI_FAST:
                 g = df[(df.decoder == dec) & df.noise.str.startswith(model + "@") & np.isclose(df.value, p)]
                 per = {}
                 for _, r in g.iterrows():
@@ -310,7 +348,12 @@ def fig_pl(df, th_sri, noise, out):
     plt = R.PLT
     labels = [noise + s for s in SERIES] if noise in NOISES else [noise + "@both-X", noise + "@both-Y"]
     rounds = "2" if noise.startswith("codecap") else "d"
-    decs = [d for d in ["sri_m", "sri_bm", "mwpm", "bm"] if not (d in ("mwpm", "bm") and rounds == "d")]
+    if rounds == "2":
+        decs = ["sri_m", "sri_bm", "mwpm", "bm"]
+    elif noise in NOISES:
+        decs = SRI + SRI_FAST
+    else:
+        decs = SRI
     fig, axes = plt.subplots(len(labels), len(decs), figsize=(R.FULL, 1.9 * len(labels) + 0.6), squeeze=False)
     for i, lab in enumerate(labels):
         for j, dec in enumerate(decs):
@@ -340,14 +383,16 @@ def fig_bias(th_sri, th_main, out):
     fig, axes = plt.subplots(1, 3, figsize=(R.FULL, 2.4), sharey=True)
     for ax, (s, sname) in zip(axes, SERIES.items()):
         for dec in XYZ2_DEC:
-            src = th_sri if dec in SRI else th_main
+            theirs = dec.startswith("sri")
+            src = th_sri if theirs else th_main
             ys = [value(src, n + s, dec) for n in noises]
             yv = np.array([v[0] if counts(v) else np.nan for v in ys])
             ye = np.array([v[1] if counts(v) else np.nan for v in ys])
-            col = {"sri_m": "#0F766E", "sri_bm": "#0369A1"}.get(dec, R.DEC_COL.get(dec, "#444"))
-            ls = "-" if dec in SRI else ":"
+            col = {"sri_m": "#0F766E", "sri_bm": "#0369A1", "sri_m_fast": "#0F766E",
+                   "sri_bm_fast": "#0369A1"}.get(dec, R.DEC_COL.get(dec, "#444"))
+            ls = "--" if dec in SRI_FAST else "-" if theirs else ":"
             ax.errorbar(x, 100 * yv, yerr=100 * ye, color=col, marker=R.DEC_MARK.get(dec, "o"), ms=3, lw=1.1 if
-                        dec in SRI else 0.8, ls=ls, label=DEC_LAB[dec], capsize=0)
+                        theirs else 0.8, ls=ls, label=DEC_LAB[dec], capsize=0)
         ax.set_xticks(x, [r"$\frac{1}{2}$", "10", "100", r"$\infty$"])
         ax.set_xlabel(r"bias $\eta$")
         ax.set_title(sname, loc="left")
@@ -359,20 +404,26 @@ def fig_bias(th_sri, th_main, out):
     plt.close(fig)
 
 
+SHORT = {"sd6": "SD6", "si1000": "SI1000", "biased10": "η=10", "biased100": "η=100", "purez": "pure Z",
+         "em3": "EM3", "helios_p_noxt": "Helios", "h2_p_noxt": "H2", "phen": "phen", "phen_b10": "phen, η=10"}
+
+
 def fig_ratios(codes_t, out):
     plt = R.PLT
-    t = codes_t[codes_t.xyz2_decoders.isin(["their decoder", "symmetric"])]
+    sets = (("their decoder", "#0F766E", "o"), ("their decoder, fast links", "#0369A1", "^"),
+            ("symmetric", "#7C3AED", "s"))
+    t = codes_t[codes_t.xyz2_decoders.isin([s[0] for s in sets])]
     noises = [n for n in NOISES + ["phen", "phen_b10"] if (t.noise == n).any()]
     fig, axes = plt.subplots(1, len(CODES), figsize=(R.FULL, 2.6), sharey=True)
     for ax, code in zip(axes, CODES):
-        for k, (name, col, mk) in enumerate((("their decoder", "#0F766E", "o"), ("symmetric", "#7C3AED", "s"))):
+        for k, (name, col, mk) in enumerate(sets):
             g = t[t.xyz2_decoders == name].set_index("noise").reindex(noises)
             y = g.get(f"ratio_{code}", pd.Series(np.nan, index=noises)).values.astype(float)
             e = g.get(f"ratio_{code}_err", pd.Series(np.nan, index=noises)).values.astype(float)
-            ax.errorbar(np.arange(len(noises)) + (k - 0.5) * 0.25, y, yerr=e, color=col, marker=mk, ms=3, lw=0,
+            ax.errorbar(np.arange(len(noises)) + (k - 1) * 0.22, y, yerr=e, color=col, marker=mk, ms=3, lw=0,
                         elinewidth=0.8, label=name)
         ax.axhline(1.0, color="#57534E", lw=0.6, ls="--")
-        ax.set_xticks(np.arange(len(noises)), noises, rotation=60, fontsize=6)
+        ax.set_xticks(np.arange(len(noises)), [SHORT.get(n, n) for n in noises], rotation=90, fontsize=6)
         ax.set_title(f"XYZ² / {CODE_LAB[code]}", loc="left")
     axes[0].set_ylabel("threshold ratio (weaker basis)")
     axes[-1].legend(fontsize=6)
@@ -407,7 +458,7 @@ def rv(r, k, z=None):
     return s
 
 
-def report_md(val, their, circ, cod, eq, fd) -> str:
+def report_md(val, fr, their, circ, cod, eq, fd) -> str:
     """The tables of docs/srivastava_exact_decoder.md."""
     out = ["## Validation: their numbers and ours", "",
            "Ours in both bases (X, Y) and their minimum; code capacity r = 2, phen r = d; fits over d = 11 to 21.",
@@ -423,6 +474,15 @@ def report_md(val, their, circ, cod, eq, fd) -> str:
                      f"{fmt((r.theirs, r.theirs_err)) if np.isfinite(r.theirs) else '-'} | {pv(r, 'pth_X')} | "
                      f"{pv(r, 'pth_Y')} | {pv(r, 'pth_min')} | - |")
     out += lines
+    if fr is not None and not fr.empty:
+        out += ["", "## Validation: the distances of the fit", "",
+                "The same finite-size fit (statistical errors) over their distances and over larger ones.", ""]
+        lines = ["| model | decoder | basis | theirs | " + " | ".join(
+                 f"ours, {n}" for n, _ in FIT_RANGES) + " |", "|" + "---|" * (4 + len(FIT_RANGES))]
+        for _, r in fr.iterrows():
+            cells = [pv(r, f"pth_{n}") + (f" (d {r[f'd_{n}']})" if n == "theirs" else "") for n, _ in FIT_RANGES]
+            lines.append(f"| {r.model} | {r.decoder} | {r.basis} | {100 * r.theirs:.2f}% | " + " | ".join(cells) + " |")
+        out += lines
     out += ["", "## Their comparison in their model (phen, r = d)", ""]
     lines = ["| model | XYZ² decoders | XYZ² | XZZX | XY | CSS | honeycomb | label |", "|---|---|---|---|---|---|---|---|"]
     for _, r in their.iterrows():
@@ -431,14 +491,17 @@ def report_md(val, their, circ, cod, eq, fd) -> str:
                      f" {r.get('xyz2_dec', '')} {r.get('xyz2_basis', '')} | " + " | ".join(cells) + f" | {r.get('label', '')} |")
     out += lines
     out += ["", "## Circuit level: XYZ² decoders (r = d)", ""]
-    lines = ["| noise | series | " + " | ".join(XYZ2_DEC) + " | sri_m/seq_match | sri_bm/bm | best sri / best other |",
-             "|" + "---|" * (len(XYZ2_DEC) + 5)]
+    pairs = ["sri_m/seq_match", "sri_bm/bm", "sri_m_fast/seq_match", "sri_bm_fast/bm", "sri_m_fast/sri_m",
+             "sri_bm_fast/sri_bm"]
+    lines = ["| noise | series | " + " | ".join(XYZ2_DEC) + " | " + " | ".join(pairs)
+             + " | best sri / best other |", "|" + "---|" * (len(XYZ2_DEC) + len(pairs) + 3)]
     for _, r in circ.iterrows():
         cells = [pv(r, d) + (f" {r[d + '_flag']}" if isinstance(r.get(d + "_flag"), str) and r[d + "_flag"] else "")
                  for d in XYZ2_DEC]
         lines.append(f"| {r.noise} | {r.series} | " + " | ".join(cells) + " | "
-                     f"{rv(r, 'sri_m/seq_match', 'z_sri_m/seq_match')} | {rv(r, 'sri_bm/bm', 'z_sri_bm/bm')} | "
-                     f"{rv(r, 'bestsri/bestours', 'z_bestsri/bestours')} ({r.get('best_ours', '')}) |")
+                     + " | ".join(rv(r, k, "z_" + k) for k in pairs) + " | "
+                     f"{rv(r, 'bestsri/bestours', 'z_bestsri/bestours')} ({r.get('best_sri', '')} against "
+                     f"{r.get('best_ours', '')}) |")
     out += lines
     out += ["", "## Circuit level: codes (memory, weaker basis, r = d)", ""]
     lines = ["| noise | XYZ² decoders | XYZ² | / XZZX | / XY | / CSS | / honeycomb | label | rank |",
@@ -494,12 +557,13 @@ def main():
     th_sri["rounds"] = th_sri.rounds.astype(str)
     cv = competitors()
     val = validation(th_sri, th_main)
+    fr = fit_range(df[~eqmask])
     their = their_model(th_sri, th_main, cv)
     circ = circuit_decoders(th_sri, th_main)
     cod = codes(th_sri, th_main, cv)
     eq = eq_table(points)
-    for name, t in (("validation", val), ("their_model", their), ("circuit_decoders", circ), ("codes", cod),
-                    ("eq", eq)):
+    for name, t in (("validation", val), ("fit_range", fr), ("their_model", their), ("circuit_decoders", circ),
+                    ("codes", cod), ("eq", eq)):
         t.to_csv(OUT / f"{name}.csv", index=False)
     if not args.no_figures:
         R.PLT = R.setup_style()
@@ -517,7 +581,7 @@ def main():
     (OUT / "thresholds_sri.md").write_text("\n".join(lines) + "\n")
     fdp = OUT / "fault_distance.csv"
     fd = pd.read_csv(fdp) if fdp.exists() else None
-    (OUT / "report.md").write_text(report_md(val, their, circ, cod, eq, fd))
+    (OUT / "report.md").write_text(report_md(val, fr, their, circ, cod, eq, fd))
     print(f"{len(th_sri)} series, {th_sri.core_hours.sum():.0f} core-hours")
 
 

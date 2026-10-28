@@ -12,6 +12,25 @@ Table I and Figs. 5 to 14. The authors released no code: the arXiv page lists no
 searches (October 2026) found none. The reference for the phenomenological tests is therefore our own direct
 implementation of their Sec. III A 2 with Table I (`tests/test_sequential_decoder.py`).
 
+## Verdict
+
+Implemented at circuit level, their decoder reproduces their code-capacity matching threshold (18.1(4)%
+against 18.34(8)%) and, with the literal link rule fitted over their distances $d=3$ to 15, their
+phenomenological thresholds, but over $d=11$ to 21 the literal rule drifts down to 3.12(13)% and 3.64(5)%,
+outside both stop windows, while one matching graph per link holds 3.44(3)% and 4.00(5)%. At circuit level the
+link rule matters little (the fast rule moves every threshold by at most 11%, mostly within $2\sigma$), and
+under all eight noise models their decoder stays below our best XYZ² decoder: 0.76 to 0.91 of belief-matching
+under seven of them and 0.96 to 0.98 of our sequential BP (within $2.2\sigma$) under EM3. Their sequential
+matching beats our erasure passing by 13% to 49% and MWPM by up to 19% under bias (25% under EM3), but its hard
+link decisions cost fault distance (at $d=5$ under SD6, 1,708 pairs of faults defeat it, none defeat MWPM), and
+BP on the upper level cannot recover what those decisions discard. Against the other codes their decoder
+changes none of our conclusions: with it the XYZ² memory stays below the XZZX and XY codes under every model but
+EM3 (0.31 to 0.74 of the XZZX threshold), its threshold advantage over the CSS code under bias (1.14 to 1.35 with
+our decoders) becomes a tie or a loss, and adding it to our decoders raises no XYZ² threshold. Below threshold,
+at 99 qubits against 97 under $\eta=100$ and pure $Z$ noise, the XYZ² code with their decoder has 11 to 40 times
+the error per round of the XZZX code with correlated matching, so their case for XYZ² under biased noise does
+not survive at circuit level.
+
 ## Their decoder
 
 **Table I.** Order the two qubits of a link as (top, bottom). With single-qubit rates $p_i,p_x,p_y,p_z$ and
@@ -96,7 +115,7 @@ Their paper does not fix the following; this is what we chose.
 | initial and final rounds | our circuits: noiseless frame preparation and noiseless frame readout (phen, code capacity); circuit-level models keep their own preparation and readout noise |
 | failure criterion | the both-bases memories in $\bar X$ and $\bar Y$, each scored on its own observable; we report both and their minimum |
 | order of Table I | complete: an uncorrected link round also brings in every pair of its data-edge faults with probability $p_jp_k$ (the $s=0$ entries $\bar X$ and $\bar Y$, of second order). The first-order version (`sri_m1`, `sri_bm1`) has no threshold, see below |
-| link rule | the literal rule is the decoder as specified; the literal and fast forms disagree in far more than 0.1% of shots (table below), and only the fast form reproduces their phenomenological thresholds (validation below) |
+| link rule | the literal rule is the decoder as specified (`sri_m`, `sri_bm`), the fast form is `sri_m_fast`, `sri_bm_fast`; they disagree in far more than 0.1% of shots (table below); under phen the literal rule reproduces their thresholds over their distances and drifts below them at larger $d$, the fast form reproduces them at every range (validation below); the circuit-level campaign runs both |
 | pairs per link round | the 16 likeliest pair signatures of every link round (`sri_pair_top=16`) in the circuit-level runs: the same $p_L$ as all pairs within the statistics, at a fifth to a ninth of the cost; under phen and code capacity a link round has at most five, so nothing is left out there |
 
 ## What the circuit form needed beyond the brief
@@ -188,15 +207,37 @@ Our other decoders in the same phen runs (minimum over bases, docs/data/campaign
 second-order column there is no proper threshold. A noisy final readout (`phen_nr`) leaves the literal-rule
 thresholds where they are (3.19(5)% and 3.14(5)% depolarizing, 3.40(4)% and 3.75(5)% at $\eta=10$).
 
-**Verdict of the validation.** Code capacity reproduces: sequential matching 18.1% against 18.34%, and
-sequential belief-matching at $\eta=10$ 22.5% against 24.08% (both inside 10%, same order). Under phen the
-decoder as specified, with the literal link rule, falls outside both stop windows of the brief: sequential
-matching 3.12(13)% (window 3.2 to 3.9%) and sequential belief-matching at $\eta=10$ 3.64(5)% (window 3.9 to
-4.8%). With the fast link rule it reproduces their phenomenological numbers: 3.44(3)% against 3.42(1)%,
-3.41(9)% against 3.43(1)%, 3.66(4)% against 3.49(2)%, and 4.00(5)% against 4.30(2)% (the last 7% below,
-inside the window). Running BP for $d$ iterations instead of 10, as their Fig. 9 states, changes nothing in
-phen. The order of their results holds with the fast rule: belief-matching ties matching for depolarizing
-noise and gains at $\eta=10$ (by 9% here, 23% in their paper).
+### The distances of the fit
+
+Their fits use $d=3$ to 15 under phen (the legends of their Figs. 10 and 11), ours $d=11$ to 21. The same
+finite-size fit over both ranges (`docs/data/campaign/sri/fit_range.csv`, statistical errors 0.02 to 0.05
+points), in the $\bar X$ / $\bar Y$ memory:
+
+| model | decoder | theirs | literal, $d$ 3 to 15 | literal, $d$ 11 to 21 | fast, $d$ 3 to 15 | fast, $d$ 11 to 21 |
+|---|---|---|---|---|---|---|
+| phen | matching | 3.42% | 3.30 / 3.52% | 3.18 / 3.21% | 3.39 / 3.64% | 3.44 / 3.48% |
+| phen | belief-matching | 3.43% | 3.15 / 3.41% | 3.10 / 3.12% | 3.23 / 3.54% | 3.41 / 3.43% |
+| phen, $\eta=10$ | matching | 3.49% | 3.56 / 3.68% | 3.35 / 3.38% | 3.70 / 3.85% | 3.64 / 3.66% |
+| phen, $\eta=10$ | belief-matching | 4.30% | 3.93 / 4.24% | 3.68 / 3.78% | 4.15 / 4.40% | 4.06 / 4.15% |
+
+Over their distances the literal rule lands inside both stop windows (3.30 to 3.52% for matching, 3.93 to
+4.24% for belief-matching at $\eta=10$). Its threshold falls as the distances grow (belief-matching at
+$\eta=10$, $\bar Y$: 4.24%, 4.03% over $d=5$ to 15, 3.78%), while that of the fast rule moves by at most
+0.25 points. Their paper does not say which logical failure it counts, and our two memories differ by up to
+0.3 points at $d\le15$. At code capacity the fit range changes nothing: their matching is reproduced
+(17.97 to 18.76% against 18.34% and 18.36%), and their belief-matching is 4% to 8% low at every range
+(17.1 to 17.8% against 18.52%, 22.0 to 22.7% against 24.08%), which places that gap in the BP step.
+
+**Verdict of the validation.** Code capacity reproduces their matching, and their belief-matching to within
+8%. Under phen the decoder as specified, with the literal link rule, reproduces their numbers when fitted
+over their distances and falls outside both stop windows of the brief when fitted over ours (3.12(13)% against
+the window 3.2 to 3.9%, 3.64(5)% against 3.9 to 4.8%): its threshold drifts down with the distance, which
+$d\le15$ does not show. With the fast link rule the threshold is stable and reproduces theirs at both ranges
+(over $d=11$ to 21: 3.44(3)% against 3.42(1)%, 3.41(9)% against 3.43(1)%, 3.66(4)% against 3.49(2)%, 4.00(5)%
+against 4.30(2)%). Their numbers therefore cannot tell which of the two rules they ran, and the circuit-level
+campaign runs both. Running BP for $d$ iterations instead of 10, as their Fig. 9 states, changes nothing in
+phen. The order of their results holds with both rules: belief-matching ties matching for depolarizing noise
+and gains at $\eta=10$ (by 9% to 15% here, 23% in their paper).
 
 ## Their comparison redone in their model
 
@@ -219,33 +260,136 @@ noise" does not survive in their own model with their own decoder: it loses to t
 34% at more than seven standard errors, beats the CSS code only at $\eta=10$, and beats the honeycomb code.
 Only full belief-matching (our `bm`, 5.45(4)% at $\eta=10$) ties the XZZX code there.
 
+## Circuit level: their decoder against ours
+
+The eight noise models of the main campaign, preparation and the both-bases memories ($\bar X$, $\bar Y$),
+$r=d$, $d=3$ to 21 on the grids of `campaign.py`, fits over $d=11$ to 21 with the rules of the main campaign
+(`docs/data/campaign/sri/circuit_decoders.csv`; our decoders from `docs/data/campaign/thresholds.csv`, same
+circuits). Both link rules, 16 likeliest pairs per link round. Thresholds of the preparation, and the best of
+their four variants over the best of our five decoders in each series:
+
+| noise | `sri_m` | `sri_m`, fast | `sri_bm` | `sri_bm`, fast | MWPM | erasure passing | sequential BP | corr. matching | BM | best theirs / best ours (prep., $\bar X$, $\bar Y$) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| SD6 | 0.431(10)% | 0.442(6)% | 0.435(12)% | 0.458(8)% | 0.433(4)% | 0.366(2)% | 0.507(7)% | 0.508(5)% | 0.542(5)% | 0.84, 0.91, 0.84 |
+| SI1000 | 0.372(4)% | 0.387(5)% | 0.373(13)% | 0.389(7)% | 0.365(4)% | 0.318(2)% | 0.436(7)% | 0.437(4)% | 0.462(5)% | 0.84, 0.88, 0.90 |
+| $\eta=10$ | 0.492(10)% | 0.525(5)% | 0.548(17)% | 0.58(4)% | 0.445(3)% | 0.364(4)% | 0.579(9)% | 0.625(6)% | 0.746(5)% | 0.78, 0.77, 0.76 |
+| $\eta=100$ | 0.529(14)% | 0.549(9)% | 0.69(2)% | 0.65(2)% | 0.452(6)% | 0.363(3)% | 0.606(3)% | 0.656(6)% | 0.831(5)% | 0.83, 0.77, 0.77 |
+| pure $Z$ | 0.533(7)% | 0.554(7)% | 0.60(3)% | 0.667(16)% | 0.449(3)% | 0.365(3)% | 0.608(6)% | 0.661(9)% | 0.845(6)% | 0.79, 0.80, 0.82 |
+| EM3 | 0.312(3)% | 0.316(3)% | 0.309(7)% | 0.313(9)% | 0.2489(18)% | 0.270(2)% | 0.327(4)% | 0.314(4)% | 0.300(3)% | 0.97, 0.96, 0.98 |
+| Helios | 0.315(3)% | 0.323(3)% | 0.355(10)% | 0.351(11)% | 0.2937(20)% | 0.2484(20)% | 0.360(3)% | 0.376(3)% | 0.429(3)% | 0.83, 0.85, 0.85 |
+| H2 | 0.473(10)% | 0.487(7)% | 0.491(17)% | 0.517(17)% | 0.458(2)% | 0.390(4)% | 0.544(11)% | 0.559(6)% | 0.621(7)% | 0.83, 0.90, 0.85 |
+
+Over all 24 series (preparation and both memories of the eight models):
+
+- **Their decoder loses to ours.** The best of their four variants reaches 0.76 to 0.91 of our best decoder
+  (belief-matching, once correlated matching), at $3.2\sigma$ to $10.7\sigma$, under every model but EM3. Under
+  EM3 it reaches 0.96 to 0.98 of our sequential BP, within $2.2\sigma$, and ties our correlated matching and
+  belief-matching.
+- **Their belief-matching against our belief-matching** is 0.71 to 0.88 (0.76 to 0.91 with the fast rule),
+  and 1.01 to 1.03 under EM3. Against our correlated matching it is 0.82 to 1.06.
+- **Their matching is a good matching decoder.** Under every model it is 13% to 49% above our erasure
+  passing, the other sequential matching decoder. It ties MWPM under SD6 and SI1000 (0.99 to 1.02) and is 3%
+  to 19% above it under bias and the trapped-ion models (25% under EM3). The hard link decisions cost less
+  at circuit level than the fault distance below suggests.
+- **Their belief-matching over their matching** gains up to 31%, most under bias (1.30 at $\eta=100$). Under
+  SD6, SI1000 and EM3 they tie.
+- **The link rule.** Against the literal rule the fast rule is −1% to +7% for matching ($z\le3.9$) and −7% to
+  +11% for belief-matching ($|z|\le2.1$). At circuit level most of their differing decisions are
+  equivalent choices (section "Link rule" above).
+- **SI1000, $\bar Y$ memory.** Neither literal-rule decoder has a finite-size fit (crossings 0.34% to 0.41%
+  for $d\ge11$), as for our belief-matching in the same series. This leaves the literal rule without a
+  both-bases value under SI1000.
+
+![Thresholds against bias](figures/sri/thr_bias.png)
+
+Logical error rates of every series: `docs/figures/sri/pl_<noise>.png` (and `.pdf`).
+
+## Circuit level: the XYZ² code against the other codes
+
+The rules of `docs/xyz2_usefulness.md`. In each basis the XYZ² value is the best of the decoder set, then the
+weaker basis is taken. The other codes are the best of MWPM, correlated MWPM and belief-matching in their
+weaker basis (`docs/data/campaign/competitors.csv`). Each cell is the ratio XYZ² / other code and $z$
+(`docs/data/campaign/sri/codes.csv`):
+
+| noise | XYZ² decoders | XYZ² | / XZZX | / XY | / CSS | / honeycomb | rank of 5 |
+|---|---|---|---|---|---|---|---|
+| SD6 | theirs, literal | 0.408(5)% | 0.50 (−21σ) | 0.51 (−19σ) | 0.50 (−32σ) | 1.87 (+31σ) | 4 |
+| SD6 | theirs, fast | 0.441(9)% | 0.54 (−18σ) | 0.55 (−16σ) | 0.54 (−26σ) | 2.02 (+25σ) | 4 |
+| SD6 | ours (MWPM, corr. matching, BM) | 0.487(7)% | 0.60 (−17σ) | 0.60 (−15σ) | 0.60 (−24σ) | 2.23 (+38σ) | 4 |
+| SI1000 | theirs, literal | no fit in $\bar Y$ | | | | | |
+| SI1000 | theirs, fast | 0.377(7)% | 0.74 (−10σ) | 0.74 (−11σ) | 0.73 (−15σ) | 3.03 (+38σ) | 4 |
+| SI1000 | ours (MWPM, corr. matching, BM) | 0.431(8)% | 0.84 (−6σ) | 0.84 (−6σ) | 0.83 (−8σ) | 3.46 (+36σ) | 4 |
+| $\eta=10$ | theirs, literal | 0.53(2)% | 0.45 (−24σ) | 0.52 (−17σ) | 0.82 (−4σ) | 2.33 (+12σ) | 4 |
+| $\eta=10$ | theirs, fast | 0.56(2)% | 0.48 (−24σ) | 0.55 (−17σ) | 0.87 (−3σ) | 2.47 (+15σ) | 4 |
+| $\eta=10$ | ours (MWPM, corr. matching, BM) | 0.733(8)% | 0.62 (−30σ) | 0.72 (−17σ) | 1.14 (+7σ) | 3.21 (+58σ) | 3 |
+| $\eta=100$ | theirs, literal | 0.61(5)% | 0.37 (−21σ) | 0.58 (−8σ) | 0.99 (−0σ) | 2.68 (+8σ) | 4 |
+| $\eta=100$ | theirs, fast | 0.63(2)% | 0.38 (−33σ) | 0.60 (−12σ) | 1.02 (+0σ) | 2.76 (+16σ) | 3 |
+| $\eta=100$ | ours (MWPM, corr. matching, BM) | 0.816(15)% | 0.49 (−34σ) | 0.78 (−8σ) | 1.33 (+7σ) | 3.59 (+38σ) | 3 |
+| pure $Z$ | theirs, literal | 0.636(11)% | 0.31 (−22σ) | 0.61 (−21σ) | 1.03 (+1σ) | 2.71 (+33σ) | 3 |
+| pure $Z$ | theirs, fast | 0.67(3)% | 0.32 (−20σ) | 0.64 (−12σ) | 1.08 (+2σ) | 2.85 (+16σ) | 3 |
+| pure $Z$ | ours (MWPM, corr. matching, BM) | 0.837(17)% | 0.41 (−18σ) | 0.80 (−9σ) | 1.35 (+10σ) | 3.56 (+34σ) | 3 |
+| EM3 | theirs, literal | 0.313(13)% | 1.26 (+5σ) | 1.28 (+4σ) | 1.29 (+5σ) | 0.16 (−69σ) | 2 |
+| EM3 | theirs, fast | 0.31(2)% | 1.26 (+3σ) | 1.28 (+2σ) | 1.29 (+3σ) | 0.16 (−52σ) | 2 |
+| EM3 | ours (MWPM, corr. matching, BM) | 0.316(5)% | 1.27 (+13σ) | 1.29 (+5σ) | 1.30 (+11σ) | 0.16 (−79σ) | 2 |
+| Helios | theirs, literal | 0.342(9)% | 0.64 (−18σ) | 0.64 (−13σ) | 0.85 (−6σ) | 1.48 (+11σ) | 4 |
+| Helios | theirs, fast | 0.335(15)% | 0.62 (−13σ) | 0.63 (−11σ) | 0.83 (−4σ) | 1.45 (+7σ) | 4 |
+| Helios | ours (MWPM, corr. matching, BM) | 0.407(3)% | 0.76 (−18σ) | 0.76 (−11σ) | 1.01 (+1σ) | 1.76 (+36σ) | 3 |
+| H2 | theirs, literal | 0.502(16)% | 0.67 (−14σ) | 0.66 (−14σ) | 0.78 (−8σ) | 1.39 (+8σ) | 4 |
+| H2 | theirs, fast | 0.500(19)% | 0.66 (−12σ) | 0.65 (−12σ) | 0.78 (−7σ) | 1.38 (+7σ) | 4 |
+| H2 | ours (MWPM, corr. matching, BM) | 0.574(14)% | 0.76 (−11σ) | 0.75 (−11σ) | 0.90 (−4σ) | 1.58 (+14σ) | 4 |
+
+With their decoder the XYZ² code ranks fourth of five under SD6, SI1000, $\eta=10$, Helios and H2, above the
+honeycomb code only. Under $\eta=100$ and pure $Z$ noise it ranks third or fourth and ties the CSS code. Under
+EM3 it ranks second, above XZZX, XY and CSS by 26% to 29% and far below the honeycomb code, as with our
+decoders. The set "ours and theirs" gives the same value as ours alone in every model: no XYZ² threshold of
+`docs/xyz2_usefulness.md` moves. What their decoder changes is the margin. Under bias our decoders put the
+XYZ² code 14% to 35% above the CSS code. Theirs leaves it 13% to 18% below CSS at $\eta=10$ and tied with it at
+$\eta=100$ and pure $Z$. It never comes closer to the XZZX code than ours do.
+
+![Threshold ratios](figures/sri/ratios.png)
+
 ## Below threshold: their XZZX argument at equal qubits
 
 XYZ² at $d=5$ (99 qubits) against the XZZX code at $d=7$ (97 qubits), $r=3d$, weaker basis (the larger error
-per round), 68% Wilson intervals; XYZ² with their decoder (literal link rule, every pair column) against the
-existing XYZ² belief-matching and correlated matching and the XZZX code with correlated matching
-(`docs/data/campaign/eq/points_eps.csv`). Ratio of the error per round, XYZ² / reference (above 1: XYZ² worse):
+per round), 68% Wilson intervals; XYZ² with their decoder under both link rules against the existing XYZ²
+belief-matching and correlated matching and the XZZX code with correlated matching
+(`docs/data/campaign/eq/points_eps.csv`; `docs/data/campaign/sri/eq.csv`). The literal-rule runs keep every
+pair column, the fast-rule runs the 16 likeliest pairs per link round, as in the campaign. Ratio of the error
+per round, XYZ² / reference (above 1: XYZ² worse):
 
 | noise | p | decoder | $\epsilon$ per round | / XYZ² BM | / XYZ² corr. matching | / XZZX corr. matching |
 |---|---|---|---|---|---|---|
 | $\eta=100$ | $10^{-3}$ | `sri_m` | 6.9e-06 | 3.6 [3.1, 4.2] | 1.7 [1.5, 1.9] | 18 [16, 20] |
+| $\eta=100$ | $10^{-3}$ | `sri_m`, fast | 6.5e-06 | 3.4 [3.0, 4.0] | 1.6 [1.4, 1.8] | 17 [15, 19] |
 | $\eta=100$ | $10^{-3}$ | `sri_bm` | 5.0e-06 | 2.6 [2.2, 3.2] | 1.2 [1.0, 1.4] | 13 [11, 15] |
+| $\eta=100$ | $10^{-3}$ | `sri_bm`, fast | 4.2e-06 | 2.2 [1.9, 2.6] | 1.0 [0.9, 1.2] | 11 [10, 12] |
 | $\eta=100$ | $2\times10^{-3}$ | `sri_m` | 1.4e-04 | 6.1 [5.5, 6.9] | 2.0 [1.8, 2.2] | 21 [19, 23] |
+| $\eta=100$ | $2\times10^{-3}$ | `sri_m`, fast | 1.3e-04 | 5.8 [5.2, 6.5] | 1.9 [1.7, 2.1] | 20 [18, 22] |
 | $\eta=100$ | $2\times10^{-3}$ | `sri_bm` | 8.2e-05 | 3.7 [3.3, 4.1] | 1.2 [1.1, 1.3] | 12 [11, 14] |
+| $\eta=100$ | $2\times10^{-3}$ | `sri_bm`, fast | 8.0e-05 | 3.6 [3.2, 4.1] | 1.2 [1.0, 1.3] | 12 [11, 14] |
 | $\eta=100$ | $3\times10^{-3}$ | `sri_m` | 8.5e-04 | 7.0 [6.3, 7.8] | 2.3 [2.1, 2.6] | 26 [23, 29] |
+| $\eta=100$ | $3\times10^{-3}$ | `sri_m`, fast | 7.9e-04 | 6.5 [5.8, 7.2] | 2.1 [1.9, 2.4] | 24 [21, 26] |
 | $\eta=100$ | $3\times10^{-3}$ | `sri_bm` | 4.1e-04 | 3.3 [3.0, 3.7] | 1.1 [1.0, 1.2] | 12 [11, 14] |
-| pure $Z$ | $10^{-3}$ | `sri_m` | 6.1e-06 | 3.8 [3.2, 4.4] | 1.5 [1.3, 1.7] | 26 [23, 29] |
+| $\eta=100$ | $3\times10^{-3}$ | `sri_bm`, fast | 3.7e-04 | 3.1 [2.7, 3.4] | 1.0 [0.9, 1.1] | 11 [10, 13] |
+| pure $Z$ | $10^{-3}$ | `sri_m` | 6.1e-06 | 3.8 [3.2, 4.3] | 1.5 [1.3, 1.7] | 26 [23, 29] |
+| pure $Z$ | $10^{-3}$ | `sri_m`, fast | 6.0e-06 | 3.7 [3.2, 4.3] | 1.5 [1.3, 1.6] | 25 [23, 28] |
 | pure $Z$ | $10^{-3}$ | `sri_bm` | 3.4e-06 | 2.1 [1.7, 2.6] | 0.8 [0.7, 1.0] | 14 [12, 17] |
+| pure $Z$ | $10^{-3}$ | `sri_bm`, fast | 3.2e-06 | 2.0 [1.7, 2.3] | 0.8 [0.7, 0.9] | 14 [12, 15] |
 | pure $Z$ | $2\times10^{-3}$ | `sri_m` | 1.2e-04 | 8.0 [7.1, 8.9] | 2.1 [1.9, 2.3] | 34 [30, 38] |
-| pure $Z$ | $2\times10^{-3}$ | `sri_bm` | 6.2e-05 | 4.0 [3.5, 4.4] | 1.0 [0.9, 1.2] | 17 [15, 19] |
+| pure $Z$ | $2\times10^{-3}$ | `sri_m`, fast | 1.1e-04 | 7.2 [6.5, 8.1] | 1.9 [1.7, 2.1] | 31 [27, 34] |
+| pure $Z$ | $2\times10^{-3}$ | `sri_bm` | 6.1e-05 | 4.0 [3.5, 4.4] | 1.0 [0.9, 1.2] | 17 [15, 19] |
+| pure $Z$ | $2\times10^{-3}$ | `sri_bm`, fast | 5.7e-05 | 3.7 [3.3, 4.1] | 1.0 [0.9, 1.1] | 16 [14, 17] |
 | pure $Z$ | $3\times10^{-3}$ | `sri_m` | 7.6e-04 | 7.2 [6.5, 8.0] | 2.3 [2.1, 2.5] | 40 [36, 44] |
+| pure $Z$ | $3\times10^{-3}$ | `sri_m`, fast | 7.3e-04 | 6.9 [6.2, 7.6] | 2.2 [2.0, 2.4] | 38 [34, 42] |
 | pure $Z$ | $3\times10^{-3}$ | `sri_bm` | 3.1e-04 | 2.9 [2.6, 3.2] | 0.9 [0.8, 1.0] | 16 [14, 18] |
+| pure $Z$ | $3\times10^{-3}$ | `sri_bm`, fast | 3.1e-04 | 2.9 [2.6, 3.3] | 0.9 [0.8, 1.0] | 16 [14, 18] |
 
 Their argument, that the pure-$Z$ distance of $2d^2$ suppresses logical failures near threshold under $Z$
-bias, does not survive at equal qubit count with their decoder: XYZ² is 12 to 40 times worse per round than
+bias, does not survive at equal qubit count with their decoder: XYZ² is 11 to 40 times worse per round than
 the XZZX code, as it is with our decoders (10 to 17 times with correlated matching). Their belief-matching
-matches our correlated matching on XYZ² and is 2 to 4 times worse than our belief-matching. These runs use the
-literal link rule; the fast rule was not run below threshold.
+matches our correlated matching on XYZ² and is 2 to 4 times worse than our belief-matching. The fast rule
+lowers the error per round by at most 16% (`sri_bm` at $\eta=100$, $p=10^{-3}$), within the intervals
+almost everywhere.
 
 ## Fault distance (SD6, preparation, $r=d$)
 
@@ -260,6 +404,8 @@ decoder.
 | correlated matching | 0 | 2,428 | 0 | 3 |
 | `sri_m` (literal) | 0 | 4,787 | 0 | 1,708 |
 | `sri_m` (fast) | 0 | 4,761 | 0 | 1,708 |
+| `sri_bm` (literal) | 0 | 4,732 | 0 | 1,097 |
+| `sri_bm` (fast) | 0 | 4,710 | 0 | 1,093 |
 | `sri_m1` (Table I first order) | 0 | 5,424 | 0 | 10,687 |
 
 Their hard link decisions lower the fault distance: at $d=5$ two faults defeat `sri_m`, where MWPM needs
@@ -268,7 +414,9 @@ three. Of the 1,708 failing pairs at $d=5$, 1,676 contain a fault that flips det
 fault enters the upper level only when every one of its link detectors is corrected, so when its partner
 turns one of those events into a removed pair or cancels it, nothing explains it. The other 32 are two data
 errors in adjacent rounds of one link, which the rule removes as one outcome flip (the mechanism of their
-Fig. 14). The fast rule fails on 1,708 pairs too.
+Fig. 14). The fast rule fails on 1,708 pairs too. Belief-matching on the upper level (16 likeliest pairs per
+link round, as in the campaign) rescues a third of them and still fails on 1,097 pairs (1,093 with the fast
+rule): the information it lacks is lost in the hard link decisions, before BP.
 
 ## Cost
 
@@ -279,34 +427,51 @@ Decode time per shot (`docs/data/campaign/sri/timing.csv`, Perlmutter CPU, one c
 | 11 | 28 to 30 ms | 44 ms | 0.77 to 0.84 s | 0.85 s |
 | 21 | 101 ms | 550 ms | 2.2 s | 4.1 s |
 
-(16 likeliest pairs per link round; with all pairs `sri_bm` takes 16 to 17 s per shot at $d=21$.) The
-circuit-level campaign (`scripts/campaign_sri.py tasks --part circuit`: 8 models, preparation and both
-memories, `sri_m` and `sri_bm`, $d=3$ to 21, budgets and targets of `campaign.py`) has 5,760 tasks with an
-upper bound of 1,306 core-hours (10.2 node-hours), about 1,270 expected.
+(16 likeliest pairs per link round; with all pairs `sri_bm` takes 16 to 17 s per shot at $d=21$.)
+
+The circuit-level campaign (`scripts/campaign_sri.py tasks --part circuit --decoders sri_m sri_bm sri_m_fast
+sri_bm_fast`, with the fast-rule runs at equal qubits): 8 models, preparation and both memories, four decoders,
+$d=3$ to 21, budgets and targets of `campaign.py`. It produced 11,520 points in 92 pool units on 8 one-node
+regular jobs. Decoding took 1,626 core-hours (`sri_m` 249, `sri_m_fast` 266, `sri_bm` 547, `sri_bm_fast` 564),
+and the equal-qubit runs with the fast rule took 80. The jobs took 16.2 node-hours elapsed, against an estimate
+of 22.7. Every Slurm job of this work took 30.9 node-hours elapsed (`sacct`): the development node, the debug
+pools of the phenomenological and code-capacity validation, the fault distance and the campaign.
 
 ## Status
 
-Stopped before the circuit-level campaign, as the brief asks when the phenomenological validation falls
-outside its windows. The decoder as specified (literal link rule) misses both windows; the same decoder with
-the fast link rule reproduces their numbers. Which rule the circuit-level campaign should use is open.
+Complete. The phenomenological validation of the literal rule fell outside the stop windows of the brief over
+$d=11$ to 21 and inside them over their distances (section "The distances of the fit"). After that report, the
+circuit-level campaign ran with both link rules on the user's decision. Every count is under
+`data/campaign/sri/` and `docs/data/campaign/sri/`. The main campaign files (`points.csv.gz`,
+`thresholds.csv`, `competitors.csv`) are unchanged.
 
-## Proposed paper text (validation, their model, below threshold, fault distance)
+## Proposed paper text
 
-The circuit-level threshold comparison is not run yet, so the main-text sentence for sec:decoders_bias waits
-for it.
+In paper voice, for the rewrite. Values are from `docs/data/campaign/sri/`.
+
+**sec:decoders_bias.** We also implemented the sequential decoder of \cite{Sri2025} at circuit level
+(App.~\ref{app:decoders}), and under seven of our eight noise models its threshold lies between 0.76 and 0.91
+of that of belief-matching on the full \XYZ{} detector error model, while under EM3 it ties our best decoder.
 
 **app:decoders.** We also implemented the sequential decoder of \cite{Sri2025} at circuit level. Each link is
 decoded alone along time: a pair of link events is removed as outcome flips when the flips are more likely
 than two data errors, and every other event gets $Z$ on the top qubit of its link. The upper level then
 receives the conditional probabilities of Table I of \cite{Sri2025}, computed from the detector error model,
-including the second-order entries of uncorrected links, without which the decoder has no threshold. With a
-matching graph over the time chain of every link this decoder reproduces their phenomenological thresholds,
-3.44(3)% against their 3.42(1)% with matching and 3.41(9)% against 3.43(1)% with belief-matching, and their
-code-capacity threshold of 18.1(5)% against 18.34(8)%. Pairing the link events first and comparing the
-likelihoods afterwards gives 3.12(13)% instead. Its hard link decisions cost fault distance: at $d=5$ two
-faults defeat it under SD6, where matching needs three.
+including the second-order entries of uncorrected links, without which the decoder has no threshold. Fitted
+over their distances, $d=3$ to 15, this decoder reproduces their phenomenological thresholds, 3.30(2)% and
+3.52(2)% in the two logical bases against their 3.42(1)% with matching, and their code-capacity threshold,
+18.0(1)% and 18.7(2)% against 18.34(8)%. Over $d=11$ to 21 its phenomenological threshold falls to 3.12(13)%. Deciding the
+links with one matching graph over the time chain of each link removes this drift, giving 3.44(3)% at $d=11$ to
+21, and changes the circuit-level thresholds by at most 11%. At circuit level the threshold of their
+sequential matching is 13% to 49% above that of our erasure passing, and that of their belief-matching is 0.71
+to 0.88 of that of belief-matching on the full detector error model, except under EM3, where the two agree.
+Its hard link decisions cost fault distance: at $d=5$ two faults defeat it under SD6, where matching needs
+three.
 
 **app:comparison_thresholds.** In the phenomenological model of \cite{Sri2025} the \XYZ{} code with their
-sequential decoder reaches 0.67 to 0.76 of the threshold of the XZZX code, below it by more than seven
-standard errors. Below threshold their decoder does not rescue the \XYZ{} code either: at 99 qubits and
-$\eta=100$ or pure $Z$ noise its error per round is 12 to 40 times that of the XZZX code at 97 qubits.
+sequential decoder reaches 0.66 to 0.76 of the threshold of the XZZX code, below it by more than seven
+standard errors. At circuit level their decoder raises none of our \XYZ{} thresholds. With it the \XYZ{} code
+reaches 0.31 to 0.74 of the threshold of the XZZX code under the seven noise models other than EM3, and its
+advantage over the CSS code under bias becomes a tie or a loss. Below threshold their decoder does not rescue
+the \XYZ{} code either: at 99 qubits and $\eta=100$ or pure $Z$ noise its error per round is 11 to 40 times that
+of the XZZX code at 97 qubits.

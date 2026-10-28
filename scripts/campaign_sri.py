@@ -17,6 +17,9 @@ Parts (--part):
 - eq: the equal-qubit comparison below threshold (scripts/campaign_eq.py): XYZ^2 at d = 5 (99 qubits),
   eta = 100 and pure Z, p = 1e-3, 2e-3, 3e-3, r = 3d, both bases.
 
+--decoders replaces sri_m and sri_bm in the circuit and eq parts (for example with their fast link rule,
+sri_m_fast and sri_bm_fast, which take the centres and caps of the decoders they vary).
+
 --dset pilot (d = 3 to 9) or main (d = 11 to 21) or all. Budgets, targets and memory are those of
 scripts/campaign.py (sri_m as seq_match, sri_bm as bm); eq points stop at 300 errors with the caps of
 campaign_eq.py (sri_m as corr_gauge, sri_bm as bm, doubled at the equal-qubit pair).
@@ -58,6 +61,11 @@ EQ_NOISES = ["biased100", "purez"]
 EQ_CAP_H = {"sri_m": EQ.CAP_H["corr_gauge"], "sri_bm": EQ.CAP_H["bm"]}
 
 
+def base_of(dec: str) -> str:
+    """The decoder a variant varies (sri_m_fast -> sri_m)."""
+    return "sri_bm" if dec.startswith("sri_bm") else "sri_m"
+
+
 def dists(dset: str) -> list:
     return {"pilot": PILOT_D, "main": MAIN_D, "all": PILOT_D + MAIN_D}[dset]
 
@@ -91,14 +99,14 @@ def series_tasks(label: str, decoders, distances, rounds="d", centers=None, cent
     return out
 
 
-def circuit_tasks(dset: str, rep_hours: float) -> list:
+def circuit_tasks(dset: str, rep_hours: float, decoders=SRI) -> list:
     """Each series centred on the measured r = d threshold of its proxy (seq_match, bm) for the same noise
     label, or, where that series has none (si1000@both-Y bm drifts), of the preparation series."""
     meas = measured()
     out = []
     for noise in CIRCUIT_NOISES:
         for s in SERIES:
-            for dec in SRI:
+            for dec in decoders:
                 proxy = C.PROXY[dec]
                 c = meas.get((noise + s, proxy, "d"), meas.get((noise, proxy, "d")))
                 out += series_tasks(noise + s, [dec], dists(dset), center=c, rep_hours=rep_hours)
@@ -144,14 +152,14 @@ def variant_tasks(dset: str, rep_hours: float) -> list:
     return out
 
 
-def eq_tasks(rep_hours: float = 2.0) -> list:
+def eq_tasks(rep_hours: float = 2.0, decoders=SRI) -> list:
     """XYZ^2 d = 5 at r = 3d with sri_m and sri_bm, the equal-qubit pair of the XZZX code at d = 7."""
     out = []
     for noise in EQ_NOISES:
         for basis in ("X", "Y"):
-            for dec in SRI:
+            for dec in decoders:
                 for p in EQ.PS:
-                    cap = 3600.0 * EQ_CAP_H[dec] * 2          # doubled at the equal-qubit pairs
+                    cap = 3600.0 * EQ_CAP_H[base_of(dec)] * 2          # doubled at the equal-qubit pairs
                     nrep = max(1, math.ceil(cap / (3600.0 * rep_hours)))
                     for i in range(nrep):
                         t = EQ.task("xyz2", basis, noise, dec, 5, p, "3d", math.ceil(EQ.PAIR_TARGET / nrep),
@@ -176,17 +184,19 @@ def estimate(tasks: list, timing_csv: str | None = None) -> dict:
 
     th = pd.read_csv(ROOT / "docs" / "data" / "campaign" / "thresholds.csv")
     th = th[th.rounds == "d"].set_index(["noise", "decoder"]).core_hours
-    ratio = {"sri_m": 1.0, "sri_bm": 1.0}
+    decs = sorted({x["decoder"] for x in tasks if x["decoder"].startswith("sri")} | set(SRI))
+    ratio = {dec: 1.0 for dec in decs}
     if timing_csv:
         t = pd.read_csv(timing_csv)
         if "config" in t:
             # the campaign's configuration: the proxies as run, sri_* with the 16 likeliest pairs per link round
             t = t[t.config.isin(["campaign", "top 16 pairs"])]
-        for dec in SRI:
+        for dec in decs:
             proxy = C.PROXY[dec]
+            own = dec if (t.decoder == dec).any() else base_of(dec)    # a variant without timings: its base
             r = []
             for d in sorted(set(t.d)):
-                a = t[(t.decoder == dec) & (t.d == d)].ms.mean()
+                a = t[(t.decoder == own) & (t.d == d)].ms.mean()
                 b = t[(t.decoder == proxy) & (t.d == d)].ms.mean()
                 if np.isfinite(a) and np.isfinite(b):
                     r.append(a / b)
@@ -220,6 +230,7 @@ def main() -> None:
     a.add_argument("--rep-hours", type=float, default=4.0)
     a.add_argument("--out", required=True)
     a.add_argument("--timing", default=None)
+    a.add_argument("--decoders", nargs="+", default=SRI, help="circuit and eq parts")
     e = sub.add_parser("estimate")
     e.add_argument("tasks", nargs="+")
     e.add_argument("--timing", default=None)
@@ -228,7 +239,7 @@ def main() -> None:
         tasks = []
         for part in args.part:
             if part == "circuit":
-                tasks += circuit_tasks(args.dset, args.rep_hours)
+                tasks += circuit_tasks(args.dset, args.rep_hours, args.decoders)
             elif part == "phen":
                 tasks += phen_tasks(args.dset, args.rep_hours)
             elif part == "codecap":
@@ -236,7 +247,7 @@ def main() -> None:
             elif part == "variants":
                 tasks += variant_tasks(args.dset, args.rep_hours)
             else:
-                tasks += eq_tasks()
+                tasks += eq_tasks(decoders=args.decoders)
         tasks.sort(key=lambda t: (-t["budget"], t["id"]))
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         with open(args.out, "w") as fh:

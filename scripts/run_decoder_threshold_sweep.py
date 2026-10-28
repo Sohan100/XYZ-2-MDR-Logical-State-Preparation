@@ -111,11 +111,14 @@ DECODERS = {
                    tn_max_open=60),
     # the sequential decoder of Srivastava et al. (arXiv:2505.03691) at circuit level: their link rule,
     # Z on the top qubit, conditional priors, then matching (sri_m) or belief-matching (sri_bm) on the
-    # non-link detectors (src/mdr/ft/sequential_decoder.py); *_fast decide the links with one matching graph
-    "sri_m": dict(mode="sri_m"),
-    "sri_bm": dict(mode="sri_bm", bp_method="product_sum", bp_iters=10),
-    "sri_m_fast": dict(mode="sri_m", link_rule="fast"),
-    "sri_bm_fast": dict(mode="sri_bm", bp_method="product_sum", bp_iters=10, link_rule="fast"),
+    # non-link detectors (src/mdr/ft/sequential_decoder.py); *_fast decide the links with one matching graph.
+    # The 16 likeliest pair signatures of each link round (the s = 0 column of their Table I) give the p_L of
+    # all pairs at a fifth to a ninth of the cost (docs/data/campaign/sri/pair_top.csv); under phen and code
+    # capacity no link round has more than five, so the cap changes nothing there
+    "sri_m": dict(mode="sri_m", sri_pair_top=16),
+    "sri_bm": dict(mode="sri_bm", bp_method="product_sum", bp_iters=10, sri_pair_top=16),
+    "sri_m_fast": dict(mode="sri_m", link_rule="fast", sri_pair_top=16),
+    "sri_bm_fast": dict(mode="sri_bm", bp_method="product_sum", bp_iters=10, link_rule="fast", sri_pair_top=16),
     # Table I to first order only: an uncorrected link round brings in no pair of its data-edge faults
     "sri_m1": dict(mode="sri_m", sri_table="first"),
     "sri_bm1": dict(mode="sri_bm", bp_method="product_sum", bp_iters=10, sri_table="first"),
